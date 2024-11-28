@@ -1,7 +1,13 @@
 Server:
   port: "9001"
   # release / debug / test
-  mode: "release"
+  mode: "debug"
+
+DataBase:
+  # 数据库类型 mysql sqlite3
+  driver: sqlite3
+  # 数据库连接sqlite3数据文件的路径
+  source: data/watchalert.db
 
 MySQL:
   host: w8t-mysql
