@@ -61,3 +61,11 @@ type result struct {
 	Metric map[string]interface{} `json:"metric"`
 	Value  []interface{}          `json:"value"`
 }
+
+func (d *AlertDataSource) GetEnabled() *bool {
+	if d.Enabled == nil {
+		isOk := false
+		return &isOk
+	}
+	return d.Enabled
+}

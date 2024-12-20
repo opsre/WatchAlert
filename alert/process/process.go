@@ -24,8 +24,8 @@ func BuildEvent(rule models.AlertRule) models.AlertCurEvent {
 		RepeatNoticeInterval: rule.RepeatNoticeInterval,
 		Severity:             rule.Severity,
 		EffectiveTime:        rule.EffectiveTime,
-		RecoverNotify:        rule.RecoverNotify,
-		AlarmAggregation:     rule.AlarmAggregation,
+		RecoverNotify:        rule.GetRecoverNotify(),
+		AlarmAggregation:     rule.GetAlarmAggregation(),
 	}
 }
 

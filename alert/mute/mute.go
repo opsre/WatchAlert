@@ -9,7 +9,7 @@ import (
 
 type MuteParams struct {
 	EffectiveTime models.EffectiveTime
-	RecoverNotify bool
+	RecoverNotify *bool
 	IsRecovered   bool
 	TenantId      string
 	Fingerprint   string
@@ -65,7 +65,7 @@ func InTheEffectiveTime(mp MuteParams) bool {
 // RecoverNotify 判断是否推送恢复通知
 func RecoverNotify(mp MuteParams) bool {
 	// 如果是恢复告警，并且 恢复通知 == 1，即关闭恢复通知
-	if mp.IsRecovered && !mp.RecoverNotify {
+	if mp.IsRecovered && !*mp.RecoverNotify {
 		return true
 	}
 

@@ -190,3 +190,27 @@ func (a *AlertRule) Fingerprint() Fingerprint {
 }
 
 func (a *AlertRule) GetRuleType() string { return a.DatasourceType }
+
+func (a *AlertRule) GetRecoverNotify() *bool {
+	if a.RecoverNotify == nil {
+		isOk := false
+		return &isOk
+	}
+	return a.RecoverNotify
+}
+
+func (a *AlertRule) GetAlarmAggregation() *bool {
+	if a.AlarmAggregation == nil {
+		isOk := false
+		return &isOk
+	}
+	return a.AlarmAggregation
+}
+
+func (a *AlertRule) GetEnabled() *bool {
+	if a.Enabled == nil {
+		isOk := false
+		return &isOk
+	}
+	return a.RecoverNotify
+}

@@ -180,7 +180,7 @@ func (t *ProductProbing) processDefaultEvent(rule models.ProbingRule) models.Pro
 		Severity:              rule.Severity,
 		IsRecovered:           false,
 		RepeatNoticeInterval:  rule.RepeatNoticeInterval,
-		RecoverNotify:         rule.RecoverNotify,
+		RecoverNotify:         rule.GetRecoverNotify(),
 		ProbingEndpointConfig: rule.ProbingEndpointConfig,
 	}
 }

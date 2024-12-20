@@ -133,6 +133,6 @@ func buildEvent(event models.ProbingEvent) models.AlertCurEvent {
 		RecoverTime:            event.RecoverTime,
 		RecoverTimeFormat:      event.RecoverTimeFormat,
 		DutyUser:               event.DutyUser,
-		RecoverNotify:          event.RecoverNotify,
+		RecoverNotify:          event.GetRecoverNotify(),
 	}
 }

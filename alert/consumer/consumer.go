@@ -292,7 +292,7 @@ func (ec *Consume) handleAlert(rule models.AlertRule, alerts []models.AlertCurEv
 
 		mp := mute.MuteParams{
 			EffectiveTime: alert.EffectiveTime,
-			RecoverNotify: *alert.RecoverNotify,
+			RecoverNotify: alert.GetRecoverNotify(),
 			IsRecovered:   alert.IsRecovered,
 			TenantId:      alert.TenantId,
 			Fingerprint:   alert.Fingerprint,

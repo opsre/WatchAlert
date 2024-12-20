@@ -73,7 +73,7 @@ func (rs ruleService) Update(req interface{}) (interface{}, interface{}) {
 	}
 
 	// 启动协程
-	if *rule.Enabled {
+	if *rule.GetEnabled() {
 		alert.AlertRule.Submit(*rule)
 		logc.Infof(rs.ctx.Ctx, fmt.Sprintf("重启 RuleId 为 %s 的 Worker 进程", rule.RuleId))
 	} else {
@@ -103,7 +103,7 @@ func (rs ruleService) Delete(req interface{}) (interface{}, interface{}) {
 	}
 
 	// 退出该规则的协程
-	if *info.Enabled {
+	if *info.GetEnabled() {
 		logc.Infof(rs.ctx.Ctx, fmt.Sprintf("停止 RuleId 为 %s 的 Worker 进程", rule.RuleId))
 		alert.AlertRule.Stop(rule.RuleId)
 	}

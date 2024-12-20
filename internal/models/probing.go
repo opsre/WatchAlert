@@ -27,6 +27,22 @@ func (n *ProbingRule) GetProbingMappingKey() string {
 	return "w8t" + ":" + n.TenantId + ":" + "netValue" + ":" + n.RuleId
 }
 
+func (n *ProbingRule) GetRecoverNotify() *bool {
+	if n.RecoverNotify == nil {
+		isOk := false
+		return &isOk
+	}
+	return n.RecoverNotify
+}
+
+func (n *ProbingRule) GetEnabled() *bool {
+	if n.Enabled == nil {
+		isOk := false
+		return &isOk
+	}
+	return n.Enabled
+}
+
 type OnceProbing struct {
 	RuleType              string                `json:"ruleType"`
 	ProbingEndpointConfig ProbingEndpointConfig `json:"probingEndpointConfig"`
@@ -145,4 +161,12 @@ func (n *ProbingEvent) GetFiringAlertCacheKey() string {
 
 func (n *ProbingEvent) GetProbingMappingKey() string {
 	return "w8t" + ":" + n.TenantId + ":" + "netValue" + ":" + n.RuleId
+}
+
+func (n *ProbingEvent) GetRecoverNotify() *bool {
+	if n.RecoverNotify == nil {
+		isOk := false
+		return &isOk
+	}
+	return n.RecoverNotify
 }
