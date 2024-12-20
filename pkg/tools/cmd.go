@@ -10,6 +10,8 @@ import (
 	"io"
 	"math/rand"
 	"regexp"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -149,4 +151,25 @@ func IsEndOfWeek(dateStr string) bool {
 		return false
 	}
 	return date.Weekday() == time.Sunday
+}
+
+func ProcessRuleExpr(ruleExpr string) (string, float64, error) {
+	// 去除空格
+	trimmedExpr := strings.ReplaceAll(ruleExpr, " ", "")
+
+	// 正则表达式匹配
+	re := regexp.MustCompile(`([^\d]+)(\d+)`)
+	matches := re.FindStringSubmatch(trimmedExpr)
+	if len(matches) < 3 {
+		return "", 0, fmt.Errorf("无效的表达式: %s", ruleExpr)
+	}
+
+	// 提取操作符和数值
+	operator := matches[1]
+	value, err := strconv.ParseFloat(matches[2], 64)
+	if err != nil {
+		return "", 0, fmt.Errorf("无法解析数值: %s", matches[2])
+	}
+
+	return operator, value, nil
 }

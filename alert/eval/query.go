@@ -3,8 +3,6 @@ package eval
 import (
 	"fmt"
 	"github.com/zeromicro/go-zero/core/logc"
-	"regexp"
-	"strconv"
 	"strings"
 	"time"
 	"watchAlert/alert/process"
@@ -64,9 +62,11 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 
 	for _, v := range resQuery {
 		for _, ruleExpr := range rule.PrometheusConfig.Rules {
-			re := regexp.MustCompile(`([^\d]+)(\d+)`)
-			matches := re.FindStringSubmatch(ruleExpr.Expr)
-			t, _ := strconv.ParseFloat(matches[2], 64)
+			operator, value, err := tools.ProcessRuleExpr(ruleExpr.Expr)
+			if err != nil {
+				logc.Errorf(ctx.Ctx, err.Error())
+				continue
+			}
 
 			event := func() models.AlertCurEvent {
 				event := process.BuildEvent(rule)
@@ -90,9 +90,9 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 			}
 
 			option := models.EvalCondition{
-				Operator:      matches[1],
+				Operator:      operator,
 				QueryValue:    v.Value,
-				ExpectedValue: t,
+				ExpectedValue: value,
 			}
 
 			if process.EvalCondition(option) {
