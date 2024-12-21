@@ -62,7 +62,7 @@ func importClientPools(ctx *ctx.Context) {
 			continue
 		}
 		g.Go(func() error {
-			err := services.DatasourceService.WithAddClientToProviderPools(datasource)
+			err := services.DatasourceService.WithAddClientToProviderPools(ds)
 			if err != nil {
 				logc.Error(ctx.Ctx, fmt.Sprintf("添加到 Client 存储池失败, err: %s", err.Error()))
 				return err
