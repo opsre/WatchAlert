@@ -29,6 +29,7 @@ func dingdingTemplate(alert models2.AlertCurEvent, noticeTmpl models2.NoticeTemp
 		},
 		At: models2.At{
 			AtUserIds: []string{userId},
+			AtMobiles: []string{userId},
 			IsAtAll:   false,
 		},
 	}
