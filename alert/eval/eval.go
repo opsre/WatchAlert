@@ -67,7 +67,7 @@ func (t *AlertRule) Eval(ctx context.Context, rule models.AlertRule) {
 	defer func() {
 		timer.Stop()
 		if r := recover(); r != nil {
-			logc.Error(t.ctx.Ctx, fmt.Sprintf("Recovered from rule eval goroutine panic: %s", r))
+			logc.Error(t.ctx.Ctx, fmt.Sprintf("Recovered from rule eval goroutine panic: %s, RuleName: %s, RuleId: %s", r, rule.RuleName, rule.RuleId))
 		}
 	}()
 
