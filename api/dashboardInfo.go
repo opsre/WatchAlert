@@ -2,6 +2,7 @@ package api
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/zeromicro/go-zero/core/logc"
 	"watchAlert/internal/middleware"
 	"watchAlert/internal/models"
 	"watchAlert/pkg/ctx"
@@ -26,6 +27,7 @@ func (di DashboardInfoController) API(gin *gin.RouterGroup) {
 
 type ResponseDashboardInfo struct {
 	CountAlertRules   int64                    `json:"countAlertRules"`
+	CurMutes          int64                    `json:"curMutes"`
 	CurAlerts         int                      `json:"curAlerts"`
 	CurAlertList      []string                 `json:"curAlertList"`
 	AlarmDistribution AlarmDistribution        `json:"alarmDistribution"`
@@ -39,15 +41,13 @@ type AlarmDistribution struct {
 }
 
 func (di DashboardInfoController) GetDashboardInfo(context *gin.Context) {
-
 	var (
 		// 规则总数
 		countAlertRules int64
 		// 当前告警
 		keys []string
+		c    = ctx.DO()
 	)
-
-	c := ctx.DO()
 
 	tid, _ := context.Get("TenantID")
 	tidString := tid.(string)
@@ -85,11 +85,18 @@ func (di DashboardInfoController) GetDashboardInfo(context *gin.Context) {
 		curAlertList = append(curAlertList, c.Redis.Event().GetCache(v).Annotations)
 	}
 
+	res, err := c.DB.Silence().List(models.AlertSilenceQuery{TenantId: tidString, Status: 0})
+	if err != nil {
+		logc.Errorf(c.Ctx, "List silence failed, err: %s", err.Error())
+		return
+	}
+
 	var resource []models.ServiceResource
 	c.DB.DB().Model(&models.ServiceResource{}).Find(&resource)
 
 	response.Success(context, ResponseDashboardInfo{
 		CountAlertRules: countAlertRules,
+		CurMutes:        res.Total,
 		CurAlerts:       len(keys),
 		CurAlertList:    curAlertList,
 		AlarmDistribution: AlarmDistribution{
