@@ -12,6 +12,7 @@ type (
 
 	InterSilenceRepo interface {
 		List(r models.AlertSilenceQuery) (models.SilenceResponse, error)
+		Get(r models.AlertSilenceQuery) (models.AlertSilences, error)
 		Create(r models.AlertSilences) error
 		Update(r models.AlertSilences) error
 		Delete(r models.AlertSilenceQuery) error
@@ -57,6 +58,17 @@ func (sr SilenceRepo) List(r models.AlertSilenceQuery) (models.SilenceResponse, 
 			Size:  r.Page.Size,
 		},
 	}, nil
+}
+
+func (sr SilenceRepo) Get(r models.AlertSilenceQuery) (models.AlertSilences, error) {
+	var data models.AlertSilences
+	db := sr.db.Model(models.AlertSilences{})
+	db.Where("tenant_id = ?", r.TenantId)
+	db.Where("fingerprint = ?", r.Fingerprint)
+	if err := db.First(&data).Error; err != nil {
+		return data, err
+	}
+	return data, nil
 }
 
 func (sr SilenceRepo) Create(r models.AlertSilences) error {

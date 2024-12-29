@@ -2,6 +2,7 @@ package services
 
 import (
 	"encoding/json"
+	"gorm.io/gorm"
 	"log"
 	"strings"
 	"time"
@@ -114,6 +115,19 @@ func (e eventService) ListCurrentEvent(req interface{}) (interface{}, interface{
 		}
 		dataList = dsTypeDataList
 	}
+
+	var newDontIsMuteDataList []models.AlertCurEvent
+	for _, event := range dataList {
+		_, err := newInterSilenceService(e.ctx).Get(&models.AlertSilenceQuery{
+			TenantId:    event.TenantId,
+			Fingerprint: event.Fingerprint,
+			Status:      0,
+		})
+		if err != nil && err == gorm.ErrRecordNotFound {
+			newDontIsMuteDataList = append(newDontIsMuteDataList, event)
+		}
+	}
+	dataList = newDontIsMuteDataList
 
 	return models.CurEventResponse{
 		List: pageSlice(dataList, int(r.Page.Index), int(r.Page.Size)),
