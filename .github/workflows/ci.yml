@@ -56,7 +56,7 @@ jobs:
           build-args: |
             VERSION=${{ env.DATE }}
           tags: |
-            cairry/watchlog:latest
-            cairry/watchlog:${{ env.BRANCH_NAME }}.${{ env.DATE }}.${{ env.SHORT_SHA }}
+            cairry/watchalert:latest
+            cairry/watchalert:${{ env.BRANCH_NAME }}.${{ env.DATE }}.${{ env.SHORT_SHA }}
             registry.cn-hangzhou.aliyuncs.com/opsre/watchalert:latest
             registry.cn-hangzhou.aliyuncs.com/opsre/watchalert:${{ env.BRANCH_NAME }}.${{ env.DATE }}.${{ env.SHORT_SHA }}
