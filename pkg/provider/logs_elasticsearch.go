@@ -2,7 +2,9 @@ package provider
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"github.com/olivere/elastic/v7"
 	"watchAlert/internal/models"
 	utilsHttp "watchAlert/pkg/tools"
@@ -11,6 +13,8 @@ import (
 type ElasticSearchDsProvider struct {
 	cli            *elastic.Client
 	url            string
+	username       string
+	password       string
 	ExternalLabels map[string]interface{}
 }
 
@@ -27,6 +31,8 @@ func NewElasticSearchClient(ctx context.Context, ds models.AlertDataSource) (Log
 	return ElasticSearchDsProvider{
 		cli:            client,
 		url:            ds.ElasticSearch.Url,
+		username:       ds.ElasticSearch.Username,
+		password:       ds.ElasticSearch.Password,
 		ExternalLabels: ds.Labels,
 	}, nil
 }
@@ -87,13 +93,21 @@ func (e ElasticSearchDsProvider) Query(options LogQueryOptions) ([]Logs, int, er
 }
 
 func (e ElasticSearchDsProvider) Check() (bool, error) {
-	res, err := utilsHttp.Get(nil, e.url+"/_cat/health", 10)
+	header := make(map[string]string)
+	url := fmt.Sprintf("%s/_cat/health", e.url)
+	if e.username != "" {
+		auth := e.username + ":" + e.password
+		basicAuth := "Basic " + base64.StdEncoding.EncodeToString([]byte(auth))
+		header["Authorization"] = basicAuth
+		url = fmt.Sprintf("%s/_cat/health", e.url)
+	}
+	res, err := utilsHttp.Get(header, url, 10)
 	if err != nil {
 		return false, err
 	}
 
 	if res.StatusCode != 200 {
-		return false, err
+		return false, fmt.Errorf("状态码非200, 当前: %d", res.StatusCode)
 	}
 	return true, nil
 }
