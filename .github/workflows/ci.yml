@@ -6,9 +6,20 @@ on:
       - master
 
 jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      timestamp: ${{ steps.set_timestamp.outputs.timestamp }}
+    steps:
+      - name: Set timestamp
+        id: set_timestamp
+        run: |
+          TIMESTAMP=$(TZ=Asia/Shanghai date +%Y-%m-%d.%H-%M-%S)
+          echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
+
   build:
     runs-on: ubuntu-latest
-
+    needs: setup
     strategy:
       matrix:
         arch:
@@ -50,7 +61,7 @@ jobs:
         run: |
           echo "BRANCH_NAME=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
           echo "SHORT_SHA=${GITHUB_SHA:0:4}" >> $GITHUB_ENV
-          echo "DATE=$(TZ=Asia/Shanghai date +%Y-%m-%d.%H-%M-%S)" >> $GITHUB_ENV
+          echo "DATE=${{ needs.setup.outputs.timestamp }}" >> $GITHUB_ENV
 
       - name: Build and push
         uses: docker/build-push-action@v6
