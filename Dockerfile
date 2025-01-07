@@ -14,7 +14,7 @@ RUN sed -i "s/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g" /etc/apk/repositories
     ca-certificates upx
 
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=$TARGETARCH go build --ldflags="-X main.Version=${VERSION}" -o watchAlert . \
-  && upx -9 watchAlert && chmod +x watchAlert
+    && chmod +x watchAlert
 
 FROM alpine:3.19
 
