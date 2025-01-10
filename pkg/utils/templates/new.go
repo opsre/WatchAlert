@@ -18,6 +18,8 @@ func NewTemplate(ctx *ctx.Context, alert models.AlertCurEvent, notice models.Ale
 		return Template{CardContentMsg: dingdingTemplate(alert, noticeTmpl)}
 	case "Email":
 		return Template{CardContentMsg: emailTemplate(alert, noticeTmpl)}
+	case "PhoneCall":
+		return Template{CardContentMsg: phoneCallTemplate(alert, noticeTmpl)}
 	}
 
 	return Template{}

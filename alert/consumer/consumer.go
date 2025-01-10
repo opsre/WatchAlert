@@ -268,6 +268,7 @@ func (ec *Consume) handleAlert(alerts []models.AlertCurEvent) {
 	}
 	noticeData, _ := ec.ctx.DB.Notice().Get(r)
 	alertOne.DutyUser = process.GetDutyUser(ec.ctx, noticeData)
+	alertOne.DutyUserPhoneNumber = process.GetDutyUserPhoneNumber(ec.ctx, noticeData)
 	err := sender.Sender(ec.ctx, alertOne, noticeData)
 	if err != nil {
 		global.Logger.Sugar().Errorf(err.Error())

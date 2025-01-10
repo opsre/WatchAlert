@@ -23,6 +23,8 @@ func InitRoute() {
 		middleware.Cors(),
 		// 自定义请求日志格式
 		gin.LoggerWithFormatter(middleware.RequestLoggerFormatter),
+		// 处理异常panic，go template解析错误的模板时有可能会出现
+		gin.Recovery(),
 	)
 	allRouter(ginEngine)
 
