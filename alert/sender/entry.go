@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"strings"
 	"watchAlert/alert/mute"
 	"watchAlert/internal/global"
 	"watchAlert/internal/models"
@@ -78,8 +77,8 @@ func Sender(ctx *ctx.Context, alert models.AlertCurEvent, notice models.AlertNot
 			}
 		}
 		// 通知对象
-		if len(strings.Split(notice.PhoneNumber, ",")) > 0 {
-			err = phoneCall.Call(n.CardContentMsg, strings.Split(notice.PhoneNumber, ","))
+		if len(notice.PhoneNumber) > 0 {
+			err = phoneCall.Call(n.CardContentMsg, notice.PhoneNumber)
 			if err != nil {
 				global.Logger.Sugar().Errorf("语音通知 类型报警发送失败 error: %v", err)
 				return err

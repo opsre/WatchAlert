@@ -5,15 +5,15 @@ import (
 )
 
 type AlertNotice struct {
-	TenantId     string `json:"tenantId"`
-	Uuid         string `json:"uuid"`
-	Name         string `json:"name"`
-	DutyId       string `json:"dutyId"`
-	NoticeType   string `json:"noticeType"`
-	NoticeTmplId string `json:"noticeTmplId"`
-	Hook         string `json:"hook"`
-	Email        Email  `json:"email" gorm:"email;serializer:json"`
-	PhoneNumber  string `json:"phoneNumber"`
+	TenantId     string   `json:"tenantId"`
+	Uuid         string   `json:"uuid"`
+	Name         string   `json:"name"`
+	DutyId       string   `json:"dutyId"`
+	NoticeType   string   `json:"noticeType"`
+	NoticeTmplId string   `json:"noticeTmplId"`
+	Hook         string   `json:"hook"`
+	Email        Email    `json:"email" gorm:"email;serializer:json"`
+	PhoneNumber  []string `json:"phoneNumber"`
 }
 
 type Email struct {
