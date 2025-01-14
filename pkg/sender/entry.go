@@ -29,6 +29,8 @@ type (
 		Content string
 		// 事件
 		Event interface{}
+		// 电话号码
+		PhoneNumber []string
 	}
 
 	// SendInter 发送通知的接口
@@ -70,6 +72,8 @@ func senderFactory(noticeType string) (SendInter, error) {
 		return NewWeChatSender(), nil
 	case "CustomHook":
 		return NewWebHookSender(), nil
+	case "PhoneCall":
+		return NewPhoneCallSender(), nil
 	default:
 		return nil, fmt.Errorf("无效的通知类型: %s", noticeType)
 	}

@@ -176,6 +176,20 @@ func GetDutyUser(ctx *ctx.Context, noticeData models.AlertNotice) string {
 	return "暂无"
 }
 
+// GetDutyUserPhoneNumber 获取当班人员手机号
+func GetDutyUserPhoneNumber(ctx *ctx.Context, noticeData models.AlertNotice) []string {
+	user, ok := ctx.DB.DutyCalendar().GetDutyUserInfo(noticeData.DutyId, time.Now().Format("2006-1-2"))
+	if ok {
+		switch noticeData.NoticeType {
+		case "PhoneCall":
+			if len(user.DutyUserId) > 1 {
+				return []string{user.Phone}
+			}
+		}
+	}
+	return []string{}
+}
+
 // RecordAlertHisEvent 记录历史告警
 func RecordAlertHisEvent(ctx *ctx.Context, alert models.AlertCurEvent) error {
 	hisData := models.AlertHisEvent{
