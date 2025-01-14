@@ -252,7 +252,18 @@ func (c *Consume) handleAlert(faultCenter models.FaultCenter, alerts []*models.A
 				c.ctx.Redis.Event().PushEventToFaultCenter(alert)
 			}
 
+			phoneNumber := func() []string {
+				if len(alert.DutyUserPhoneNumber) > 0 {
+					return alert.DutyUserPhoneNumber
+				}
+				if len(noticeData.PhoneNumber) > 0 {
+					return noticeData.PhoneNumber
+				}
+				return []string{}
+			}()
+
 			alert.DutyUser = process.GetDutyUser(c.ctx, noticeData)
+			alert.DutyUserPhoneNumber = process.GetDutyUserPhoneNumber(c.ctx, noticeData)
 			content := c.generateAlertContent(alert, noticeData)
 			return sender.Sender(c.ctx, sender.SendParams{
 				TenantId:    alert.TenantId,
@@ -266,6 +277,7 @@ func (c *Consume) handleAlert(faultCenter models.FaultCenter, alerts []*models.A
 				Email:       noticeData.Email,
 				Content:     content,
 				Event:       nil,
+				PhoneNumber: phoneNumber,
 			})
 		})
 	}

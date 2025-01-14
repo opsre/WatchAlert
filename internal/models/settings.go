@@ -1,9 +1,10 @@
 package models
 
 type Settings struct {
-	IsInit      int         `json:"isInit"`
-	EmailConfig emailConfig `json:"emailConfig" gorm:"emailConfig;serializer:json"`
-	AppVersion  string      `json:"appVersion" gorm:"-"`
+	IsInit          int             `json:"isInit"`
+	EmailConfig     emailConfig     `json:"emailConfig" gorm:"emailConfig;serializer:json"`
+	AppVersion      string          `json:"appVersion" gorm:"-"`
+	PhoneCallConfig phoneCallConfig `json:"phoneCallConfig" gorm:"phoneCallConfig;serializer:json"`
 }
 
 type emailConfig struct {
@@ -11,4 +12,12 @@ type emailConfig struct {
 	Port          int    `json:"port"`
 	Email         string `json:"email"`
 	Token         string `json:"token"`
+}
+
+type phoneCallConfig struct {
+	Provider        string `json:"provider"`
+	Endpoint        string `json:"endpoint"`
+	AccessKeyId     string `json:"accessKeyId"`
+	AccessKeySecret string `json:"accessKeySecret"`
+	TtsCode         string `json:"ttsCode"`
 }
