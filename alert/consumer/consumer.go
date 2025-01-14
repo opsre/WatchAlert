@@ -289,6 +289,7 @@ func (ec *Consume) handleAlert(rule models.AlertRule, alerts []models.AlertCurEv
 
 		noticeData, _ := ec.ctx.DB.Notice().Get(r)
 		alert.DutyUser = process.GetDutyUser(ec.ctx, noticeData)
+		alert.DutyUserPhoneNumber = process.GetDutyUserPhoneNumber(ec.ctx, noticeData)
 
 		mp := mute.MuteParams{
 			EffectiveTime: alert.EffectiveTime,
@@ -308,6 +309,16 @@ func (ec *Consume) handleAlert(rule models.AlertRule, alerts []models.AlertCurEv
 		} else {
 			content = templates.NewTemplate(ec.ctx, alert, noticeData).CardContentMsg
 		}
+
+		phoneNumber := func() []string {
+			if len(alert.DutyUserPhoneNumber) > 0 {
+				return alert.DutyUserPhoneNumber
+			}
+			if len(noticeData.PhoneNumber) > 0 {
+				return noticeData.PhoneNumber
+			}
+			return []string{}
+		}()
 		err := sender.Sender(ec.ctx, sender.SendParams{
 			TenantId:    alert.TenantId,
 			RuleName:    alert.RuleName,
@@ -320,6 +331,7 @@ func (ec *Consume) handleAlert(rule models.AlertRule, alerts []models.AlertCurEv
 			Email:       noticeData.Email,
 			Content:     content,
 			Event:       nil,
+			PhoneNumber: phoneNumber,
 		})
 		if err != nil {
 			logc.Errorf(ec.ctx.Ctx, err.Error())
