@@ -332,6 +332,7 @@ func (ec *Consume) handleAlert(rule models.AlertRule, alerts []models.AlertCurEv
 			Content:     content,
 			Event:       nil,
 			PhoneNumber: phoneNumber,
+			Sign:        noticeData.Sign,
 		})
 		if err != nil {
 			logc.Errorf(ec.ctx.Ctx, err.Error())
