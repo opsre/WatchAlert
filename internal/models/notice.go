@@ -13,6 +13,8 @@ type AlertNotice struct {
 	NoticeTmplId string   `json:"noticeTmplId"`
 	Hook         string   `json:"hook"`
 	Email        Email    `json:"email" gorm:"email;serializer:json"`
+	// 签名
+	Sign         string   `json:"sign" gorm:"sign"`
 	PhoneNumber  []string `json:"phoneNumber" gorm:"phoneNumber;serializer:json"`
 }
 

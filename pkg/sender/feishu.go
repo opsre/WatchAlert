@@ -2,8 +2,15 @@ package sender
 
 import (
 	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
+	"time"
+
 	"watchAlert/pkg/tools"
 )
 
@@ -22,8 +29,22 @@ func NewFeiShuSender() SendInter {
 }
 
 func (f *FeiShuSender) Send(params SendParams) error {
-	cardContentByte := bytes.NewReader([]byte(params.Content))
-	res, err := tools.Post(nil, params.Hook, cardContentByte, 10)
+	msg := params.GetSendMsg()
+	if params.Sign != "" {
+		timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+		signature, err := generateSignature(params.Sign, timestamp)
+		if err != nil {
+			return err
+		}
+		msg["sign"] = signature
+		msg["timestamp"] = timestamp
+	}
+
+	msgStr, _ := json.Marshal(msg)
+
+	msgByte := bytes.NewReader(msgStr)
+
+	res, err := tools.Post(nil, params.Hook, msgByte, 10)
 	if err != nil {
 		return err
 	}
@@ -37,4 +58,18 @@ func (f *FeiShuSender) Send(params SendParams) error {
 	}
 
 	return nil
+}
+
+// generateSignature 生成签名
+func generateSignature(secret string, timestamp string) (string, error) {
+	//timestamp + key 做sha256, 再进行base64 encode
+	stringToSign := fmt.Sprintf("%v", timestamp) + "\n" + secret
+	var data []byte
+	h := hmac.New(sha256.New, []byte(stringToSign))
+	_, err := h.Write(data)
+	if err != nil {
+		return "", err
+	}
+	signature := base64.StdEncoding.EncodeToString(h.Sum(nil))
+	return signature, nil
 }

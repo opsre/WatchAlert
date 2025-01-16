@@ -1,11 +1,15 @@
 package sender
 
 import (
+	"encoding/json"
 	"fmt"
-	"github.com/zeromicro/go-zero/core/logc"
 	"time"
+
 	"watchAlert/internal/models"
 	"watchAlert/pkg/ctx"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/zeromicro/go-zero/core/logc"
 )
 
 type (
@@ -31,6 +35,8 @@ type (
 		Event interface{}
 		// 电话号码
 		PhoneNumber []string
+		// 签名
+		Sign string `json:"sign,omitempty"`
 	}
 
 	// SendInter 发送通知的接口
@@ -96,4 +102,18 @@ func addRecord(ctx *ctx.Context, sendParams SendParams, status int, msg, errMsg 
 	if err != nil {
 		logc.Errorf(ctx.Ctx, fmt.Sprintf("Add notice record failed, err: %s", err.Error()))
 	}
+}
+
+// GetSendMsg 发送内容
+func (s *SendParams) GetSendMsg() map[string]any {
+	msg := make(map[string]any)
+	if s == nil || s.Content == "" {
+		return msg
+	}
+	err := json.Unmarshal([]byte(s.Content), &msg)
+	if err != nil {
+		log.Fatal("解析发送内容失败!", err)
+		return msg
+	}
+	return msg
 }

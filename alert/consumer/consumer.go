@@ -278,6 +278,7 @@ func (c *Consume) handleAlert(faultCenter models.FaultCenter, alerts []*models.A
 				Content:     content,
 				Event:       nil,
 				PhoneNumber: phoneNumber,
+				Sign:        noticeData.Sign,
 			})
 		})
 	}
