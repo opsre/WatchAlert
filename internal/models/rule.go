@@ -212,5 +212,5 @@ func (a *AlertRule) GetEnabled() *bool {
 		isOk := false
 		return &isOk
 	}
-	return a.RecoverNotify
+	return a.Enabled
 }
