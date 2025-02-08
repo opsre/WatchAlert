@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/zeromicro/go-zero/core/logc"
+	"runtime/debug"
 	"time"
 	"watchAlert/alert/process"
 	"watchAlert/alert/storage"
@@ -67,29 +68,36 @@ func (t *AlertRule) Eval(ctx context.Context, rule models.AlertRule) {
 	defer func() {
 		timer.Stop()
 		if r := recover(); r != nil {
-			logc.Error(t.ctx.Ctx, fmt.Sprintf("Recovered from rule eval goroutine panic: %s, RuleName: %s, RuleId: %s", r, rule.RuleName, rule.RuleId))
+			logc.Errorf(t.ctx.Ctx, "Recovered from panic in rule eval: %v\nStack: %s", r, debug.Stack())
 		}
 	}()
 
 	for {
 		select {
 		case <-timer.C:
-			// 在规则评估前检查是否仍然启用，避免不必要的操作
+			// 检查规则是否仍然启用
 			if !t.isRuleEnabled(rule.RuleId) {
+				logc.Infof(t.ctx.Ctx, "RuleId: %s 已禁用，退出评估循环", rule.RuleId)
 				return
 			}
 
-			var curFiringKeys, curPendingKeys []string
 			for _, dsId := range rule.DatasourceIdList {
+				curFiringKeys := []string{}
+				curPendingKeys := []string{}
+
 				instance, err := t.ctx.DB.Datasource().GetInstance(dsId)
 				if err != nil {
-					logc.Error(t.ctx.Ctx, err.Error())
-				}
-
-				if !provider.CheckDatasourceHealth(instance) {
+					logc.Warnf(t.ctx.Ctx, "获取数据源失败: %s (dsId=%s)", err.Error(), dsId)
 					continue
 				}
 
+				// 检查数据源健康状态
+				if !provider.CheckDatasourceHealth(instance) {
+					logc.Warnf(t.ctx.Ctx, "数据源 %s 不健康，跳过处理", dsId)
+					continue
+				}
+
+				// 处理不同类型的数据源
 				switch rule.DatasourceType {
 				case "Prometheus", "VictoriaMetrics":
 					curFiringKeys, curPendingKeys = metrics(t.ctx, dsId, instance.Type, rule)
@@ -102,16 +110,27 @@ func (t *AlertRule) Eval(ctx context.Context, rule models.AlertRule) {
 				case "KubernetesEvent":
 					curFiringKeys = kubernetesEvent(t.ctx, dsId, rule)
 				}
-			}
-			logc.Infof(t.ctx.Ctx, fmt.Sprintf("规则评估 -> %v", tools.JsonMarshal(rule)))
 
-			t.Recover(rule, curFiringKeys)
-			t.GC(rule, curFiringKeys, curPendingKeys)
+				// 记录规则评估日志
+				if len(curFiringKeys) == 0 && len(curPendingKeys) == 0 {
+					logc.Debug(t.ctx.Ctx, "数据源 %s 规则 %s (RuleId: %s) 没有触发状态", dsId, rule.RuleName, rule.RuleId)
+				} else {
+					logc.Infof(t.ctx.Ctx, "数据源 %s 规则评估 -> %v", dsId, tools.JsonMarshal(rule))
+				}
+
+				// 立即执行恢复和 GC 逻辑
+				t.Recover(rule, curFiringKeys)
+				t.GC(rule, curFiringKeys, curPendingKeys)
+			}
+
+			// 重新创建定时器，保证新的 `EvalInterval` 生效
+			timer.Stop()
+			timer = time.NewTicker(time.Second * time.Duration(rule.EvalInterval))
+
 		case <-ctx.Done():
-			logc.Infof(t.ctx.Ctx, fmt.Sprintf("停止 RuleId: %v, RuleName: %s 的 Watch 协程", rule.RuleId, rule.RuleName))
+			logc.Infof(t.ctx.Ctx, "停止 RuleId: %s, RuleName: %s 的 Watch 协程", rule.RuleId, rule.RuleName)
 			return
 		}
-		timer.Reset(time.Second * time.Duration(rule.EvalInterval))
 	}
 }
 
