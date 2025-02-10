@@ -79,7 +79,7 @@ func (t *AlertRule) Eval(ctx context.Context, rule models.AlertRule) {
 				return
 			}
 
-			var curFiringKeys, curPendingKeys []string
+			var curFingerprints, curPendingFingerprints []string
 			for _, dsId := range rule.DatasourceIdList {
 				instance, err := t.ctx.DB.Datasource().GetInstance(dsId)
 				if err != nil {
@@ -89,24 +89,28 @@ func (t *AlertRule) Eval(ctx context.Context, rule models.AlertRule) {
 				if !provider.CheckDatasourceHealth(instance) {
 					continue
 				}
-
+				var firingFingerprints, pendingFingerprints []string
 				switch rule.DatasourceType {
 				case "Prometheus", "VictoriaMetrics":
-					curFiringKeys, curPendingKeys = metrics(t.ctx, dsId, instance.Type, rule)
+					firingFingerprints, pendingFingerprints = metrics(t.ctx, dsId, instance.Type, rule)
 				case "AliCloudSLS", "Loki", "ElasticSearch":
-					curFiringKeys = logs(t.ctx, dsId, instance.Type, rule)
+					firingFingerprints = logs(t.ctx, dsId, instance.Type, rule)
 				case "Jaeger":
-					curFiringKeys = traces(t.ctx, dsId, instance.Type, rule)
+					firingFingerprints = traces(t.ctx, dsId, instance.Type, rule)
 				case "CloudWatch":
-					curFiringKeys = cloudWatch(t.ctx, dsId, rule)
+					firingFingerprints = cloudWatch(t.ctx, dsId, rule)
 				case "KubernetesEvent":
-					curFiringKeys = kubernetesEvent(t.ctx, dsId, rule)
+					firingFingerprints = kubernetesEvent(t.ctx, dsId, rule)
+				default:
+					continue
 				}
+				// 追加当前数据源的指纹到总列表
+				curFingerprints = append(curFingerprints, firingFingerprints...)
+				curPendingFingerprints = append(curPendingFingerprints, pendingFingerprints...)
 			}
 			logc.Infof(t.ctx.Ctx, fmt.Sprintf("规则评估 -> %v", tools.JsonMarshal(rule)))
-
-			t.Recover(rule, curFiringKeys)
-			t.GC(rule, curFiringKeys, curPendingKeys)
+			t.Recover(rule, curFingerprints)
+			t.GC(rule, curFingerprints, curPendingFingerprints)
 		case <-ctx.Done():
 			logc.Infof(t.ctx.Ctx, fmt.Sprintf("停止 RuleId: %v, RuleName: %s 的 Watch 协程", rule.RuleId, rule.RuleName))
 			return
