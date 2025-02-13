@@ -186,8 +186,13 @@ func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.Ale
 		startsAt := tools.ParserDuration(curAt, int(rule.ElasticSearchConfig.Scope), "m")
 		queryOptions := provider.LogQueryOptions{
 			ElasticSearch: provider.Elasticsearch{
-				Index:       rule.ElasticSearchConfig.Index,
-				QueryFilter: rule.ElasticSearchConfig.Filter,
+				Index:                rule.ElasticSearchConfig.Index,
+				IndexOption:          rule.ElasticSearchConfig.IndexOption,
+				QueryFilter:          rule.ElasticSearchConfig.Filter,
+				QueryFilterCondition: rule.ElasticSearchConfig.FilterCondition,
+				QueryType:            rule.ElasticSearchConfig.EsQueryType,
+				QueryWildcard:        rule.ElasticSearchConfig.QueryWildcard,
+				RawJson:              rule.ElasticSearchConfig.RawJson,
 			},
 			StartAt: tools.FormatTimeToUTC(startsAt.Unix()),
 			EndAt:   tools.FormatTimeToUTC(curAt.Unix()),

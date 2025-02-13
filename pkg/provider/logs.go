@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strings"
+	"time"
 	"watchAlert/internal/models"
 	"watchAlert/pkg/tools"
 )
@@ -42,8 +43,34 @@ type AliCloudSLS struct {
 }
 
 type Elasticsearch struct {
-	Index       string                 // 索引名称
+	Index string // 索引名称
+	// 索引选项
+	IndexOption models.EsIndexOption
 	QueryFilter []models.EsQueryFilter // 过滤条件
+	// filter关系，与或非
+	QueryFilterCondition models.EsFilterCondition
+	// 查询类型，sql语句查询与条件查询
+	QueryType models.EsQueryType
+	// wildcard
+	QueryWildcard bool
+	// 查询sql
+	RawJson string
+}
+
+func (e Elasticsearch) GetIndexName() string {
+	indexName := e.Index
+	if e.IndexOption.Index != "" {
+		indexName = e.IndexOption.Index
+		if e.IndexOption.WithDate {
+			if e.IndexOption.Separator != "" {
+				indexName += e.IndexOption.Separator
+			}
+			layout := e.IndexOption.ConvertDatePattern()
+			indexName += time.Now().Format(layout)
+		}
+	}
+
+	return indexName
 }
 
 type Logs struct {

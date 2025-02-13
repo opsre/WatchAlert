@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/olivere/elastic/v7"
 	"watchAlert/internal/models"
@@ -42,18 +43,46 @@ type esQueryResponse struct {
 }
 
 func (e ElasticSearchDsProvider) Query(options LogQueryOptions) ([]Logs, int, error) {
-	filter := elastic.NewBoolQuery()
-	for _, f := range options.ElasticSearch.QueryFilter {
-		if f.Field != "" && f.Value != "" {
-			filter.Must(elastic.NewMatchQuery(f.Field, f.Value))
+	indexName := options.ElasticSearch.GetIndexName()
+	var query elastic.Query
+
+	switch options.ElasticSearch.QueryType {
+	case models.EsQueryTypeRawJson:
+		if options.ElasticSearch.RawJson == "" {
+			return nil, 0, errors.New("RawJson 为空")
 		}
+		query = elastic.NewRawStringQuery(options.ElasticSearch.RawJson)
+	case models.EsQueryTypeCondition:
+		conditionQuery := elastic.NewBoolQuery()
+		if len(options.ElasticSearch.QueryFilter) > 0 {
+			subQueries := make([]elastic.Query, 0, len(options.ElasticSearch.QueryFilter))
+			for _, filter := range options.ElasticSearch.QueryFilter {
+				var q elastic.Query
+				if options.ElasticSearch.QueryWildcard {
+					q = elastic.NewWildcardQuery(filter.Field, fmt.Sprintf("*%v*", filter.Value))
+				} else {
+					q = elastic.NewMatchQuery(filter.Field, filter.Value)
+				}
+				subQueries = append(subQueries, q)
+			}
+			switch options.ElasticSearch.QueryFilterCondition {
+			case models.EsFilterConditionOr:
+				conditionQuery = conditionQuery.Should(subQueries...).MinimumNumberShouldMatch(1)
+			case models.EsFilterConditionAnd:
+				conditionQuery = conditionQuery.Must(subQueries...)
+			case models.EsFilterConditionNot:
+				conditionQuery = conditionQuery.MustNot(subQueries...)
+			}
+		}
+		conditionQuery.Must(elastic.NewRangeQuery("@timestamp").Gte(options.StartAt.(string)).Lte(options.EndAt.(string)))
+		query = conditionQuery
+	default:
+		return nil, 0, errors.New("undefined QueryType")
 	}
 
-	filter.Must(elastic.NewRangeQuery("@timestamp").Gte(options.StartAt.(string)).Lte(options.EndAt.(string)))
-
 	res, err := e.cli.Search().
-		Index(options.ElasticSearch.Index).
-		Query(filter).
+		Index(indexName).
+		Query(query).
 		Pretty(true).
 		Do(context.Background())
 	if err != nil {

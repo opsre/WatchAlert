@@ -2,6 +2,7 @@ package models
 
 import (
 	"sort"
+	"strings"
 	"watchAlert/pkg/tools"
 )
 
@@ -55,10 +56,52 @@ type AlertRule struct {
 }
 
 type ElasticSearchConfig struct {
-	Index  string          `json:"index"`
-	Scope  int64           `json:"scope"`
-	Filter []EsQueryFilter `json:"filter"`
+	Index           string            `json:"index"`
+	IndexOption     EsIndexOption     `json:"index_option"`
+	Scope           int64             `json:"scope"`
+	Filter          []EsQueryFilter   `json:"filter"`
+	FilterCondition EsFilterCondition `json:"filter_condition"`
+	EsQueryType     EsQueryType       `json:"query_type"`
+	QueryWildcard   bool              `json:"query_wildcard"`
+	RawJson         string            `json:"raw_json"`
 }
+
+type EsIndexOption struct {
+	Index string `json:"index"`
+	// 是否在index名称后拼接日期
+	WithDate bool `json:"with_date"`
+	// 只有WithDate为true时才启用
+	// 例如：testIndex-20250208 ---> testIndex-YYYYMMdd
+	// testIndex20250208       ---> testIndexYYYYMMdd
+	// testIndex2025.02.08	   ---> testIndexYYYY.MM.dd
+	// testIndex-2025.02.08    ---> testIndex-YYYY.MM.dd
+	DatePattern string `json:"date_pattern"`
+	// 连接符
+	Separator string `json:"separator"`
+}
+
+func (o EsIndexOption) ConvertDatePattern() string {
+	layout := o.DatePattern
+	layout = strings.ReplaceAll(layout, "YYYY", "2006")
+	layout = strings.ReplaceAll(layout, "MM", "01")
+	layout = strings.ReplaceAll(layout, "dd", "02")
+	return layout
+}
+
+type EsQueryType string
+
+const (
+	EsQueryTypeRawJson   EsQueryType = "RawJson"
+	EsQueryTypeCondition EsQueryType = "Condition"
+)
+
+type EsFilterCondition string
+
+const (
+	EsFilterConditionAnd EsFilterCondition = "And"
+	EsFilterConditionOr  EsFilterCondition = "Or"
+	EsFilterConditionNot EsFilterCondition = "Not"
+)
 
 type EsQueryFilter struct {
 	Field string `json:"field"`
