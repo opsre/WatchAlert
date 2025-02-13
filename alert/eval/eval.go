@@ -7,7 +7,6 @@ import (
 	"time"
 	"watchAlert/alert/process"
 	"watchAlert/alert/storage"
-	"watchAlert/internal/global"
 	"watchAlert/internal/models"
 	"watchAlert/pkg/ctx"
 	"watchAlert/pkg/provider"
@@ -22,9 +21,9 @@ type (
 		Submit(rule models.AlertRule)
 		Stop(ruleId string)
 		Eval(ctx context.Context, rule models.AlertRule)
-		Recover(rule models.AlertRule, curKeys []string)
-		GC(rule models.AlertRule, curFiringKeys, curPendingKeys []string)
-		RePushTask()
+		Recover(faultCenterKey string, faultCenterInfoKey string, curKeys []string)
+		GC(rule models.AlertRule, curFiringKeys []string)
+		RestartAllEvals()
 	}
 
 	// AlertRule 告警规则
@@ -79,34 +78,40 @@ func (t *AlertRule) Eval(ctx context.Context, rule models.AlertRule) {
 				return
 			}
 
-			var curFiringKeys, curPendingKeys []string
+			var curFingerprints []string
 			for _, dsId := range rule.DatasourceIdList {
 				instance, err := t.ctx.DB.Datasource().GetInstance(dsId)
 				if err != nil {
 					logc.Error(t.ctx.Ctx, err.Error())
+					continue
 				}
 
 				if !provider.CheckDatasourceHealth(instance) {
 					continue
 				}
 
+				var fingerprints []string
 				switch rule.DatasourceType {
 				case "Prometheus", "VictoriaMetrics":
-					curFiringKeys, curPendingKeys = metrics(t.ctx, dsId, instance.Type, rule)
+					fingerprints = metrics(t.ctx, dsId, instance.Type, rule)
 				case "AliCloudSLS", "Loki", "ElasticSearch":
-					curFiringKeys = logs(t.ctx, dsId, instance.Type, rule)
+					fingerprints = logs(t.ctx, dsId, instance.Type, rule)
 				case "Jaeger":
-					curFiringKeys = traces(t.ctx, dsId, instance.Type, rule)
+					fingerprints = traces(t.ctx, dsId, instance.Type, rule)
 				case "CloudWatch":
-					curFiringKeys = cloudWatch(t.ctx, dsId, rule)
+					fingerprints = cloudWatch(t.ctx, dsId, rule)
 				case "KubernetesEvent":
-					curFiringKeys = kubernetesEvent(t.ctx, dsId, rule)
+					fingerprints = kubernetesEvent(t.ctx, dsId, rule)
+				default:
+					continue
 				}
+				// 追加当前数据源的指纹到总列表
+				curFingerprints = append(curFingerprints, fingerprints...)
 			}
-			logc.Infof(t.ctx.Ctx, fmt.Sprintf("规则评估 -> %v", tools.JsonMarshal(rule)))
+			//logc.Infof(t.ctx.Ctx, fmt.Sprintf("规则评估 -> %v", tools.JsonMarshal(rule)))
+			t.Recover(models.BuildCacheEventKey(rule.TenantId, rule.FaultCenterId), models.BuildCacheInfoKey(rule.TenantId, rule.FaultCenterId), curFingerprints)
+			t.GC(rule, curFingerprints)
 
-			t.Recover(rule, curFiringKeys)
-			t.GC(rule, curFiringKeys, curPendingKeys)
 		case <-ctx.Done():
 			logc.Infof(t.ctx.Ctx, fmt.Sprintf("停止 RuleId: %v, RuleName: %s 的 Watch 协程", rule.RuleId, rule.RuleName))
 			return
@@ -115,37 +120,41 @@ func (t *AlertRule) Eval(ctx context.Context, rule models.AlertRule) {
 	}
 }
 
-func (t *AlertRule) Recover(rule models.AlertRule, curKeys []string) {
-	firingKeys, err := ctx.Redis.Rule().GetAlertFiringCacheKeys(models.AlertRuleQuery{
-		TenantId:         rule.TenantId,
-		RuleId:           rule.RuleId,
-		DatasourceIdList: rule.DatasourceIdList,
-	})
+func (t *AlertRule) Recover(faultCenterKey string, faultCenterInfoKey string, curFingerprints []string) {
+	// 获取所有的故障中心的告警事件
+	events, err := t.ctx.Redis.Event().GetAllEventsForFaultCenter(faultCenterKey)
 	if err != nil {
 		return
 	}
+
+	// 提取事件中的告警指纹
+	fingerprints := make([]string, 0)
+	for fingerprint := range events {
+		fingerprints = append(fingerprints, fingerprint)
+	}
+
 	// 获取已恢复告警的keys
-	recoverKeys := tools.GetSliceDifference(firingKeys, curKeys)
-	if recoverKeys == nil {
+	recoverFingerprints := tools.GetSliceDifference(fingerprints, curFingerprints)
+	if recoverFingerprints == nil {
 		return
 	}
 
 	curTime := time.Now().Unix()
-	for _, key := range recoverKeys {
-		event := ctx.Redis.Event().GetCache(key)
+	for _, key := range recoverFingerprints {
+		event := events[key]
 		if event.IsRecovered == true {
 			return
 		}
 
-		if _, exists := t.alarmRecoverWaitStore.Get(key); !exists {
+		// 判断是否在等待时间范围内
+		wTime, exists := t.alarmRecoverWaitStore.Get(key)
+		if !exists {
 			// 如果没有，则记录当前时间
 			t.alarmRecoverWaitStore.Set(key, curTime)
 			continue
 		}
 
-		// 判断是否在等待时间范围内
-		wTime, _ := t.alarmRecoverWaitStore.Get(key)
-		rt := time.Unix(wTime, 0).Add(time.Minute * time.Duration(global.Config.Server.AlarmConfig.RecoverWait)).Unix()
+		rt := time.Unix(wTime, 0).Add(time.Minute * time.Duration(t.getRecoverWaitTime(faultCenterInfoKey))).Unix()
 		if rt > curTime {
 			continue
 		}
@@ -154,19 +163,26 @@ func (t *AlertRule) Recover(rule models.AlertRule, curKeys []string) {
 		event.RecoverTime = curTime
 		event.LastSendTime = 0
 
-		ctx.Redis.Event().SetCache("Firing", event, 0)
-
+		t.ctx.Redis.Event().PushEventToFaultCenter(&event)
 		// 触发恢复删除带恢复中的 key
 		t.alarmRecoverWaitStore.Remove(key)
 	}
 }
 
-func (t *AlertRule) GC(rule models.AlertRule, curFiringKeys, curPendingKeys []string) {
-	go process.GcPendingCache(t.ctx, rule, curPendingKeys)
+func (t *AlertRule) getRecoverWaitTime(faultCenterInfoKey string) int64 {
+	faultCenter := t.ctx.Redis.FaultCenter().GetFaultCenterInfo(faultCenterInfoKey)
+	if faultCenter.RecoverWaitTime == 0 {
+		return 1
+	}
+
+	return faultCenter.RecoverWaitTime
+}
+
+func (t *AlertRule) GC(rule models.AlertRule, curFiringKeys []string) {
 	go process.GcRecoverWaitCache(t.ctx, t.alarmRecoverWaitStore, rule, curFiringKeys)
 }
 
-func (t *AlertRule) RePushTask() {
+func (t *AlertRule) RestartAllEvals() {
 	ruleList, err := t.getRuleList()
 	if err != nil {
 		logc.Error(t.ctx.Ctx, err.Error())

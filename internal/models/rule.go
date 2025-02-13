@@ -51,6 +51,7 @@ type AlertRule struct {
 	NoticeGroup      NoticeGroup `json:"noticeGroup" gorm:"noticeGroup;serializer:json"`
 	RecoverNotify    *bool       `json:"recoverNotify"`
 	AlarmAggregation *bool       `json:"alarmAggregation"`
+	FaultCenterId    string      `json:"faultCenterId"`
 	Enabled          *bool       `json:"enabled" gorm:"enabled"`
 }
 
@@ -212,5 +213,5 @@ func (a *AlertRule) GetEnabled() *bool {
 		isOk := false
 		return &isOk
 	}
-	return a.RecoverNotify
+	return a.Enabled
 }

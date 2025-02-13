@@ -1,9 +1,6 @@
 package services
 
 import (
-	"encoding/json"
-	"gorm.io/gorm"
-	"log"
 	"strings"
 	"time"
 	"watchAlert/internal/models"
@@ -28,36 +25,14 @@ func newInterEventService(ctx *ctx.Context) InterEventService {
 
 func (e eventService) ListCurrentEvent(req interface{}) (interface{}, interface{}) {
 	r := req.(*models.AlertCurEventQuery)
-
-	iter := e.ctx.Redis.Redis().Scan(0, r.TenantId+":"+models.FiringAlertCachePrefix+"*", 0).Iterator()
-	keys := make([]string, 0)
-
-	// 遍历匹配的键
-	for iter.Next() {
-		key := iter.Val()
-		keys = append(keys, key)
-	}
-
-	if err := iter.Err(); err != nil {
-		log.Fatal(err)
+	center, err := e.ctx.Redis.Event().GetAllEventsForFaultCenter(models.BuildCacheEventKey(r.TenantId, r.FaultCenterId))
+	if err != nil {
+		return nil, err
 	}
 
 	var dataList []models.AlertCurEvent
-	for _, key := range keys {
-		var data models.AlertCurEvent
-		info, err := e.ctx.Redis.Redis().Get(key).Result()
-		if err != nil {
-			return nil, err
-		}
-
-		newInfo := info
-		newInfo = strings.Replace(newInfo, "\"[\\", "[", 1)
-		newInfo = strings.Replace(newInfo, "\\\"]\"", "\"]", 1)
-		err = json.Unmarshal([]byte(newInfo), &data)
-		if err != nil {
-			return nil, err
-		}
-		dataList = append(dataList, data)
+	for _, alert := range center {
+		dataList = append(dataList, alert)
 	}
 
 	if r.DatasourceType != "" {
@@ -116,18 +91,16 @@ func (e eventService) ListCurrentEvent(req interface{}) (interface{}, interface{
 		dataList = dsTypeDataList
 	}
 
-	var newDontIsMuteDataList []models.AlertCurEvent
-	for _, event := range dataList {
-		_, err := newInterSilenceService(e.ctx).Get(&models.AlertSilenceQuery{
-			TenantId:    event.TenantId,
-			Fingerprint: event.Fingerprint,
-			Status:      0,
-		})
-		if err != nil && err == gorm.ErrRecordNotFound {
-			newDontIsMuteDataList = append(newDontIsMuteDataList, event)
+	if r.FaultCenterId != "" {
+		var data []models.AlertCurEvent
+		for _, v := range dataList {
+			if strings.Contains(v.FaultCenterId, r.FaultCenterId) {
+				data = append(data, v)
+				continue
+			}
 		}
+		dataList = data
 	}
-	dataList = newDontIsMuteDataList
 
 	return models.CurEventResponse{
 		List: pageSlice(dataList, int(r.Page.Index), int(r.Page.Size)),

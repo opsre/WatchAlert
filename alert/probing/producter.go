@@ -158,15 +158,15 @@ func (t *ProductProbing) Evaluation(event models.ProbingEvent, option EvalStrate
 		}
 	} else {
 		c := ctx.Redis.Event()
-		neCache, err := c.GetPECache(event.GetFiringAlertCacheKey())
+		neCache, err := c.GetProbingEventCache(event.GetFiringAlertCacheKey())
 		if err != nil {
 			return
 		}
-		neCache.FirstTriggerTime = c.GetPEFirstTime(event.GetFiringAlertCacheKey())
+		neCache.FirstTriggerTime = c.GetProbingEventFirstTime(event.GetFiringAlertCacheKey())
 		neCache.IsRecovered = true
 		neCache.RecoverTime = time.Now().Unix()
 		neCache.LastSendTime = 0
-		c.SetPECache(neCache, 0)
+		c.SetProbingEventCache(neCache, 0)
 		delete(t.Timing, neCache.RuleId)
 	}
 }

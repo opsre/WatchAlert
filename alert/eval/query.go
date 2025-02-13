@@ -15,7 +15,7 @@ import (
 )
 
 // Metrics 包含 Prometheus、VictoriaMetrics 数据源
-func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.AlertRule) (curFiringKeys, curPendingKeys []string) {
+func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.AlertRule) []string {
 	pools := ctx.Redis.ProviderPools()
 	var (
 		resQuery       []provider.Metrics
@@ -27,13 +27,13 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 		cli, err := pools.GetClient(datasourceId)
 		if err != nil {
 			logc.Errorf(ctx.Ctx, err.Error())
-			return
+			return nil
 		}
 
 		resQuery, err = cli.(provider.PrometheusProvider).Query(rule.PrometheusConfig.PromQL)
 		if err != nil {
 			logc.Error(ctx.Ctx, err.Error())
-			return
+			return nil
 		}
 
 		externalLabels = cli.(provider.PrometheusProvider).GetExternalLabels()
@@ -41,25 +41,26 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 		cli, err := pools.GetClient(datasourceId)
 		if err != nil {
 			logc.Errorf(ctx.Ctx, err.Error())
-			return
+			return nil
 		}
 
 		resQuery, err = cli.(provider.VictoriaMetricsProvider).Query(rule.PrometheusConfig.PromQL)
 		if err != nil {
 			logc.Error(ctx.Ctx, err.Error())
-			return
+			return nil
 		}
 
 		externalLabels = cli.(provider.VictoriaMetricsProvider).GetExternalLabels()
 	default:
 		logc.Errorf(ctx.Ctx, fmt.Sprintf("Unsupported metrics type, type: %s", datasourceType))
-		return
+		return nil
 	}
 
 	if resQuery == nil {
-		return
+		return nil
 	}
 
+	var curFingerprints []string
 	for _, v := range resQuery {
 		for _, ruleExpr := range rule.PrometheusConfig.Rules {
 			operator, value, err := tools.ProcessRuleExpr(ruleExpr.Expr)
@@ -68,7 +69,7 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 				continue
 			}
 
-			event := func() models.AlertCurEvent {
+			event := func() *models.AlertCurEvent {
 				event := process.BuildEvent(rule)
 				event.DatasourceId = datasourceId
 				event.Fingerprint = v.GetFingerprint()
@@ -79,14 +80,9 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 				}
 				event.Severity = ruleExpr.Severity
 				event.Annotations = tools.ParserVariables(rule.PrometheusConfig.Annotations, event.Metric)
+				curFingerprints = append(curFingerprints, event.Fingerprint)
 
-				firingKey := event.GetFiringAlertCacheKey()
-				pendingKey := event.GetPendingAlertCacheKey()
-
-				curFiringKeys = append(curFiringKeys, firingKey)
-				curPendingKeys = append(curPendingKeys, pendingKey)
-
-				return event
+				return &event
 			}
 
 			option := models.EvalCondition{
@@ -96,12 +92,12 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 			}
 
 			if process.EvalCondition(option) {
-				process.SaveAlertEvent(ctx, event())
+				process.PushEventToFaultCenter(ctx, event())
 			}
 		}
 	}
 
-	return
+	return curFingerprints
 }
 
 // Logs 包含 AliSLS、Loki、ElasticSearch 数据源
@@ -212,7 +208,7 @@ func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.Ale
 	}
 
 	for _, v := range queryRes {
-		event := func() models.AlertCurEvent {
+		event := func() *models.AlertCurEvent {
 			event := process.BuildEvent(rule)
 			event.DatasourceId = datasourceId
 			event.Fingerprint = v.GetFingerprint()
@@ -225,12 +221,12 @@ func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.Ale
 			key := event.GetPendingAlertCacheKey()
 			curFiringKeys = append(curFiringKeys, key)
 
-			return event
+			return &event
 		}
 
 		// 评估告警条件
 		if process.EvalCondition(evalOptions) {
-			process.SaveAlertEvent(ctx, event())
+			process.PushEventToFaultCenter(ctx, event())
 		}
 	}
 
@@ -284,7 +280,7 @@ func traces(ctx *ctx.Context, datasourceId, datasourceType string, rule models.A
 		key := event.GetFiringAlertCacheKey()
 		curFiringKeys = append(curFiringKeys, key)
 
-		process.SaveAlertEvent(ctx, event)
+		process.PushEventToFaultCenter(ctx, &event)
 	}
 
 	return
@@ -321,7 +317,7 @@ func cloudWatch(ctx *ctx.Context, datasourceId string, rule models.AlertRule) (c
 			return []string{}
 		}
 
-		event := func() models.AlertCurEvent {
+		event := func() *models.AlertCurEvent {
 			event := process.BuildEvent(rule)
 			event.DatasourceId = datasourceId
 			event.Fingerprint = query.GetFingerprint()
@@ -331,7 +327,7 @@ func cloudWatch(ctx *ctx.Context, datasourceId string, rule models.AlertRule) (c
 			}
 			event.Annotations = fmt.Sprintf("%s %s %s %s %d", query.Namespace, query.MetricName, query.Statistic, rule.CloudWatchConfig.Expr, rule.CloudWatchConfig.Threshold)
 
-			return event
+			return &event
 		}
 
 		options := models.EvalCondition{
@@ -341,7 +337,7 @@ func cloudWatch(ctx *ctx.Context, datasourceId string, rule models.AlertRule) (c
 		}
 
 		if process.EvalCondition(options) {
-			process.SaveAlertEvent(ctx, event())
+			process.PushEventToFaultCenter(ctx, event())
 		}
 	}
 
@@ -363,7 +359,7 @@ func kubernetesEvent(ctx *ctx.Context, datasourceId string, rule models.AlertRul
 		return
 	}
 
-	event, err := cli.(provider.KubernetesClient).GetWarningEvent(rule.KubernetesConfig.Reason, rule.KubernetesConfig.Scope)
+	k8sevent, err := cli.(provider.KubernetesClient).GetWarningEvent(rule.KubernetesConfig.Reason, rule.KubernetesConfig.Scope)
 	if err != nil {
 		logc.Error(ctx.Ctx, err.Error())
 		return
@@ -371,28 +367,28 @@ func kubernetesEvent(ctx *ctx.Context, datasourceId string, rule models.AlertRul
 
 	externalLabels = cli.(provider.KubernetesClient).GetExternalLabels()
 
-	if len(event.Items) < rule.KubernetesConfig.Value {
+	if len(k8sevent.Items) < rule.KubernetesConfig.Value {
 		return []string{}
 	}
 
 	var eventMapping = make(map[string][]string)
-	for _, item := range process.FilterKubeEvent(event, rule.KubernetesConfig.Filter).Items {
+	for _, item := range process.FilterKubeEvent(k8sevent, rule.KubernetesConfig.Filter).Items {
 		// 同一个资源可能有多条不同的事件信息
 		eventMapping[item.InvolvedObject.Name] = append(eventMapping[item.InvolvedObject.Name], "\n"+strings.ReplaceAll(item.Message, "\"", "'"))
 		k8sItem := process.KubernetesAlertEvent(ctx, item)
-		alertEvent := process.BuildEvent(rule)
-		alertEvent.DatasourceId = datasourceId
-		alertEvent.Fingerprint = k8sItem.GetFingerprint()
-		alertEvent.Metric = k8sItem.GetMetrics()
+		event := process.BuildEvent(rule)
+		event.DatasourceId = datasourceId
+		event.Fingerprint = k8sItem.GetFingerprint()
+		event.Metric = k8sItem.GetMetrics()
 		for ek, ev := range externalLabels {
-			alertEvent.Metric[ek] = ev
+			event.Metric[ek] = ev
 		}
-		alertEvent.Annotations = fmt.Sprintf("- 环境: %s\n- 命名空间: %s\n- 资源类型: %s\n- 资源名称: %s\n- 事件类型: %s\n- 事件详情: %s\n",
+		event.Annotations = fmt.Sprintf("- 环境: %s\n- 命名空间: %s\n- 资源类型: %s\n- 资源名称: %s\n- 事件类型: %s\n- 事件详情: %s\n",
 			datasourceObj.Name, item.Namespace, item.InvolvedObject.Kind,
 			item.InvolvedObject.Name, item.Reason, eventMapping[item.InvolvedObject.Name],
 		)
 
-		process.SaveAlertEvent(ctx, alertEvent)
+		process.PushEventToFaultCenter(ctx, &event)
 	}
 
 	return

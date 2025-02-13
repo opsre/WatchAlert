@@ -411,5 +411,29 @@ func PermissionsInfo() map[string]UserPermissions {
 			Key: "数据源连接测试",
 			API: "/api/w8t/datasource/dataSourcePing",
 		},
+		"faultCenterList": {
+			Key: "获取故障中心列表",
+			API: "/api/w8t/faultCenter/faultCenterList",
+		},
+		"faultCenterSearch": {
+			Key: "查询故障中心",
+			API: "/api/w8t/faultCenter/faultCenterSearch",
+		},
+		"faultCenterCreate": {
+			Key: "创建故障中心",
+			API: "/api/w8t/faultCenter/faultCenterCreate",
+		},
+		"faultCenterUpdate": {
+			Key: "更新故障中心",
+			API: "/api/w8t/faultCenter/faultCenterUpdate",
+		},
+		"faultCenterDelete": {
+			Key: "删除故障中心",
+			API: "/api/w8t/faultCenter/faultCenterDelete",
+		},
+		"faultCenterReset": {
+			Key: "修改故障中心基本信息",
+			API: "/api/w8t/faultCenter/faultCenterReset",
+		},
 	}
 }

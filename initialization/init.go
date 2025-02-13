@@ -29,9 +29,6 @@ func InitBasic() {
 	// 启用告警评估携程
 	alert.Initialize(ctx)
 
-	// 初始化监控分析数据
-	InitResource(ctx)
-
 	// 初始化权限数据
 	InitPermissionsSQL(ctx)
 

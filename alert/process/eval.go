@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/zeromicro/go-zero/core/logc"
 	"watchAlert/internal/models"
-	"watchAlert/pkg/ctx"
 )
 
 // EvalCondition 评估告警条件
@@ -40,9 +39,9 @@ func EvalCondition(ec models.EvalCondition) bool {
 	return false
 }
 
-func SaveAlertEvent(ctx *ctx.Context, event models.AlertCurEvent) {
-	ok := ctx.DB.Rule().GetRuleIsExist(event.RuleId)
-	if ok {
-		SaveEventCache(ctx, event)
-	}
-}
+//func SaveAlertEvent(ctx *ctx.Context, event models.AlertCurEvent) {
+//	ok := ctx.DB.Rule().GetRuleIsExist(event.RuleId)
+//	if ok {
+//		SaveEventCache(ctx, event)
+//	}
+//}

@@ -37,7 +37,6 @@ func (a settingService) Save(req interface{}) (interface{}, interface{}) {
 		}
 	}
 
-	global.Config.Server.AlarmConfig = r.AlarmConfig
 	return nil, nil
 }
 

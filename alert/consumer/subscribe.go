@@ -17,7 +17,7 @@ type toUser struct {
 }
 
 // 向已订阅的用户中发送告警消息
-func processSubscribe(ctx *ctx.Context, alert models.AlertCurEvent, notice models.AlertNotice) error {
+func processSubscribe(ctx *ctx.Context, alert *models.AlertCurEvent, notice models.AlertNotice) error {
 	list, err := ctx.DB.Subscribe().List(models.AlertSubscribeQuery{
 		STenantId: alert.TenantId,
 		Query:     alert.RuleId,
@@ -62,7 +62,7 @@ func processSubscribe(ctx *ctx.Context, alert models.AlertCurEvent, notice model
 	if len(toUsers) > 0 {
 		for _, u := range toUsers {
 			notice.NoticeTmplId = u.NoticeTemplateId
-			emailTemp := templates.NewTemplate(ctx, alert, notice)
+			emailTemp := templates.NewTemplate(ctx, *alert, notice)
 
 			err = sender.NewEmailSender().Send(sender.SendParams{
 				IsRecovered: alert.IsRecovered,

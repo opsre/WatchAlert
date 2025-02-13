@@ -15,15 +15,8 @@ type App struct {
 }
 
 type Server struct {
-	Mode        string `json:"mode"`
-	Port        string `json:"port"`
-	AlarmConfig AlarmConfig
-}
-
-type AlarmConfig struct {
-	GroupWait     int `json:"groupWait"`
-	GroupInterval int `json:"groupInterval"`
-	RecoverWait   int `json:"recoverWait"`
+	Mode string `json:"mode"`
+	Port string `json:"port"`
 }
 
 type MySQL struct {

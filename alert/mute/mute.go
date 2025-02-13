@@ -1,6 +1,7 @@
 package mute
 
 import (
+	"github.com/zeromicro/go-zero/core/logc"
 	"time"
 	models "watchAlert/internal/models"
 	"watchAlert/pkg/ctx"
@@ -12,7 +13,8 @@ type MuteParams struct {
 	RecoverNotify *bool
 	IsRecovered   bool
 	TenantId      string
-	Fingerprint   string
+	Metrics       map[string]interface{}
+	FaultCenterId string
 }
 
 func IsMuted(mute MuteParams) bool {
@@ -20,7 +22,7 @@ func IsMuted(mute MuteParams) bool {
 		return true
 	}
 
-	if InTheEffectiveTime(mute) {
+	if NotInTheEffectiveTime(mute) {
 		return true
 	}
 
@@ -31,66 +33,70 @@ func IsMuted(mute MuteParams) bool {
 	return false
 }
 
-// InTheEffectiveTime 判断生效时间
-func InTheEffectiveTime(mp MuteParams) bool {
+// NotInTheEffectiveTime 判断生效时间
+func NotInTheEffectiveTime(mp MuteParams) bool {
 	if len(mp.EffectiveTime.Week) <= 0 {
 		return false
 	}
 
-	var (
-		p           bool
-		currentTime = time.Now()
-	)
-
-	cwd := tools.TimeTransformToWeek(currentTime)
-	for _, wd := range mp.EffectiveTime.Week {
-		if cwd != wd {
-			continue
+	// 获取当前日期
+	currentTime := time.Now()
+	currentWeekday := tools.TimeTransformToWeek(currentTime)
+	for _, weekday := range mp.EffectiveTime.Week {
+		if currentWeekday == weekday {
+			currentTimeSeconds := tools.TimeTransformToSeconds(currentTime)
+			return currentTimeSeconds < mp.EffectiveTime.StartTime || currentTimeSeconds > mp.EffectiveTime.EndTime
 		}
-		p = true
 	}
 
-	if !p {
-		return true
-	}
-
-	cts := tools.TimeTransformToSeconds(currentTime)
-	if cts < mp.EffectiveTime.StartTime || cts > mp.EffectiveTime.EndTime {
-		return true
-	}
-
-	return false
+	return true
 }
 
 // RecoverNotify 判断是否推送恢复通知
 func RecoverNotify(mp MuteParams) bool {
-	// 如果是恢复告警，并且 恢复通知 == 1，即关闭恢复通知
-	if mp.IsRecovered && !*mp.RecoverNotify {
-		return true
+	return mp.IsRecovered && !*mp.RecoverNotify
+}
+
+// IsSilence 判断是否静默
+func IsSilence(mute MuteParams) bool {
+	silenceCtx := ctx.Redis.Silence()
+	// 获取静默列表中所有的id
+	ids, err := silenceCtx.GetMutesForFaultCenter(mute.TenantId, mute.FaultCenterId)
+	if err != nil {
+		logc.Errorf(ctx.Ctx, err.Error())
+		return false
+	}
+
+	// 根据ID获取到详细的静默规则
+	for _, id := range ids {
+		muteRule, err := silenceCtx.WithIdGetMuteFromCache(mute.TenantId, mute.FaultCenterId, id)
+		if err != nil {
+			logc.Errorf(ctx.Ctx, err.Error())
+			return false
+		}
+
+		if muteRule.Status != 1 {
+			continue
+		}
+
+		for _, label := range muteRule.Labels {
+			if evalCondition(mute.Metrics, label) {
+				return true
+			}
+		}
 	}
 
 	return false
 }
 
-// IsSilence 判断是否静默
-func IsSilence(mute MuteParams) bool {
-	_, ok := ctx.Redis.Silence().GetCache(models.AlertSilenceQuery{
-		TenantId:    mute.TenantId,
-		Fingerprint: mute.Fingerprint,
-	})
-
-	if ok {
-		return true
-	} else {
-		ttl, _ := ctx.Redis.Redis().TTL(mute.TenantId + ":" + models.SilenceCachePrefix + mute.Fingerprint).Result()
-		// 如果剩余生存时间小于0，表示键已过期
-		if ttl < 0 {
-			// 过期后标记为1
-			ctx.DB.DB().Model(models.AlertSilences{}).
-				Where("fingerprint = ? and status = ?", mute.Fingerprint, 0).
-				Update("status", 1)
-		}
+func evalCondition(metrics map[string]interface{}, c models.SilenceLabel) bool {
+	//fmt.Println("--->", metrics[c.Key], c.Operator, c.Value)
+	switch c.Operator {
+	case "==", "=":
+		return metrics[c.Key] == c.Value
+	case "!=":
+		return metrics[c.Key] != c.Value
+	default:
+		return false
 	}
-
-	return false
 }

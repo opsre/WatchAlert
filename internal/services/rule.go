@@ -50,17 +50,6 @@ func (rs ruleService) Update(req interface{}) (interface{}, interface{}) {
 		Where("tenant_id = ? AND rule_id = ?", rule.TenantId, rule.RuleId).
 		First(&alertInfo)
 
-	delEvent := func() {
-		// 删除缓存
-		iter := rs.ctx.Redis.Redis().Scan(0, rule.TenantId+":"+models.FiringAlertCachePrefix+rule.RuleId+"*", 0).Iterator()
-		keys := make([]string, 0)
-		for iter.Next() {
-			key := iter.Val()
-			keys = append(keys, key)
-		}
-		rs.ctx.Redis.Redis().Del(keys...)
-	}
-
 	/*
 		重启协程
 		判断当前状态是否是false 并且 历史状态是否为true
@@ -77,7 +66,11 @@ func (rs ruleService) Update(req interface{}) (interface{}, interface{}) {
 		alert.AlertRule.Submit(*rule)
 		logc.Infof(rs.ctx.Ctx, fmt.Sprintf("重启 RuleId 为 %s 的 Worker 进程", rule.RuleId))
 	} else {
-		delEvent()
+		// 删除缓存
+		fingerprints := rs.ctx.Redis.Event().GetFingerprintsByRuleId(rule.TenantId, rule.FaultCenterId, rule.RuleId)
+		for _, fingerprint := range fingerprints {
+			rs.ctx.Redis.Event().RemoveEventFromFaultCenter(rule.TenantId, rule.FaultCenterId, fingerprint)
+		}
 	}
 
 	// 更新数据

@@ -13,10 +13,11 @@ type (
 
 	InterEntryCache interface {
 		Redis() *redis.Client
-		Silence() InterSilenceCache
+		Silence() SilenceCacheInterface
 		Rule() InterRuleCache
-		Event() InterEventCache
+		Event() EventCacheInterface
 		ProviderPools() *ProviderPoolStore
+		FaultCenter() FaultCenterCacheInterface
 	}
 )
 
@@ -31,7 +32,10 @@ func NewEntryCache() InterEntryCache {
 }
 
 func (e entryCache) Redis() *redis.Client              { return e.redis }
-func (e entryCache) Silence() InterSilenceCache        { return newSilenceCacheInterface(e.redis) }
+func (e entryCache) Silence() SilenceCacheInterface    { return newSilenceCacheInterface(e.redis) }
 func (e entryCache) Rule() InterRuleCache              { return newRuleCacheInterface(e.redis) }
-func (e entryCache) Event() InterEventCache            { return newEventCacheInterface(e.redis) }
+func (e entryCache) Event() EventCacheInterface        { return newEventCacheInterface(e.redis) }
 func (e entryCache) ProviderPools() *ProviderPoolStore { return e.provider }
+func (e entryCache) FaultCenter() FaultCenterCacheInterface {
+	return newFaultCenterCacheInterface(e.redis)
+}

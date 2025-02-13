@@ -48,7 +48,6 @@ func InitDB() *gorm.DB {
 		&models.RuleGroups{},
 		&models.RuleTemplateGroup{},
 		&models.RuleTemplate{},
-		&models.ServiceResource{},
 		&models.Tenant{},
 		&models.Dashboard{},
 		&models.AuditLog{},
@@ -58,6 +57,7 @@ func InitDB() *gorm.DB {
 		&models.AlertSubscribe{},
 		&models.NoticeRecord{},
 		&models.ProbingRule{},
+		&models.FaultCenter{},
 	)
 	if err != nil {
 		logc.Error(context.Background(), err.Error())

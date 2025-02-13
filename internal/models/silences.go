@@ -3,30 +3,31 @@ package models
 const SilenceCachePrefix = "mute-"
 
 type AlertSilences struct {
-	TenantId       string `json:"tenantId"`
-	Id             string `json:"id"`
-	Fingerprint    string `json:"fingerprint"`
-	Datasource     string `json:"datasource"`
-	DatasourceType string `json:"datasource_type"`
-	StartsAt       int64  `json:"starts_at"`
-	EndsAt         int64  `json:"ends_at"`
-	CreateBy       string `json:"create_by"`
-	UpdateBy       string `json:"update_by"`
-	CreateAt       int64  `json:"create_at"`
-	UpdateAt       int64  `json:"update_at"`
-	Comment        string `json:"comment"`
-	Status         int    `json:"status"` // 0 进行中, 1 已失效
+	TenantId      string         `json:"tenantId"`
+	Name          string         `json:"name"`
+	Id            string         `json:"id"`
+	Labels        []SilenceLabel `json:"labels" gorm:"labels;serializer:json"`
+	StartsAt      int64          `json:"startsAt"`
+	UpdateBy      string         `json:"updateBy"`
+	EndsAt        int64          `json:"endsAt"`
+	UpdateAt      int64          `json:"updateAt"`
+	FaultCenterId string         `json:"faultCenterId"`
+	Comment       string         `json:"comment"`
+	Status        int            `json:"status"` // 0 未生效, 1 进行中, 2 已失效
+}
+
+type SilenceLabel struct {
+	Key      string `json:"key"`
+	Value    string `json:"value"`
+	Operator string `json:"operator"`
 }
 
 type AlertSilenceQuery struct {
-	TenantId       string `json:"tenantId" form:"tenantId"`
-	Id             string `json:"id" form:"id"`
-	Fingerprint    string `json:"fingerprint" form:"fingerprint"`
-	Datasource     string `json:"datasource" form:"datasource"`
-	DatasourceType string `json:"datasourceType" form:"datasourceType"`
-	Comment        string `json:"comment" form:"comment"`
-	Query          string `json:"query" form:"query"`
-	Status         int    `json:"status" form:"status"`
+	TenantId      string `json:"tenantId" form:"tenantId"`
+	Id            string `json:"id" form:"id"`
+	Query         string `json:"query" form:"query"`
+	FaultCenterId string `json:"faultCenterId" form:"faultCenterId"`
+	Status        int    `json:"status" form:"status"`
 	Page
 }
 

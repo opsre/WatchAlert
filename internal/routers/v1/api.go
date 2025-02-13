@@ -44,6 +44,7 @@ func Router(engine *gin.Engine) {
 			KubeEvent.API(w8t)
 			Subscribe.API(w8t)
 			Probing.API(w8t)
+			FaultCenter.API(w8t)
 		}
 
 	}

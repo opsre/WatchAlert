@@ -31,8 +31,8 @@ func (e ProbingController) API(gin *gin.RouterGroup) {
 		middleware.ParseTenant(),
 	)
 	{
-		eventA.GET("listProbing", e.List)
-		eventA.GET("searchProbing", e.Search)
+		eventB.GET("listProbing", e.List)
+		eventB.GET("searchProbing", e.Search)
 	}
 }
 

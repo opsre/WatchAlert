@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
 	"github.com/rs/xid"
 	"github.com/zeromicro/go-zero/core/logc"
 	"io"
@@ -37,10 +36,6 @@ func RandUid() string {
 	}
 
 	return id
-}
-
-func RandUuid() string {
-	return uuid.NewString()
 }
 
 func JsonMarshal(v interface{}) string {

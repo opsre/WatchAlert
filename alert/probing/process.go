@@ -54,11 +54,11 @@ func EvalCondition(ec EvalStrategy) bool {
 func SaveProbingEndpointEvent(event models.ProbingEvent) {
 	firingKey := event.GetFiringAlertCacheKey()
 	cache := ctx.DO().Redis.Event()
-	resFiring, _ := cache.GetPECache(firingKey)
-	event.FirstTriggerTime = cache.GetPEFirstTime(firingKey)
-	event.LastEvalTime = cache.GetPELastEvalTime(firingKey)
+	resFiring, _ := cache.GetProbingEventCache(firingKey)
+	event.FirstTriggerTime = cache.GetProbingEventFirstTime(firingKey)
+	event.LastEvalTime = cache.GetProbingEventLastEvalTime(firingKey)
 	event.LastSendTime = resFiring.LastSendTime
-	cache.SetPECache(event, 0)
+	cache.SetProbingEventCache(event, 0)
 }
 
 func SetProbingValueMap(key string, m map[string]any) error {
