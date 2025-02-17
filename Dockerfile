@@ -1,7 +1,6 @@
-FROM --platform=$BUILDPLATFORM golang:1.21.9-alpine3.19 AS build
+FROM golang:1.21.9-alpine3.19 AS build
 
 ARG VERSION
-ARG TARGETARCH
 
 ENV GOPROXY=https://goproxy.cn,direct
 
@@ -13,13 +12,13 @@ RUN sed -i "s/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g" /etc/apk/repositories
     && apk upgrade && apk add --no-cache --virtual .build-deps \
     ca-certificates upx
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=$TARGETARCH go build --ldflags="-X main.Version=${VERSION}" -o watchAlert . \
-    && chmod +x watchAlert
+RUN CGO_ENABLED=0 go build --ldflags="-X main.Version=${VERSION}" -o w8t . \
+    && chmod +x w8t
 
 FROM alpine:3.19
 
-COPY --from=build /root/watchAlert /app/watchAlert
+COPY --from=build /root/w8t /app/w8t
 
 WORKDIR /app
 
-ENTRYPOINT ["/app/watchAlert"]
+ENTRYPOINT ["/app/w8t"]

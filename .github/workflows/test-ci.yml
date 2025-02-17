@@ -3,17 +3,11 @@ name: CI
 on:
   push:
     branches:
-      - master
+      - '*/*'
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        arch:
-          - amd64
-          - arm64
 
     steps:
       - name: Checkout code
@@ -40,32 +34,19 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Login to Aliyun Hub
-        uses: docker/login-action@v3
-        with:
-          registry: registry.cn-hangzhou.aliyuncs.com
-          username: ${{ secrets.OPSRE_ALIHUB_USERNAME }}
-          password: ${{ secrets.OPSRE_ALIHUB_TOKEN }}
-
       - name: Set env variables
         id: set_env
         run: |
           echo "BRANCH_NAME=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
-          echo "SHORT_SHA=${GITHUB_SHA:0:4}" >> $GITHUB_ENV
-          echo "DATE=$(TZ=Asia/Shanghai date +%Y-%m-%d.%H-%M-%S)" >> $GITHUB_ENV
 
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
-          platforms: linux/${{ matrix.arch }}
-          push: ${{ github.event_name != 'pull_request' }}
+          platforms: linux/amd64,linux/arm64
+          push: true
           build-args: |
             VERSION=${{ env.DATE }}
-            TARGETARCH=${{ matrix.arch }}
           tags: |
-            cairry/watchalert:latest
-            cairry/watchalert:${{ env.BRANCH_NAME }}.${{ env.DATE }}.${{ env.SHORT_SHA }}
-            registry.cn-hangzhou.aliyuncs.com/opsre/watchalert:latest
-            registry.cn-hangzhou.aliyuncs.com/opsre/watchalert:${{ env.BRANCH_NAME }}.${{ env.DATE }}.${{ env.SHORT_SHA }}
+            cairry/watchalert:${{ env.BRANCH_NAME }}
