@@ -62,37 +62,18 @@ func (m *ConsumeProbing) handleAlert(alert models.ProbingEvent) {
 		return
 	}
 
-	if m.filterEvent(alert) {
-		r := models.NoticeQuery{
-			TenantId: alert.TenantId,
-			Uuid:     alert.NoticeId,
-		}
-		noticeData, _ := ctx.DB.Notice().Get(r)
-		alert.DutyUser = process.GetDutyUser(m.ctx, noticeData)
-
-		var content string
-		if noticeData.NoticeType == "CustomHook" {
-			content = tools.JsonMarshal(alert)
-		} else {
-			content = templates.NewTemplate(m.ctx, buildEvent(alert), noticeData).CardContentMsg
-		}
-		err := sender.Sender(m.ctx, sender.SendParams{
-			TenantId:    alert.TenantId,
-			Severity:    alert.Severity,
-			NoticeType:  noticeData.NoticeType,
-			NoticeId:    noticeData.Uuid,
-			NoticeName:  noticeData.Name,
-			IsRecovered: alert.IsRecovered,
-			Hook:        noticeData.Hook,
-			Email:       noticeData.Email,
-			Content:     content,
-			Event:       nil,
-		})
-		if err != nil {
-			logc.Errorf(ctx.Ctx, err.Error())
-			return
-		}
+	if !m.filterEvent(alert) {
+		return
 	}
+
+	r := models.NoticeQuery{
+		TenantId: alert.TenantId,
+		Uuid:     alert.NoticeId,
+	}
+	noticeData, _ := ctx.DB.Notice().Get(r)
+	alert.DutyUser = process.GetDutyUser(m.ctx, noticeData)
+
+	m.sendAlert(alert, noticeData)
 }
 
 func (m *ConsumeProbing) filterEvent(alert models.ProbingEvent) bool {
@@ -108,6 +89,33 @@ func (m *ConsumeProbing) filterEvent(alert models.ProbingEvent) bool {
 		return true
 	}
 	return pass
+}
+
+func (m *ConsumeProbing) sendAlert(alert models.ProbingEvent, noticeData models.AlertNotice) {
+	err := sender.Sender(m.ctx, sender.SendParams{
+		TenantId:    alert.TenantId,
+		Severity:    alert.Severity,
+		NoticeType:  noticeData.NoticeType,
+		NoticeId:    noticeData.Uuid,
+		NoticeName:  noticeData.Name,
+		IsRecovered: alert.IsRecovered,
+		Hook:        noticeData.Hook,
+		Email:       noticeData.Email,
+		Content:     m.getContent(alert, noticeData),
+		Event:       nil,
+	})
+	if err != nil {
+		logc.Errorf(ctx.Ctx, err.Error())
+		return
+	}
+}
+
+func (m *ConsumeProbing) getContent(alert models.ProbingEvent, noticeData models.AlertNotice) string {
+	if noticeData.NoticeType == "CustomHook" {
+		return tools.JsonMarshal(alert)
+	} else {
+		return templates.NewTemplate(m.ctx, buildEvent(alert), noticeData).CardContentMsg
+	}
 }
 
 // 删除缓存

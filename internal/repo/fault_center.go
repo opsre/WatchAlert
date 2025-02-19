@@ -76,7 +76,10 @@ func (f faultCenterRepo) Delete(params models.FaultCenterQuery) error {
 func (f faultCenterRepo) List(params models.FaultCenterQuery) ([]models.FaultCenter, error) {
 	var db = f.db.Model(&models.FaultCenter{})
 	var data []models.FaultCenter
-	db.Where("tenant_id = ?", params.TenantId)
+	if params.TenantId != "" {
+		db.Where("tenant_id = ?", params.TenantId)
+	}
+
 	if params.Query != "" {
 		db.Where("name LIKE ? OR id LIKE ?", "%"+params.Query+"%", "%"+params.Query+"%")
 	}

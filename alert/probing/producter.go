@@ -89,17 +89,18 @@ func (t *ProductProbing) worker(rule models.ProbingRule) {
 	event.Annotations = tools.ParserVariables(rule.Annotations, event.Metric)
 
 	var option EvalStrategy
-	if rule.RuleType != provider.TCPEndpointProvider {
+	switch rule.RuleType {
+	case provider.TCPEndpointProvider:
+		option = EvalStrategy{
+			Operator:      "==",
+			QueryValue:    isValue,
+			ExpectedValue: 0,
+		}
+	default:
 		option = EvalStrategy{
 			Operator:      ruleConfig.Strategy.Operator,
 			QueryValue:    eValue[ruleConfig.Strategy.Field].(float64),
 			ExpectedValue: ruleConfig.Strategy.ExpectedValue,
-		}
-	} else {
-		option = EvalStrategy{
-			Operator:      "==",
-			QueryValue:    isValue,
-			ExpectedValue: 1,
 		}
 	}
 

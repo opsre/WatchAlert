@@ -96,7 +96,7 @@ func deleteFiringKeys(ctx *ctx.Context, recoverStore storage.AlarmRecoverWaitSto
 func GetNoticeGroupId(alert *models.AlertCurEvent, faultCenter models.FaultCenter) string {
 	if len(faultCenter.NoticeGroup) != 0 {
 		var noticeGroup []map[string]string
-		for _, v := range noticeGroup {
+		for _, v := range faultCenter.NoticeGroup {
 			noticeGroup = append(noticeGroup, map[string]string{
 				v["key"]:   v["value"],
 				"noticeId": v["noticeId"],
