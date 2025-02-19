@@ -5,7 +5,6 @@ type ProbingRule struct {
 	RuleId                string                `json:"ruleId" gorm:"ruleId"`
 	RuleType              string                `json:"ruleType"`
 	RepeatNoticeInterval  int64                 `json:"repeatNoticeInterval"`
-	EffectiveTime         EffectiveTime         `json:"effectiveTime" gorm:"effectiveTime;serializer:json"`
 	Severity              string                `json:"severity"`
 	ProbingEndpointConfig ProbingEndpointConfig `json:"probingEndpointConfig" gorm:"probingEndpointConfig;serializer:json"`
 	ProbingEndpointValues ProbingEndpointValues `json:"probingEndpointValues" gorm:"-"`
@@ -20,11 +19,11 @@ func (n *ProbingRule) TableName() string {
 }
 
 func (n *ProbingRule) GetFiringAlertCacheKey() string {
-	return "w8t" + ":" + n.TenantId + ":" + "event" + ":" + n.RuleId
+	return "w8t" + ":" + n.TenantId + ":" + "probing" + ":" + n.RuleId + ".event"
 }
 
 func (n *ProbingRule) GetProbingMappingKey() string {
-	return "w8t" + ":" + n.TenantId + ":" + "netValue" + ":" + n.RuleId
+	return "w8t" + ":" + n.TenantId + ":" + "probing" + ":" + n.RuleId + ".value"
 }
 
 func (n *ProbingRule) GetRecoverNotify() *bool {
@@ -137,7 +136,6 @@ type ProbingEvent struct {
 	RuleId                 string                 `json:"ruleId" gorm:"ruleId"`
 	RuleType               string                 `json:"ruleType"`
 	Fingerprint            string                 `json:"fingerprint"`
-	EffectiveTime          EffectiveTime          `json:"effectiveTime" gorm:"effectiveTime;serializer:json"`
 	Severity               string                 `json:"severity"`
 	Metric                 map[string]interface{} `json:"metric" gorm:"metric;serializer:json"`
 	ProbingEndpointConfig  ProbingEndpointConfig  `json:"probingEndpointConfig" gorm:"probingEndpointConfig;serializer:json"`
@@ -156,11 +154,11 @@ type ProbingEvent struct {
 }
 
 func (n *ProbingEvent) GetFiringAlertCacheKey() string {
-	return "w8t" + ":" + n.TenantId + ":" + "event" + ":" + n.RuleId
+	return "w8t" + ":" + n.TenantId + ":" + "probing" + ":" + n.RuleId + ".event"
 }
 
 func (n *ProbingEvent) GetProbingMappingKey() string {
-	return "w8t" + ":" + n.TenantId + ":" + "netValue" + ":" + n.RuleId
+	return "w8t" + ":" + n.TenantId + ":" + "probing" + ":" + n.RuleId + ".value"
 }
 
 func (n *ProbingEvent) GetRecoverNotify() *bool {
