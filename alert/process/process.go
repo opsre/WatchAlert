@@ -51,16 +51,14 @@ func PushEventToFaultCenter(ctx *ctx.Context, event *models.AlertCurEvent) {
 	event.LastEvalTime = eventOpt.GetLastEvalTimeForFaultCenter()
 	event.LastSendTime = eventOpt.GetLastSendTimeForFaultCenter(event.TenantId, event.FaultCenterId, event.Fingerprint)
 
-	event.State = "Pending"
 	if event.IsArriveForDuration() {
-		event.State = "Firing"
+		event.Status = 1
 	}
-	if event.IsRecovered {
-		event.State = "Recover"
-	}
-
 	if isSilencedEvent(event) {
 		event.Status = 2
+	}
+	if event.IsRecovered {
+		event.Status = 3
 	}
 
 	eventOpt.PushEventToFaultCenter(event)

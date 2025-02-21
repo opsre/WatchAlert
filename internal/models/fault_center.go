@@ -18,6 +18,7 @@ type FaultCenter struct {
 	RecoverWaitTime      int64       `json:"recoverWaitTime"`
 	CurrentAlertNumber   int64       `json:"currentAlertNumber" gorm:"-"`
 	CurrentMuteNumber    int64       `json:"currentMuteNumber" gorm:"-"`
+	CurrentRecoverNumber int64       `json:"currentRecoverNumber" gorm:"-"`
 }
 
 func (f *FaultCenter) TableName() string {
