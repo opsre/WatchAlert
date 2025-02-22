@@ -21,7 +21,7 @@ type (
 		Submit(rule models.AlertRule)
 		Stop(ruleId string)
 		Eval(ctx context.Context, rule models.AlertRule)
-		Recover(faultCenterKey string, faultCenterInfoKey string, curKeys []string)
+		Recover(ruleId, faultCenterKey string, faultCenterInfoKey string, curKeys []string)
 		GC(rule models.AlertRule, curFiringKeys []string)
 		RestartAllEvals()
 	}
@@ -109,7 +109,7 @@ func (t *AlertRule) Eval(ctx context.Context, rule models.AlertRule) {
 				curFingerprints = append(curFingerprints, fingerprints...)
 			}
 			logc.Infof(t.ctx.Ctx, fmt.Sprintf("规则评估 -> %v", tools.JsonMarshal(rule)))
-			t.Recover(models.BuildCacheEventKey(rule.TenantId, rule.FaultCenterId), models.BuildCacheInfoKey(rule.TenantId, rule.FaultCenterId), curFingerprints)
+			t.Recover(rule.RuleId, models.BuildCacheEventKey(rule.TenantId, rule.FaultCenterId), models.BuildCacheInfoKey(rule.TenantId, rule.FaultCenterId), curFingerprints)
 			t.GC(rule, curFingerprints)
 
 		case <-ctx.Done():
@@ -120,12 +120,21 @@ func (t *AlertRule) Eval(ctx context.Context, rule models.AlertRule) {
 	}
 }
 
-func (t *AlertRule) Recover(faultCenterKey string, faultCenterInfoKey string, curFingerprints []string) {
+func (t *AlertRule) Recover(RuleId, faultCenterKey string, faultCenterInfoKey string, curFingerprints []string) {
 	// 获取所有的故障中心的告警事件
 	events, err := t.ctx.Redis.Event().GetAllEventsForFaultCenter(faultCenterKey)
 	if err != nil {
 		return
 	}
+
+	// 只获取当前规则的事件
+	var currentRuleEvents = make(map[string]models.AlertCurEvent)
+	for fingerprint, event := range events {
+		if event.RuleId == RuleId {
+			currentRuleEvents[fingerprint] = event
+		}
+	}
+	events = currentRuleEvents
 
 	// 提取事件中的告警指纹
 	fingerprints := make([]string, 0)
