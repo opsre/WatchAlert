@@ -321,13 +321,8 @@ func (c *Consume) handleSubscribe(faultCenter models.FaultCenter, alerts []*mode
 	for _, event := range alerts {
 		event := event
 		g.Go(func() error {
-			noticeId := process.GetNoticeGroupId(event, faultCenter)
-			noticeData, err := c.getNoticeData(event.TenantId, noticeId)
-			if err != nil {
-				return fmt.Errorf("failed to get notice data: %v", err)
-			}
-
-			if err := processSubscribe(c.ctx, event, noticeData); err != nil {
+			event.FaultCenter = faultCenter
+			if err := processSubscribe(c.ctx, event); err != nil {
 				return fmt.Errorf("failed to process subscribe: %v", err)
 			}
 
