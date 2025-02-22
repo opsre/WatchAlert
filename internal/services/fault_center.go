@@ -89,14 +89,17 @@ func (f faultCenterService) List(req interface{}) (data interface{}, err interfa
 		}
 
 		for _, event := range events {
-			if event.Status == 1 {
+			switch event.Status {
+			case 1:
 				faultCenters[index].CurrentAlertNumber++
-			} else {
+			case 2:
 				faultCenters[index].CurrentMuteNumber++
+			case 3:
+				faultCenters[index].CurrentRecoverNumber++
 			}
 		}
-
 	}
+
 	return faultCenters, nil
 }
 

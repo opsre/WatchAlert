@@ -14,7 +14,6 @@ type AlertCurEvent struct {
 	DatasourceType         string                 `json:"datasource_type"`
 	DatasourceId           string                 `json:"datasource_id" gorm:"datasource_id"`
 	Fingerprint            string                 `json:"fingerprint"`
-	State                  string                 `json:"state"` // 事件状态，Pending / Firing
 	Severity               string                 `json:"severity"`
 	Metric                 map[string]interface{} `json:"metric" gorm:"metric;serializer:json"`
 	Labels                 map[string]string      `json:"labels" gorm:"labels;serializer:json"`
@@ -36,7 +35,7 @@ type AlertCurEvent struct {
 	FaultCenter            FaultCenter            `json:"faultCenter" gorm:"-"`
 	ResponseTime           string                 `json:"response_time" gorm:"-"`
 	TimeRemaining          int64                  `json:"time_remaining" gorm:"-"`
-	Status                 int64                  `json:"status" gorm:"-"` // 事件状态，告警中：1，静默中：2
+	Status                 int64                  `json:"status" gorm:"-"` // 事件状态，告警中：1，静默中：2，待恢复：3，已恢复：4
 }
 
 type AlertCurEventQuery struct {
