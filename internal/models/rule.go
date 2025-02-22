@@ -20,6 +20,7 @@ type AlertRule struct {
 	DatasourceIdList     []string      `json:"datasourceId" gorm:"datasourceId;serializer:json"`
 	RuleName             string        `json:"ruleName"`
 	EvalInterval         int64         `json:"evalInterval"`
+	EvalTimeType         string        `json:"evalTimeType"` // second, millisecond
 	RepeatNoticeInterval int64         `json:"repeatNoticeInterval"`
 	Description          string        `json:"description"`
 	Labels               LabelsMap     `json:"labels" gorm:"labels;serializer:json"`

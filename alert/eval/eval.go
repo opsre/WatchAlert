@@ -62,7 +62,7 @@ func (t *AlertRule) Stop(ruleId string) {
 }
 
 func (t *AlertRule) Eval(ctx context.Context, rule models.AlertRule) {
-	timer := time.NewTicker(time.Second * time.Duration(rule.EvalInterval))
+	timer := time.NewTicker(t.getEvalTimeDuration(rule.EvalTimeType, rule.EvalInterval))
 	defer func() {
 		timer.Stop()
 		if r := recover(); r != nil {
@@ -116,7 +116,17 @@ func (t *AlertRule) Eval(ctx context.Context, rule models.AlertRule) {
 			logc.Infof(t.ctx.Ctx, fmt.Sprintf("停止 RuleId: %v, RuleName: %s 的 Watch 协程", rule.RuleId, rule.RuleName))
 			return
 		}
-		timer.Reset(time.Second * time.Duration(rule.EvalInterval))
+		timer.Reset(t.getEvalTimeDuration(rule.EvalTimeType, rule.EvalInterval) * time.Duration(rule.EvalInterval))
+	}
+}
+
+// getEvalTimeDuration 获取评估时间
+func (t *AlertRule) getEvalTimeDuration(evalTimeType string, evalInterval int64) time.Duration {
+	switch evalTimeType {
+	case "millisecond":
+		return time.Millisecond * time.Duration(evalInterval)
+	default:
+		return time.Second * time.Duration(evalInterval)
 	}
 }
 
