@@ -198,7 +198,6 @@ func (c *Consume) executeTask(faultCenter models.FaultCenter, taskChan chan stru
 	// 事件分组
 	var alertGroups AlertGroups
 	c.alarmGrouping(faultCenter, &alertGroups, filterEvents)
-	fmt.Println("alertGroups->", tools.JsonMarshal(alertGroups.Rules))
 	// 事件聚合
 	aggEvents := c.alarmAggregation(faultCenter, &alertGroups)
 	// 发送事件
