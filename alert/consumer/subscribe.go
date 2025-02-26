@@ -27,8 +27,6 @@ func processSubscribe(ctx *ctx.Context, alert *models.AlertCurEvent) error {
 		return err
 	}
 
-	fmt.Println("subscribes->", subscribes)
-
 	for _, subscribe := range subscribes {
 		// Severity检查
 		severitySet := make(map[string]struct{})

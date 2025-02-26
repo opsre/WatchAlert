@@ -435,5 +435,9 @@ func PermissionsInfo() map[string]UserPermissions {
 			Key: "修改故障中心基本信息",
 			API: "/api/w8t/faultCenter/faultCenterReset",
 		},
+		"esSearch": {
+			Key: "ElasticSearch搜索",
+			API: "/api/w8t/datasource/esSearch",
+		},
 	}
 }

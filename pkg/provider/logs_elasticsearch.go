@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/olivere/elastic/v7"
 	"watchAlert/internal/models"
@@ -42,18 +43,56 @@ type esQueryResponse struct {
 }
 
 func (e ElasticSearchDsProvider) Query(options LogQueryOptions) ([]Logs, int, error) {
-	filter := elastic.NewBoolQuery()
-	for _, f := range options.ElasticSearch.QueryFilter {
-		if f.Field != "" && f.Value != "" {
-			filter.Must(elastic.NewMatchQuery(f.Field, f.Value))
+	indexName := options.ElasticSearch.GetIndexName()
+	var query elastic.Query
+
+	switch options.ElasticSearch.QueryType {
+	case models.EsQueryTypeRawJson:
+		if options.ElasticSearch.RawJson == "" {
+			return nil, 0, errors.New("RawJson 为空")
 		}
+		query = elastic.NewRawStringQuery(options.ElasticSearch.RawJson)
+	case models.EsQueryTypeField:
+		conditionQuery := elastic.NewBoolQuery()
+		if len(options.ElasticSearch.QueryFilter) > 0 {
+			subQueries := make([]elastic.Query, 0, len(options.ElasticSearch.QueryFilter))
+			for _, filter := range options.ElasticSearch.QueryFilter {
+				var q elastic.Query
+				switch options.ElasticSearch.QueryWildcard {
+				case 0:
+					// 精准匹配
+					q = elastic.NewMatchQuery(filter.Field, filter.Value)
+				case 1:
+					// 模糊匹配
+					q = elastic.NewWildcardQuery(filter.Field, fmt.Sprintf("*%v*", filter.Value))
+				default:
+					return nil, 0, errors.New("undefined QueryWildcard")
+				}
+				subQueries = append(subQueries, q)
+			}
+			switch options.ElasticSearch.QueryFilterCondition {
+			case models.EsFilterConditionOr:
+				// 表示"或"关系，至少有一个子查询需要匹配
+				conditionQuery = conditionQuery.Should(subQueries...).MinimumNumberShouldMatch(1)
+			case models.EsFilterConditionAnd:
+				// 表示"与"关系，所有子查询都必须匹配
+				conditionQuery = conditionQuery.Must(subQueries...)
+			case models.EsFilterConditionNot:
+				// 表示"非"关系，所有子查询都不能匹配
+				conditionQuery = conditionQuery.MustNot(subQueries...)
+			default:
+				return nil, 0, errors.New("undefined QueryFilterCondition")
+			}
+		}
+		conditionQuery.Must(elastic.NewRangeQuery("@timestamp").Gte(options.StartAt.(string)).Lte(options.EndAt.(string)))
+		query = conditionQuery
+	default:
+		return nil, 0, fmt.Errorf("undefined QueryType, type: %s", options.ElasticSearch.QueryType)
 	}
 
-	filter.Must(elastic.NewRangeQuery("@timestamp").Gte(options.StartAt.(string)).Lte(options.EndAt.(string)))
-
 	res, err := e.cli.Search().
-		Index(options.ElasticSearch.Index).
-		Query(filter).
+		Index(indexName).
+		Query(query).
 		Pretty(true).
 		Do(context.Background())
 	if err != nil {

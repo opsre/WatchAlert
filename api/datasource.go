@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/base64"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/url"
@@ -45,6 +46,7 @@ func (dc DatasourceController) API(gin *gin.RouterGroup) {
 		datasourceB.GET("dataSourceSearch", dc.Search)
 		datasourceB.GET("promQuery", dc.PromQuery)
 		datasourceB.POST("dataSourcePing", dc.Ping)
+		datasourceB.POST("esSearch", dc.EsSearch)
 	}
 
 }
@@ -155,5 +157,60 @@ func (dc DatasourceController) Ping(ctx *gin.Context) {
 			return "", fmt.Errorf("数据源不可达!")
 		}
 		return "", nil
+	})
+}
+
+// EsSearch es 内容搜索
+func (dc DatasourceController) EsSearch(ctx *gin.Context) {
+	r := new(models.EsSearchReq)
+	BindJson(ctx, r)
+
+	Service(ctx, func() (interface{}, interface{}) {
+		data, err := services.DatasourceService.Get(&models.DatasourceQuery{
+			Id: r.DatasourceId,
+		})
+		if err != nil {
+			return nil, err
+		}
+		datasource := data.(models.AlertDataSource)
+		client, err := provider.NewElasticSearchClient(ctx, datasource)
+		if err != nil {
+			return nil, err
+		}
+
+		// 使用 base64.StdEncoding 进行解码
+		decodedBytes, err := base64.StdEncoding.DecodeString(r.Query)
+		if err != nil {
+			return nil, fmt.Errorf("base64 解码失败: %s", err)
+		}
+
+		// 将解码后的字节转换为字符串
+		QueryStr := string(decodedBytes)
+
+		query, _, err := client.Query(provider.LogQueryOptions{ElasticSearch: provider.Elasticsearch{
+			Index:     r.GetIndexName(),
+			QueryType: "RawJson",
+			RawJson:   QueryStr,
+		}})
+		if err != nil {
+			return nil, err
+		}
+
+		type newLogStruct struct {
+			Metric  map[string]interface{}
+			Message interface{}
+		}
+
+		var newData []newLogStruct
+		for _, v := range query {
+			for _, message := range v.Message {
+				newData = append(newData, newLogStruct{
+					Metric:  v.Metric,
+					Message: message,
+				})
+			}
+		}
+
+		return tools.JsonMarshal(newData), nil
 	})
 }
