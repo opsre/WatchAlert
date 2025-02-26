@@ -16,7 +16,6 @@ func BuildEvent(rule models.AlertRule) models.AlertCurEvent {
 		DatasourceType:       rule.DatasourceType,
 		RuleId:               rule.RuleId,
 		RuleName:             rule.RuleName,
-		Labels:               rule.Labels,
 		EvalInterval:         rule.EvalInterval,
 		ForDuration:          rule.PrometheusConfig.ForDuration,
 		IsRecovered:          false,

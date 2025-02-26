@@ -1,5 +1,10 @@
 package models
 
+import (
+	"strings"
+	"time"
+)
+
 type AlertDataSource struct {
 	TenantId         string                 `json:"tenantId"`
 	Id               string                 `json:"id"`
@@ -68,4 +73,26 @@ func (d *AlertDataSource) GetEnabled() *bool {
 		return &isOk
 	}
 	return d.Enabled
+}
+
+type EsSearchReq struct {
+	DatasourceId string `json:"datasourceId"`
+	Index        string `json:"index"`
+	Query        string `json:"query"`
+}
+
+func (e EsSearchReq) GetIndexName() string {
+	if strings.Contains(e.Index, "YYYY") && strings.Contains(e.Index, "MM") && strings.Contains(e.Index, "dd") {
+		indexName := e.Index
+		indexName = strings.ReplaceAll(indexName, "YYYY", time.Now().Format("2006"))
+		indexName = strings.ReplaceAll(indexName, "MM", time.Now().Format("01"))
+		indexName = strings.ReplaceAll(indexName, "dd", time.Now().Format("02"))
+		return indexName
+	}
+
+	return e.Index
+}
+
+type EsSearchRes struct {
+	Data data `json:"data"`
 }

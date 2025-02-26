@@ -161,9 +161,9 @@ func (c *Consume) Watch(ctx context.Context, faultCenter models.FaultCenter) {
 	timer := time.NewTicker(time.Second * time.Duration(1))
 	defer func() {
 		timer.Stop()
-		//if r := recover(); r != nil {
-		//	logc.Error(c.ctx.Ctx, fmt.Sprintf("Recovered from consumer watch goroutine panic: %s, FaultCenterName: %s, Id: %s", r, faultCenter.Name, faultCenter.ID))
-		//}
+		if r := recover(); r != nil {
+			logc.Error(c.ctx.Ctx, fmt.Sprintf("Recovered from consumer watch goroutine panic: %s, FaultCenterName: %s, Id: %s", r, faultCenter.Name, faultCenter.ID))
+		}
 	}()
 
 	for {

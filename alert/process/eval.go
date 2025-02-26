@@ -2,6 +2,7 @@ package process
 
 import (
 	"context"
+	"fmt"
 	"github.com/zeromicro/go-zero/core/logc"
 	"watchAlert/internal/models"
 )
@@ -34,7 +35,7 @@ func EvalCondition(ec models.EvalCondition) bool {
 			return true
 		}
 	default:
-		logc.Error(context.Background(), "无效的评估条件", ec.Type, ec.Operator, ec.ExpectedValue)
+		logc.Error(context.Background(), fmt.Sprintf("无效的评估条件, Operator: %s, ExpectedValue: %v", ec.Operator, ec.ExpectedValue))
 	}
 	return false
 }

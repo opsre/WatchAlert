@@ -73,22 +73,6 @@ func (ace *AlertCurEvent) AlertCacheTailKey() string {
 	return ace.RuleId + "-" + ace.DatasourceId + "-" + ace.Fingerprint
 }
 
-//func (ace *AlertCurEvent) GetRecoverNotify() *bool {
-//	if ace.RecoverNotify == nil {
-//		isOk := false
-//		return &isOk
-//	}
-//	return ace.RecoverNotify
-//}
-//
-//func (ace *AlertCurEvent) GetAlarmAggregation() *bool {
-//	if ace.AlarmAggregation == nil {
-//		isOk := false
-//		return &isOk
-//	}
-//	return ace.AlarmAggregation
-//}
-
 // IsArriveForDuration 比对持续时间
 func (ace *AlertCurEvent) IsArriveForDuration() bool {
 	return ace.LastEvalTime-ace.FirstTriggerTime > ace.ForDuration

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/zeromicro/go-zero/core/logc"
+	"strings"
 	"time"
 	"watchAlert/alert/process"
 	"watchAlert/alert/storage"
@@ -140,7 +141,7 @@ func (t *AlertRule) Recover(RuleId, faultCenterKey string, faultCenterInfoKey st
 	// 只获取当前规则的事件
 	var currentRuleEvents = make(map[string]models.AlertCurEvent)
 	for fingerprint, event := range events {
-		if event.RuleId == RuleId {
+		if strings.Contains(event.RuleId, RuleId) {
 			currentRuleEvents[fingerprint] = event
 		}
 	}
