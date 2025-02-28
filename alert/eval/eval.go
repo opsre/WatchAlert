@@ -117,7 +117,7 @@ func (t *AlertRule) Eval(ctx context.Context, rule models.AlertRule) {
 			logc.Infof(t.ctx.Ctx, fmt.Sprintf("停止 RuleId: %v, RuleName: %s 的 Watch 协程", rule.RuleId, rule.RuleName))
 			return
 		}
-		timer.Reset(t.getEvalTimeDuration(rule.EvalTimeType, rule.EvalInterval) * time.Duration(rule.EvalInterval))
+		timer.Reset(t.getEvalTimeDuration(rule.EvalTimeType, rule.EvalInterval))
 	}
 }
 
