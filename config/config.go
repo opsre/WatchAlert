@@ -29,9 +29,10 @@ type MySQL struct {
 }
 
 type Redis struct {
-	Host string `json:"host"`
-	Port string `json:"port"`
-	Pass string `json:"pass"`
+	Host     string `json:"host"`
+	Port     string `json:"port"`
+	Pass     string `json:"pass"`
+	Database int    `json:"database"`
 }
 
 type Jwt struct {
