@@ -39,3 +39,12 @@ Ldap:
   defaultUserRole: "ur-cq7nkj1d6gviooaigqi0"
   # 定时任务，用于同步 LDAP 用户到W8T
   cronjob: "*/1 * * * *"
+
+AiConfig:
+  type: "openai"
+  openAi:
+    url: "https://api.openai.com/v1/chat/completions"
+    appKey: "sk-xxxxx"
+    model: "gpt-4o-mini"
+    maxTokens: 1024
+    timeout: 30
