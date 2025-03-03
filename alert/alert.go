@@ -18,7 +18,7 @@ var (
 
 func Initialize(ctx *ctx.Context) {
 	// 初始化监控告警的基础配置
-	alarmRecoverWaitStore := storage.NewAlarmRecoverStore(ctx)
+	alarmRecoverWaitStore := storage.NewAlarmRecoverStore()
 
 	// 初始化告警规则评估任务
 	AlertRule = eval.NewAlertRuleEval(ctx, alarmRecoverWaitStore)

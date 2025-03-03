@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/zeromicro/go-zero/core/logc"
 	"golang.org/x/sync/errgroup"
+	"runtime/debug"
 	"sort"
 	"strings"
 	"sync"
@@ -48,8 +49,8 @@ type (
 	}
 )
 
-func (ag *AlertGroups) AddAlert(alert *models.AlertCurEvent, noticeGroup []map[string]string) {
-	groupID := ag.generateGroupID(alert, noticeGroup)
+func (ag *AlertGroups) AddAlert(alert *models.AlertCurEvent, noticeRoutes []map[string]string) {
+	groupID := ag.generateGroupID(alert, noticeRoutes)
 
 	ag.lock.Lock()
 	defer ag.lock.Unlock()
@@ -90,12 +91,12 @@ func (ag *AlertGroups) AddAlert(alert *models.AlertCurEvent, noticeGroup []map[s
 }
 
 // generateGroupID 生成分组ID，每个规则可能会有多个分组（其分组通知），默认为 default，如果有匹配的分组则根据 key/value 计算一个 HASH值作为 ID。
-func (ag *AlertGroups) generateGroupID(alert *models.AlertCurEvent, noticeGroupMap []map[string]string) string {
+func (ag *AlertGroups) generateGroupID(alert *models.AlertCurEvent, noticeRoutesMap []map[string]string) string {
 	groupId := "default"
-	if len(noticeGroupMap) > 0 {
+	if len(noticeRoutesMap) > 0 {
 		for key, value := range alert.Metric {
-			for _, noticeGroup := range noticeGroupMap {
-				if noticeGroup["key"] == key && noticeGroup["value"] == value.(string) {
+			for _, noticeRoute := range noticeRoutesMap {
+				if noticeRoute["key"] == key && noticeRoute["value"] == value.(string) {
 					groupId = tools.WithKVCalculateHash(key, value.(string))
 					break
 				}
@@ -162,7 +163,9 @@ func (c *Consume) Watch(ctx context.Context, faultCenter models.FaultCenter) {
 	defer func() {
 		timer.Stop()
 		if r := recover(); r != nil {
-			logc.Error(c.ctx.Ctx, fmt.Sprintf("Recovered from consumer watch goroutine panic: %s, FaultCenterName: %s, Id: %s", r, faultCenter.Name, faultCenter.ID))
+			// 获取调用栈信息
+			stack := debug.Stack()
+			logc.Error(c.ctx.Ctx, fmt.Sprintf("Recovered from consumer watch goroutine panic: %s, FaultCenterName: %s, Id: %s\n%s", r, faultCenter.Name, faultCenter.ID, stack))
 		}
 	}()
 
@@ -265,7 +268,7 @@ func (c *Consume) alarmGrouping(faultCenter models.FaultCenter, alertGroups *Ale
 			alert.RuleId = "Unknown_" + alert.RuleId
 		}
 
-		alertGroups.AddAlert(alert, faultCenter.NoticeGroup)
+		alertGroups.AddAlert(alert, faultCenter.NoticeRoutes)
 		if alert.IsRecovered {
 			c.removeAlertFromCache(alert)
 			if err := process.RecordAlertHisEvent(c.ctx, *alert); err != nil {
@@ -342,7 +345,7 @@ func (c *Consume) handleAlert(faultCenter models.FaultCenter, alerts []*models.A
 			if alert == nil {
 				return nil
 			}
-			noticeId := process.GetNoticeGroupId(alert, faultCenter)
+			noticeId := process.GetNoticeRouteId(alert, faultCenter)
 			noticeData, err := c.getNoticeData(alert.TenantId, noticeId)
 			if err != nil {
 				logc.Error(c.ctx.Ctx, fmt.Sprintf("Failed to get notice data: %v", err))

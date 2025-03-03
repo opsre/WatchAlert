@@ -63,38 +63,33 @@ func PushEventToFaultCenter(ctx *ctx.Context, event *models.AlertCurEvent) {
 	eventOpt.PushEventToFaultCenter(event)
 }
 
-func GcRecoverWaitCache(ctx *ctx.Context, alarmRecoverStore storage.AlarmRecoverWaitStore, rule models.AlertRule, curKeys []string) {
+func GcRecoverWaitCache(alarmRecoverStore *storage.AlarmRecoverWaitStore, rule models.AlertRule, curKeys []string) {
 	// 获取等待恢复告警的keys
 	recoverWaitKeys := getRecoverWaitList(alarmRecoverStore, rule)
 	// 删除正常告警的key
-	firingKeys := tools.GetSliceSame(recoverWaitKeys, curKeys)
-	deleteFiringKeys(ctx, alarmRecoverStore, firingKeys)
-}
+	fks := tools.GetSliceSame(curKeys, recoverWaitKeys)
 
-func getRecoverWaitList(recoverStore storage.AlarmRecoverWaitStore, rule models.AlertRule) []string {
-	var keys []string
-	for _, dsId := range rule.DatasourceIdList {
-		keyPrefix := fmt.Sprintf("%s", models.FiringAlertCachePrefix+rule.RuleId+"-"+dsId+"-")
-		keys = append(keys, recoverStore.Search(keyPrefix)...)
-	}
-	return keys
-}
-
-func deleteFiringKeys(ctx *ctx.Context, recoverStore storage.AlarmRecoverWaitStore, keys []string) {
-	ctx.Mux.Lock()
-	defer ctx.Mux.Unlock()
-
-	for _, key := range keys {
-		recoverStore.Remove(key)
+	for _, key := range fks {
+		alarmRecoverStore.Remove(rule.RuleId, key)
 	}
 }
 
-// GetNoticeGroupId 获取告警分组的通知ID
-func GetNoticeGroupId(alert *models.AlertCurEvent, faultCenter models.FaultCenter) string {
-	if len(faultCenter.NoticeGroup) != 0 {
-		var noticeGroup []map[string]string
-		for _, v := range faultCenter.NoticeGroup {
-			noticeGroup = append(noticeGroup, map[string]string{
+func getRecoverWaitList(recoverStore *storage.AlarmRecoverWaitStore, rule models.AlertRule) []string {
+	var fingerprints []string
+	list := recoverStore.List(rule.RuleId)
+	for fingerprint := range list {
+		fingerprints = append(fingerprints, fingerprint)
+	}
+
+	return fingerprints
+}
+
+// GetNoticeRouteId 获取告警分组的通知ID
+func GetNoticeRouteId(alert *models.AlertCurEvent, faultCenter models.FaultCenter) string {
+	if len(faultCenter.NoticeRoutes) != 0 {
+		var noticeRoutes []map[string]string
+		for _, v := range faultCenter.NoticeRoutes {
+			noticeRoutes = append(noticeRoutes, map[string]string{
 				v["key"]:   v["value"],
 				"noticeId": v["noticeId"],
 			})
@@ -103,7 +98,7 @@ func GetNoticeGroupId(alert *models.AlertCurEvent, faultCenter models.FaultCente
 		// 从Metric中获取Key/Value
 		for metricKey, metricValue := range alert.Metric {
 			// 如果配置分组的Key/Value 和 Metric中的Key/Value 一致，则使用分组的 noticeId，匹配不到则用默认的。
-			for _, noticeInfo := range noticeGroup {
+			for _, noticeInfo := range noticeRoutes {
 				value, ok := noticeInfo[metricKey]
 				if ok && metricValue == value {
 					noticeId := noticeInfo["noticeId"]

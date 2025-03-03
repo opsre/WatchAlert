@@ -39,10 +39,3 @@ func EvalCondition(ec models.EvalCondition) bool {
 	}
 	return false
 }
-
-//func SaveAlertEvent(ctx *ctx.Context, event models.AlertCurEvent) {
-//	ok := ctx.DB.Rule().GetRuleIsExist(event.RuleId)
-//	if ok {
-//		SaveEventCache(ctx, event)
-//	}
-//}

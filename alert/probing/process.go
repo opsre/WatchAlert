@@ -1,54 +1,22 @@
 package probing
 
 import (
-	"fmt"
-	"github.com/zeromicro/go-zero/core/logc"
-	"golang.org/x/net/context"
 	"watchAlert/internal/models"
 	"watchAlert/pkg/ctx"
 )
 
-// EvalStrategy 日志评估条件
-type EvalStrategy struct {
-	// 运算
-	Operator string `json:"operator"`
-	// 查询值
-	QueryValue float64 `json:"queryValue"`
-	// 预期值
-	ExpectedValue float64 `json:"value"`
-}
-
-// EvalCondition 评估告警条件
-func EvalCondition(ec EvalStrategy) bool {
-	switch ec.Operator {
-	case ">":
-		if ec.QueryValue > ec.ExpectedValue {
-			return true
-		}
-	case ">=":
-		if ec.QueryValue >= ec.ExpectedValue {
-			return true
-		}
-	case "<":
-		if ec.QueryValue < ec.ExpectedValue {
-			return true
-		}
-	case "<=":
-		if ec.QueryValue <= ec.ExpectedValue {
-			return true
-		}
-	case "==":
-		if ec.QueryValue == ec.ExpectedValue {
-			return true
-		}
-	case "!=":
-		if ec.QueryValue != ec.ExpectedValue {
-			return true
-		}
-	default:
-		logc.Errorf(context.Background(), fmt.Sprintf("无效的评估条件", ec.Operator, ec.ExpectedValue))
+func (t *ProductProbing) buildEvent(rule models.ProbingRule) models.ProbingEvent {
+	return models.ProbingEvent{
+		TenantId:              rule.TenantId,
+		RuleId:                rule.RuleId,
+		RuleType:              rule.RuleType,
+		NoticeId:              rule.NoticeId,
+		Severity:              rule.Severity,
+		IsRecovered:           false,
+		RepeatNoticeInterval:  rule.RepeatNoticeInterval,
+		RecoverNotify:         rule.GetRecoverNotify(),
+		ProbingEndpointConfig: rule.ProbingEndpointConfig,
 	}
-	return false
 }
 
 func SaveProbingEndpointEvent(event models.ProbingEvent) {

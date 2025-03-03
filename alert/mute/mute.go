@@ -90,7 +90,6 @@ func IsSilence(mute MuteParams) bool {
 }
 
 func evalCondition(metrics map[string]interface{}, c models.SilenceLabel) bool {
-	//fmt.Println("--->", metrics[c.Key], c.Operator, c.Value)
 	switch c.Operator {
 	case "==", "=":
 		return metrics[c.Key] == c.Value
