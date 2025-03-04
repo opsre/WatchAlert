@@ -101,18 +101,13 @@ func (rs ruleService) Delete(req interface{}) (interface{}, interface{}) {
 		alert.AlertRule.Stop(rule.RuleId)
 	}
 
-	iter := rs.ctx.Redis.Redis().Scan(0, rule.TenantId+":"+models.FiringAlertCachePrefix+rule.RuleId+"*", 0).Iterator()
-	keys := make([]string, 0)
-	for iter.Next() {
-		key := iter.Val()
-		keys = append(keys, key)
+	// 删除缓存
+	fingerprints := rs.ctx.Redis.Event().GetFingerprintsByRuleId(rule.TenantId, info.FaultCenterId, rule.RuleId)
+	for _, fingerprint := range fingerprints {
+		rs.ctx.Redis.Event().RemoveEventFromFaultCenter(rule.TenantId, info.FaultCenterId, fingerprint)
 	}
 
-	rs.ctx.Redis.Redis().Del(keys...)
-	logc.Infof(rs.ctx.Ctx, fmt.Sprintf("删除队列数据 ->%s", keys))
-
 	return nil, nil
-
 }
 
 func (rs ruleService) List(req interface{}) (interface{}, interface{}) {

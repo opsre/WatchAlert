@@ -1,14 +1,6 @@
 package models
 
-import (
-	"watchAlert/pkg/tools"
-)
-
-type Duration int64
-
-type LabelsMap map[string]string
-
-type NoticeGroup []map[string]string
+type NoticeRoutes []map[string]string
 
 type AlertRule struct {
 	//gorm.Model
@@ -43,8 +35,6 @@ type AlertRule struct {
 	KubernetesConfig KubernetesConfig `json:"kubernetesConfig" gorm:"kubernetesConfig;serializer:json"`
 
 	ElasticSearchConfig ElasticSearchConfig `json:"elasticSearchConfig" gorm:"elasticSearchConfig;serializer:json"`
-
-	NetworkEndpointConfig ProbingEndpointConfig `json:"networkEndpointConfig" gorm:"networkEndpointConfig;serializer:json"`
 
 	LogEvalCondition string `json:"logEvalCondition" gorm:"logEvalCondition;serializer:json"`
 
@@ -166,11 +156,6 @@ type RuleResponse struct {
 	List []AlertRule `json:"list"`
 	Page
 }
-
-var (
-	// cache the signature of an empty label set.
-	emptyLabelSignature = tools.HashNew()
-)
 
 func (a *AlertRule) GetRuleType() string { return a.DatasourceType }
 

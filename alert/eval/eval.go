@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/zeromicro/go-zero/core/logc"
+	"runtime/debug"
 	"strings"
 	"time"
 	"watchAlert/alert/process"
@@ -23,7 +24,6 @@ type (
 		Stop(ruleId string)
 		Eval(ctx context.Context, rule models.AlertRule)
 		Recover(ruleId, faultCenterKey string, faultCenterInfoKey string, curKeys []string)
-		GC(rule models.AlertRule, curFiringKeys []string)
 		RestartAllEvals()
 	}
 
@@ -31,11 +31,11 @@ type (
 	AlertRule struct {
 		ctx                   *ctx.Context
 		watchCtxMap           map[string]context.CancelFunc
-		alarmRecoverWaitStore storage.AlarmRecoverWaitStore
+		alarmRecoverWaitStore *storage.AlarmRecoverWaitStore
 	}
 )
 
-func NewAlertRuleEval(ctx *ctx.Context, alarmRecoverWaitStore storage.AlarmRecoverWaitStore) AlertRuleEval {
+func NewAlertRuleEval(ctx *ctx.Context, alarmRecoverWaitStore *storage.AlarmRecoverWaitStore) AlertRuleEval {
 	return &AlertRule{
 		ctx:                   ctx,
 		watchCtxMap:           make(map[string]context.CancelFunc),
@@ -67,7 +67,9 @@ func (t *AlertRule) Eval(ctx context.Context, rule models.AlertRule) {
 	defer func() {
 		timer.Stop()
 		if r := recover(); r != nil {
-			logc.Error(t.ctx.Ctx, fmt.Sprintf("Recovered from rule eval goroutine panic: %s, RuleName: %s, RuleId: %s", r, rule.RuleName, rule.RuleId))
+			// 获取调用栈信息
+			stack := debug.Stack()
+			logc.Error(t.ctx.Ctx, fmt.Sprintf("Recovered from rule eval goroutine panic: %s, RuleName: %s, RuleId: %s\n%s", r, rule.RuleName, rule.RuleId, stack))
 		}
 	}()
 
@@ -160,8 +162,8 @@ func (t *AlertRule) Recover(RuleId, faultCenterKey string, faultCenterInfoKey st
 	}
 
 	curTime := time.Now().Unix()
-	for _, key := range recoverFingerprints {
-		event := events[key]
+	for _, fingerprint := range recoverFingerprints {
+		event := events[fingerprint]
 		if event.IsRecovered == true {
 			return
 		}
@@ -171,10 +173,10 @@ func (t *AlertRule) Recover(RuleId, faultCenterKey string, faultCenterInfoKey st
 		t.ctx.Redis.Event().PushEventToFaultCenter(&event)
 
 		// 判断是否在等待时间范围内
-		wTime, exists := t.alarmRecoverWaitStore.Get(key)
+		wTime, exists := t.alarmRecoverWaitStore.Get(RuleId, fingerprint)
 		if !exists {
 			// 如果没有，则记录当前时间
-			t.alarmRecoverWaitStore.Set(key, curTime)
+			t.alarmRecoverWaitStore.Set(RuleId, fingerprint, curTime)
 			continue
 		}
 
@@ -188,10 +190,11 @@ func (t *AlertRule) Recover(RuleId, faultCenterKey string, faultCenterInfoKey st
 		event.IsRecovered = true
 		event.RecoverTime = curTime
 		event.LastSendTime = 0
+		event.Metric["value"] = ""
 
 		t.ctx.Redis.Event().PushEventToFaultCenter(&event)
 		// 触发恢复删除带恢复中的 key
-		t.alarmRecoverWaitStore.Remove(key)
+		t.alarmRecoverWaitStore.Remove(RuleId, fingerprint)
 	}
 }
 
@@ -204,8 +207,8 @@ func (t *AlertRule) getRecoverWaitTime(faultCenterInfoKey string) int64 {
 	return faultCenter.RecoverWaitTime
 }
 
-func (t *AlertRule) GC(rule models.AlertRule, curFiringKeys []string) {
-	go process.GcRecoverWaitCache(t.ctx, t.alarmRecoverWaitStore, rule, curFiringKeys)
+func (t *AlertRule) GC(rule models.AlertRule, curFingerprints []string) {
+	go process.GcRecoverWaitCache(t.alarmRecoverWaitStore, rule, curFingerprints)
 }
 
 func (t *AlertRule) RestartAllEvals() {

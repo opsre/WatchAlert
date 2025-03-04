@@ -2,11 +2,6 @@ package models
 
 import "fmt"
 
-const (
-	FiringAlertCachePrefix  = "firing-alert-"
-	PendingAlertCachePrefix = "pending-alert-"
-)
-
 type AlertCurEvent struct {
 	TenantId               string                 `json:"tenantId"`
 	RuleId                 string                 `json:"rule_id"`
@@ -33,8 +28,6 @@ type AlertCurEvent struct {
 	EffectiveTime          EffectiveTime          `json:"effectiveTime" gorm:"effectiveTime;serializer:json"`
 	FaultCenterId          string                 `json:"faultCenterId"`
 	FaultCenter            FaultCenter            `json:"faultCenter" gorm:"-"`
-	ResponseTime           string                 `json:"response_time" gorm:"-"`
-	TimeRemaining          int64                  `json:"time_remaining" gorm:"-"`
 	Status                 int64                  `json:"status" gorm:"-"` // 事件状态，告警中：1，静默中：2，待恢复：3，已恢复：4
 }
 
@@ -59,18 +52,6 @@ type CurEventResponse struct {
 
 func (ace *AlertCurEvent) GetCacheEventsKey() string {
 	return fmt.Sprintf("w8t:%s:%s:%s.events", ace.TenantId, FaultCenterPrefix, ace.FaultCenterId)
-}
-
-func (ace *AlertCurEvent) GetFiringAlertCacheKey() string {
-	return ace.TenantId + ":" + FiringAlertCachePrefix + ace.AlertCacheTailKey()
-}
-
-func (ace *AlertCurEvent) GetPendingAlertCacheKey() string {
-	return ace.TenantId + ":" + PendingAlertCachePrefix + ace.AlertCacheTailKey()
-}
-
-func (ace *AlertCurEvent) AlertCacheTailKey() string {
-	return ace.RuleId + "-" + ace.DatasourceId + "-" + ace.Fingerprint
 }
 
 // IsArriveForDuration 比对持续时间

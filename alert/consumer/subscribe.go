@@ -56,7 +56,6 @@ func processSubscribe(ctx *ctx.Context, alert *models.AlertCurEvent) error {
 			NoticeSubject:    subscribe.SNoticeSubject,
 			NoticeTemplateId: subscribe.SNoticeTemplateId,
 		})
-		fmt.Println("toUsers->", toUsers)
 	}
 
 	return sendToSubscribeUser(ctx, *alert, toUsers)

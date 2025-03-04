@@ -1,6 +1,6 @@
 package tools
 
-// GetSliceDifference 获取差异key. 当slice1中存在, slice2不存在则标记为可恢复告警
+// GetSliceDifference 获取 slice1 中存在, slice2 不存在的差异key
 func GetSliceDifference(slice1 []string, slice2 []string) []string {
 	difference := []string{}
 
