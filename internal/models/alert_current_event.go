@@ -12,6 +12,7 @@ type AlertCurEvent struct {
 	Severity               string                 `json:"severity"`
 	Metric                 map[string]interface{} `json:"metric" gorm:"metric;serializer:json"`
 	Labels                 map[string]string      `json:"labels" gorm:"labels;serializer:json"`
+	SearchQL               string                 `json:"searchQL" gorm:"-"`
 	EvalInterval           int64                  `json:"eval_interval"`
 	ForDuration            int64                  `json:"for_duration"`
 	Annotations            string                 `json:"annotations" gorm:"-"`

@@ -80,6 +80,7 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 				}
 				event.Severity = ruleExpr.Severity
 				event.Annotations = tools.ParserVariables(rule.PrometheusConfig.Annotations, event.Metric)
+				event.SearchQL = rule.PrometheusConfig.PromQL
 				curFingerprints = append(curFingerprints, event.Fingerprint)
 
 				return &event
@@ -237,6 +238,20 @@ func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.Ale
 				event.Metric[ek] = ev
 			}
 			event.Annotations = fmt.Sprintf("共计日志 %d 条\n%s", count, tools.FormatJson(v.GetAnnotations()[0].(string)))
+
+			switch datasourceType {
+			case provider.LokiDsProviderName:
+				event.SearchQL = rule.LokiConfig.LogQL
+			case provider.AliCloudSLSDsProviderName:
+				event.SearchQL = rule.AliCloudSLSConfig.LogQL
+			case provider.ElasticSearchDsProviderName:
+				if rule.ElasticSearchConfig.RawJson != "" {
+					event.SearchQL = rule.ElasticSearchConfig.RawJson
+				} else {
+					event.SearchQL = tools.JsonMarshal(rule.ElasticSearchConfig.Filter)
+				}
+			}
+
 			curFingerprints = append(curFingerprints, event.Fingerprint)
 
 			return &event
@@ -294,6 +309,7 @@ func traces(ctx *ctx.Context, datasourceId, datasourceType string, rule models.A
 		for ek, ev := range externalLabels {
 			event.Metric[ek] = ev
 		}
+		event.SearchQL = rule.JaegerConfig.Tags
 		event.Annotations = fmt.Sprintf("服务: %s 链路中存在异常状态码接口, TraceId: %s", rule.JaegerConfig.Service, v.TraceId)
 
 		curFingerprints = append(curFingerprints, event.Fingerprint)
@@ -399,6 +415,7 @@ func kubernetesEvent(ctx *ctx.Context, datasourceId string, rule models.AlertRul
 		for ek, ev := range externalLabels {
 			event.Metric[ek] = ev
 		}
+		event.SearchQL = rule.KubernetesConfig.Resource
 		event.Annotations = fmt.Sprintf("- 环境: %s\n- 命名空间: %s\n- 资源类型: %s\n- 资源名称: %s\n- 事件类型: %s\n- 事件详情: %s\n",
 			datasourceObj.Name, item.Namespace, item.InvolvedObject.Kind,
 			item.InvolvedObject.Name, item.Reason, eventMapping[item.InvolvedObject.Name],
