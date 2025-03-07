@@ -10,8 +10,8 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"watchAlert/internal/models"
 
-	"watchAlert/config"
 	"watchAlert/pkg/tools"
 )
 
@@ -67,7 +67,7 @@ type (
 )
 
 // NewOpenAIClient 工厂方法
-func NewOpenAIClient(config *config.OpenAIConfig, opt ...OpenaiOption) AiClient {
+func NewOpenAIClient(config *models.AiConfig, opt ...OpenaiOption) AiClient {
 	openAi := &OpenaiClient{
 		Url:       config.Url,
 		ApiKey:    config.AppKey,

@@ -12,6 +12,7 @@ import (
 	"watchAlert/internal/models"
 	"watchAlert/internal/repo"
 	"watchAlert/internal/services"
+	"watchAlert/pkg/ai"
 	"watchAlert/pkg/ctx"
 )
 
@@ -43,6 +44,20 @@ func InitBasic() {
 		go services.LdapService.SyncUsersCronjob()
 	}
 
+	r, err := ctx.DB.Setting().Get()
+	if err != nil {
+		logc.Error(ctx.Ctx, fmt.Sprintf("加载系统设置失败: %s", err.Error()))
+		return
+	}
+
+	if r.AiConfig.GetEnable() {
+		client, err := ai.NewAiClient(&r.AiConfig)
+		if err != nil {
+			logc.Error(ctx.Ctx, fmt.Sprintf("创建 Ai 客户端失败: %s", err.Error()))
+			return
+		}
+		ctx.Redis.ProviderPools().SetClient("AiClient", client)
+	}
 }
 
 func importClientPools(ctx *ctx.Context) {

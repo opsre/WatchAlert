@@ -3,6 +3,7 @@ package services
 import (
 	"watchAlert/internal/global"
 	"watchAlert/internal/models"
+	"watchAlert/pkg/ai"
 	"watchAlert/pkg/ctx"
 )
 
@@ -35,6 +36,14 @@ func (a settingService) Save(req interface{}) (interface{}, interface{}) {
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	if r.AiConfig.GetEnable() {
+		client, err := ai.NewAiClient(&r.AiConfig)
+		if err != nil {
+			return nil, err
+		}
+		a.ctx.Redis.ProviderPools().SetClient("AiClient", client)
 	}
 
 	return nil, nil

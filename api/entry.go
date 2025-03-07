@@ -33,6 +33,7 @@ type ApiGroup struct {
 	SubscribeController
 	ProbingController
 	FaultCenterController
+	AiController
 }
 
 var ApiGroupApp = new(ApiGroup)

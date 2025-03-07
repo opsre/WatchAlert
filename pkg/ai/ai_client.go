@@ -3,14 +3,12 @@ package ai
 import (
 	"context"
 	"fmt"
-	"time"
-	"watchAlert/config"
+	"watchAlert/internal/models"
 )
 
 const (
-	DefaultTimeout        = 30 * time.Second
-	DeepSeek       string = "deepseek"
-	OpenAI         string = "openai"
+	DeepSeek string = "DeepSeek"
+	OpenAI   string = "OpenAi"
 )
 
 type (
@@ -41,12 +39,12 @@ type (
 )
 
 // NewAiClient  new ai client
-func NewAiClient(c *config.AiConfig) (AiClient, error) {
+func NewAiClient(c *models.AiConfig) (AiClient, error) {
 	switch c.Type {
 	case OpenAI:
-		return NewOpenAIClient(c.OpenAI, WithOpenAiTimeout(c.Timeout)), nil
+		return NewOpenAIClient(c, WithOpenAiTimeout(c.Timeout)), nil
 	case DeepSeek:
-		return NewDeepSeekClient(c.DeepSeek, WithDeepSeekTimeout(c.Timeout)), nil
+		return NewDeepSeekClient(c, WithDeepSeekTimeout(c.Timeout)), nil
 	default:
 		return nil, fmt.Errorf("unsupported ai type: %s", c.Type)
 	}

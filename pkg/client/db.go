@@ -58,6 +58,7 @@ func InitDB() *gorm.DB {
 		&models.NoticeRecord{},
 		&models.ProbingRule{},
 		&models.FaultCenter{},
+		&models.AiContentRecord{},
 	)
 	if err != nil {
 		logc.Error(context.Background(), err.Error())

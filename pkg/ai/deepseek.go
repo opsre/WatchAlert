@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"watchAlert/internal/models"
 
-	"watchAlert/config"
 	"watchAlert/pkg/tools"
 )
 
@@ -49,7 +49,7 @@ type (
 )
 
 // NewDeepSeekClient creates a new DeepSeekClient instance.
-func NewDeepSeekClient(config *config.DeepSeekConfig, opt ...DeepSeekOption) AiClient {
+func NewDeepSeekClient(config *models.AiConfig, opt ...DeepSeekOption) AiClient {
 	d := &DeepSeekClient{
 		Url:       config.Url,
 		ApiKey:    config.AppKey,

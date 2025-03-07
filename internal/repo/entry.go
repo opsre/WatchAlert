@@ -34,6 +34,7 @@ type (
 		Subscribe() InterSubscribeRepo
 		Probing() InterProbingRepo
 		FaultCenter() InterFaultCenterRepo
+		Ai() InterAiRepo
 	}
 )
 
@@ -72,3 +73,4 @@ func (e *entryRepo) Setting() InterSettingRepo         { return newSettingRepoIn
 func (e *entryRepo) Subscribe() InterSubscribeRepo     { return newInterSubscribeRepo(e.db, e.g) }
 func (e *entryRepo) Probing() InterProbingRepo         { return newProbingRepoInterface(e.db, e.g) }
 func (e *entryRepo) FaultCenter() InterFaultCenterRepo { return newInterFaultCenterRepo(e.db, e.g) }
+func (e *entryRepo) Ai() InterAiRepo                   { return newAiRepoInterface(e.db, e.g) }

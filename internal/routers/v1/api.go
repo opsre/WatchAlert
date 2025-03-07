@@ -45,6 +45,7 @@ func Router(engine *gin.Engine) {
 			Subscribe.API(w8t)
 			Probing.API(w8t)
 			FaultCenter.API(w8t)
+			Ai.API(w8t)
 		}
 
 	}
