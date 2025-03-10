@@ -15,25 +15,25 @@ import (
 )
 
 // Metrics 包含 Prometheus、VictoriaMetrics 数据源
-func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.AlertRule) []string {
+func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.AlertRule) ([]string, map[string]interface{}) {
 	pools := ctx.Redis.ProviderPools()
 	var (
 		resQuery       []provider.Metrics
 		externalLabels map[string]interface{}
 	)
-
+	fingerPrintMetrics := make(map[string]interface{})
 	switch datasourceType {
 	case provider.PrometheusDsProvider:
 		cli, err := pools.GetClient(datasourceId)
 		if err != nil {
 			logc.Errorf(ctx.Ctx, err.Error())
-			return nil
+			return nil, nil
 		}
 
 		resQuery, err = cli.(provider.PrometheusProvider).Query(rule.PrometheusConfig.PromQL)
 		if err != nil {
 			logc.Error(ctx.Ctx, err.Error())
-			return nil
+			return nil, nil
 		}
 
 		externalLabels = cli.(provider.PrometheusProvider).GetExternalLabels()
@@ -41,24 +41,27 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 		cli, err := pools.GetClient(datasourceId)
 		if err != nil {
 			logc.Errorf(ctx.Ctx, err.Error())
-			return nil
+			return nil, nil
 		}
 
 		resQuery, err = cli.(provider.VictoriaMetricsProvider).Query(rule.PrometheusConfig.PromQL)
 		if err != nil {
 			logc.Error(ctx.Ctx, err.Error())
-			return nil
+			return nil, nil
 		}
 
 		externalLabels = cli.(provider.VictoriaMetricsProvider).GetExternalLabels()
 	default:
 		logc.Errorf(ctx.Ctx, fmt.Sprintf("Unsupported metrics type, type: %s", datasourceType))
-		return nil
+		return nil, nil
 	}
 
 	if resQuery == nil {
-		return nil
+		return nil, nil
 	}
+
+	// 获取已缓存事件指纹
+	fingerPrintMap := process.GetFingerPrint(ctx, rule.TenantId, rule.FaultCenterId, rule.RuleId)
 
 	var curFingerprints []string
 	for _, v := range resQuery {
@@ -69,36 +72,39 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 				continue
 			}
 
-			event := func() *models.AlertCurEvent {
-				event := process.BuildEvent(rule)
-				event.DatasourceId = datasourceId
-				event.Fingerprint = v.GetFingerprint()
-				event.Metric = v.GetMetric()
-				event.Metric["severity"] = ruleExpr.Severity
-				for ek, ev := range externalLabels {
-					event.Metric[ek] = ev
-				}
-				event.Severity = ruleExpr.Severity
-				event.Annotations = tools.ParserVariables(rule.PrometheusConfig.Annotations, event.Metric)
-				event.SearchQL = rule.PrometheusConfig.PromQL
-				curFingerprints = append(curFingerprints, event.Fingerprint)
-
-				return &event
-			}
-
 			option := models.EvalCondition{
 				Operator:      operator,
 				QueryValue:    v.Value,
 				ExpectedValue: value,
 			}
 
+			event := process.BuildEvent(rule)
+			event.DatasourceId = datasourceId
+			event.Fingerprint = v.GetFingerprint()
+			event.Metric = v.GetMetric()
+			event.Metric["severity"] = ruleExpr.Severity
+			for ek, ev := range externalLabels {
+				event.Metric[ek] = ev
+			}
+			event.Severity = ruleExpr.Severity
+			event.Annotations = tools.ParserVariables(rule.PrometheusConfig.Annotations, event.Metric)
+			event.SearchQL = rule.PrometheusConfig.PromQL
+
 			if process.EvalCondition(option) {
-				process.PushEventToFaultCenter(ctx, event())
+				// 如果告警条件满足需要将告警事件指纹加入，不满足时应当直接跳过
+				curFingerprints = append(curFingerprints, event.Fingerprint)
+
+				process.PushEventToFaultCenter(ctx, &event)
+			} else {
+				// 仅更新已经触发事件的指纹对应指标
+				if _, exist := fingerPrintMap[event.Fingerprint]; exist {
+					fingerPrintMetrics[event.Fingerprint] = event.Metric
+				}
 			}
 		}
 	}
 
-	return curFingerprints
+	return curFingerprints, fingerPrintMetrics
 }
 
 // Logs 包含 AliSLS、Loki、ElasticSearch 数据源
