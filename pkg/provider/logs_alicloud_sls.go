@@ -5,6 +5,8 @@ import (
 	sls20201230 "github.com/alibabacloud-go/sls-20201230/v6/client"
 	util "github.com/alibabacloud-go/tea-utils/v2/service"
 	"github.com/alibabacloud-go/tea/tea"
+
+	"github.com/alibabacloud-go/darabonba-openapi/v2/client"
 	"watchAlert/internal/models"
 	"watchAlert/pkg/tools"
 )
@@ -16,10 +18,10 @@ type AliCloudSlsDsProvider struct {
 
 func NewAliCloudSlsClient(source models.AlertDataSource) (LogsFactoryProvider, error) {
 	config := &openapi.Config{
-		AccessKeyId:     &source.AliCloudAk,
-		AccessKeySecret: &source.AliCloudSk,
+		AccessKeyId:     &source.DsAliCloudConfig.AliCloudAk,
+		AccessKeySecret: &source.DsAliCloudConfig.AliCloudSk,
 	}
-	config.Endpoint = tea.String(source.AliCloudEndpoint)
+	config.Endpoint = tea.String(source.DsAliCloudConfig.AliCloudEndpoint)
 	result, err := sls20201230.NewClient(config)
 	if err != nil {
 		return AliCloudSlsDsProvider{}, err
@@ -74,6 +76,10 @@ func (a AliCloudSlsDsProvider) Query(query LogQueryOptions) ([]Logs, int, error)
 }
 
 func (a AliCloudSlsDsProvider) Check() (bool, error) {
+	err := a.client.CheckConfig(&client.Config{})
+	if err != nil {
+		return false, err
+	}
 
 	return true, nil
 }

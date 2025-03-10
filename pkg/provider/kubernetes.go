@@ -91,3 +91,9 @@ func (a KubernetesClient) GetWarningEvent(reason string, scope int) (*corev1.Eve
 func (a KubernetesClient) GetExternalLabels() map[string]interface{} {
 	return a.ExternalLabels
 }
+
+func (a KubernetesClient) Check() (bool, error) {
+	_, err := a.Cli.ServerVersion()
+
+	return err == nil, err
+}

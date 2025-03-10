@@ -21,8 +21,8 @@ type ElasticSearchDsProvider struct {
 
 func NewElasticSearchClient(ctx context.Context, ds models.AlertDataSource) (LogsFactoryProvider, error) {
 	client, err := elastic.NewClient(
-		elastic.SetURL(ds.ElasticSearch.Url),
-		elastic.SetBasicAuth(ds.ElasticSearch.Username, ds.ElasticSearch.Password),
+		elastic.SetURL(ds.HTTP.URL),
+		elastic.SetBasicAuth(ds.Auth.User, ds.Auth.Pass),
 		elastic.SetSniff(false),
 	)
 	if err != nil {
@@ -31,9 +31,9 @@ func NewElasticSearchClient(ctx context.Context, ds models.AlertDataSource) (Log
 
 	return ElasticSearchDsProvider{
 		cli:            client,
-		url:            ds.ElasticSearch.Url,
-		username:       ds.ElasticSearch.Username,
-		password:       ds.ElasticSearch.Password,
+		url:            ds.HTTP.URL,
+		username:       ds.Auth.User,
+		password:       ds.Auth.Pass,
 		ExternalLabels: ds.Labels,
 	}, nil
 }
