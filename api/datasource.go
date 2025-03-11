@@ -6,10 +6,12 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 	middleware "watchAlert/internal/middleware"
 	"watchAlert/internal/models"
 	"watchAlert/internal/services"
+	ctx2 "watchAlert/pkg/ctx"
 	"watchAlert/pkg/provider"
 	"watchAlert/pkg/tools"
 )
@@ -128,22 +130,40 @@ func (dc DatasourceController) PromQuery(ctx *gin.Context) {
 	BindQuery(ctx, r)
 
 	Service(ctx, func() (interface{}, interface{}) {
-		var res provider.QueryResponse
+		var ress []provider.QueryResponse
 		path := "/api/v1/query"
 		params := url.Values{}
 		params.Add("query", r.Query)
 		params.Add("time", strconv.FormatInt(time.Now().Unix(), 10))
-		fullURL := fmt.Sprintf("%s%s?%s", r.Addr, path, params.Encode())
-		get, err := tools.Get(nil, fullURL, 10)
-		if err != nil {
-			return nil, err
+
+		var ids []string
+		if len(r.DatasourceIds) < 2 {
+			ids = []string{r.DatasourceIds}
 		}
 
-		if err := tools.ParseReaderBody(get.Body, &res); err != nil {
-			return nil, err
+		ids = strings.Split(r.DatasourceIds, ",")
+		for _, id := range ids {
+			var res provider.QueryResponse
+			source, err := ctx2.DO().DB.Datasource().Get(models.DatasourceQuery{
+				Id: id,
+			})
+			if err != nil {
+				return nil, err
+			}
+			fullURL := fmt.Sprintf("%s%s?%s", source.HTTP.URL, path, params.Encode())
+			get, err := tools.Get(tools.CreateBasicAuthHeader(source.Auth.User, source.Auth.Pass), fullURL, 10)
+			if err != nil {
+				return nil, err
+			}
+
+			if err := tools.ParseReaderBody(get.Body, &res); err != nil {
+				return nil, err
+			}
+
+			ress = append(ress, res)
 		}
 
-		return res, nil
+		return ress, nil
 	})
 }
 
@@ -152,9 +172,9 @@ func (dc DatasourceController) Ping(ctx *gin.Context) {
 	BindJson(ctx, r)
 
 	Service(ctx, func() (interface{}, interface{}) {
-		ok := provider.CheckDatasourceHealth(*r)
+		ok, err := provider.CheckDatasourceHealth(*r)
 		if !ok {
-			return "", fmt.Errorf("数据源不可达!")
+			return "", fmt.Errorf("数据源不可达, err: %s", err.Error())
 		}
 		return "", nil
 	})

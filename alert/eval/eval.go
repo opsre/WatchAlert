@@ -89,7 +89,8 @@ func (t *AlertRule) Eval(ctx context.Context, rule models.AlertRule) {
 					continue
 				}
 
-				if !provider.CheckDatasourceHealth(instance) {
+				ok, _ := provider.CheckDatasourceHealth(instance)
+				if !ok {
 					continue
 				}
 

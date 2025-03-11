@@ -7,58 +7,83 @@ import (
 	"watchAlert/internal/models"
 )
 
-func CheckDatasourceHealth(datasource models.AlertDataSource) bool {
-	var (
-		err   error
-		check bool
-	)
+// HealthChecker 统一健康检查接口
+type HealthChecker interface {
+	Check() (bool, error)
+}
 
-	switch datasource.Type {
-	case "Prometheus":
-		prometheusClient, err := NewPrometheusClient(datasource)
-		if err == nil {
-			check, err = prometheusClient.Check()
-		}
-	case "VictoriaMetrics":
-		vmClient, err := NewVictoriaMetricsClient(datasource)
-		if err == nil {
-			check, err = vmClient.Check()
-		}
-	case "Kubernetes":
-		cli, err := NewKubernetesClient(context.Background(), datasource.KubeConfig, datasource.Labels)
-		if err == nil {
-			_, err = cli.GetWarningEvent("", 1)
-			check = (err == nil)
-		}
-	case "ElasticSearch":
-		searchClient, err := NewElasticSearchClient(context.Background(), datasource)
-		if err == nil {
-			check, err = searchClient.Check()
-		}
-	case "AliCloudSLS":
-		slsClient, err := NewAliCloudSlsClient(datasource)
-		if err == nil {
-			check, err = slsClient.Check()
-		}
-	case "Loki":
-		lokiClient, err := NewLokiClient(datasource)
-		if err == nil {
-			check, err = lokiClient.Check()
-		}
-	case "Jaeger":
-		jaegerClient, err := NewJaegerClient(datasource)
-		if err == nil {
-			check, err = jaegerClient.Check()
-		}
-	case "CloudWatch":
-		return true
+// ClientFactory 客户端工厂函数类型
+type ClientFactory func(models.AlertDataSource) (HealthChecker, error)
+
+// 注册所有数据源类型的工厂方法
+var datasourceFactories = map[string]ClientFactory{
+	"Prometheus": func(ds models.AlertDataSource) (HealthChecker, error) {
+		return NewPrometheusClient(ds)
+	},
+	"VictoriaMetrics": func(ds models.AlertDataSource) (HealthChecker, error) {
+		return NewVictoriaMetricsClient(ds)
+	},
+	"Kubernetes": func(ds models.AlertDataSource) (HealthChecker, error) {
+		return NewKubernetesClient(context.Background(), ds.KubeConfig, ds.Labels)
+	},
+	"ElasticSearch": func(ds models.AlertDataSource) (HealthChecker, error) {
+		return NewElasticSearchClient(context.Background(), ds)
+	},
+	"AliCloudSLS": func(ds models.AlertDataSource) (HealthChecker, error) {
+		return NewAliCloudSlsClient(ds)
+	},
+	"Loki": func(ds models.AlertDataSource) (HealthChecker, error) {
+		return NewLokiClient(ds)
+	},
+	"Jaeger": func(ds models.AlertDataSource) (HealthChecker, error) {
+		return NewJaegerClient(ds)
+	},
+	"CloudWatch": func(ds models.AlertDataSource) (HealthChecker, error) {
+		return &CloudWatchDummyChecker{}, nil
+	},
+}
+
+// CloudWatchDummyChecker 云监控哑检查器
+type CloudWatchDummyChecker struct{}
+
+func (c *CloudWatchDummyChecker) Check() (bool, error) {
+	return true, nil
+}
+
+// CheckDatasourceHealth 统一健康检查入口
+func CheckDatasourceHealth(datasource models.AlertDataSource) (bool, error) {
+	// 获取对应的工厂方法
+	factory, ok := datasourceFactories[datasource.Type]
+	if !ok {
+		err := fmt.Errorf("unsupported datasource type: %s", datasource.Type)
+		logDatasourceError(datasource, err)
+		return false, err
 	}
 
-	// 检查数据源健康状况并返回结果
-	if err != nil || !check {
-		logc.Errorf(context.Background(), fmt.Sprintf("数据源不健康, Id: %s, Name: %s, Type: %s", datasource.Id, datasource.Name, datasource.Type))
-		return false
+	// 创建客户端
+	client, err := factory(datasource)
+	if err != nil {
+		logDatasourceError(datasource, fmt.Errorf("client creation failed: %w", err))
+		return false, err
 	}
 
-	return true
+	// 执行健康检查
+	healthy, err := client.Check()
+	if err != nil || !healthy {
+		logDatasourceError(datasource, fmt.Errorf("health check failed: %w", err))
+		return false, err
+	}
+
+	return true, nil
+}
+
+// 统一日志记录方法
+func logDatasourceError(ds models.AlertDataSource, err error) {
+	logc.Errorf(context.Background(), "Datasource error",
+		map[string]interface{}{
+			"id":   ds.Id,
+			"name": ds.Name,
+			"type": ds.Type,
+			"err":  err.Error(),
+		})
 }

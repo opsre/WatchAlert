@@ -12,7 +12,7 @@ services:
     ports:
       - "9001:9001"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://w8t-mysql:3306"]
+      test: ["CMD", "wget", "localhost:9001/hello"]
       interval: 5s
       timeout: 2s
       retries: 10
