@@ -99,6 +99,8 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 				// 仅更新已经触发事件的指纹对应指标
 				if _, exist := fingerPrintMap[event.Fingerprint]; exist {
 					fingerPrintMetrics[event.Fingerprint] = event.Metric
+
+					process.PushEventToFaultCenter(ctx, &event)
 				}
 			}
 		}
