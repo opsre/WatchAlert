@@ -20,7 +20,11 @@
 ## 💎 项目介绍
 WatchAlert 是一款为云原生环境量身打造的轻量级监控告警引擎，专注于**可观测稳定性**主题，提供全面的监控与告警支持。
 
+AI + WatchAlert 实现智能化告警分析 高效处理故障告警;
+
 **能力**
+- AI 智能分析
+  - 针对`Metrics` `Logs` `Traces` 告警内容做内容分析，高效定位告警根因，并提供排查思路和解决方案;
 - Metrics 监控
     - 集成：Prometheus、VictoriaMetrics
 - Logs 监控
@@ -53,7 +57,7 @@ WatchAlert 是一款为云原生环境量身打造的轻量级监控告警引擎
 
 |    ![登陆页](assets/login.png)    | ![首页](assets/home.png)                 |
 |:------------------------------:|--------------------------------|
-|   ![img.png](assets/img.png)   | ![img_1.png](assets/img_1.png) |
+|   ![rules.png](assets/rules.png)   | ![faultcenter.png](assets/faultcenter.png) |
 | ![img_2.png](assets/img_2.png) | ![img_3.png](assets/img_3.png) |
 | ![img_5.png](assets/img_5.png) | ![img_4.png](assets/img_4.png) |
 | ![img_6.png](assets/img_6.png) | ![img_7.png](assets/img_7.png) |
