@@ -140,7 +140,7 @@ func pageSlice(data []models.AlertCurEvent, index, size int) []models.AlertCurEv
 		return nil
 	}
 
-	if size > len(data) {
+	if limit > len(data) {
 		limit = len(data)
 	}
 
