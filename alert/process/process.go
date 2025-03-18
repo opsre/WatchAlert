@@ -23,19 +23,7 @@ func BuildEvent(rule models.AlertRule) models.AlertCurEvent {
 		Severity:             rule.Severity,
 		EffectiveTime:        rule.EffectiveTime,
 		FaultCenterId:        rule.FaultCenterId,
-		Status:               1,
 	}
-}
-
-// isSilencedEvent 静默检查
-func isSilencedEvent(event *models.AlertCurEvent) bool {
-	return mute.IsSilence(mute.MuteParams{
-		EffectiveTime: event.EffectiveTime,
-		IsRecovered:   event.IsRecovered,
-		TenantId:      event.TenantId,
-		Metrics:       event.Metric,
-		FaultCenterId: event.FaultCenterId,
-	})
 }
 
 func PushEventToFaultCenter(ctx *ctx.Context, event *models.AlertCurEvent) {
@@ -49,18 +37,23 @@ func PushEventToFaultCenter(ctx *ctx.Context, event *models.AlertCurEvent) {
 	event.FirstTriggerTime = eventOpt.GetFirstTimeForFaultCenter(event.TenantId, event.FaultCenterId, event.Fingerprint)
 	event.LastEvalTime = eventOpt.GetLastEvalTimeForFaultCenter()
 	event.LastSendTime = eventOpt.GetLastSendTimeForFaultCenter(event.TenantId, event.FaultCenterId, event.Fingerprint)
-
-	if event.IsArriveForDuration() {
-		event.Status = 1
-	}
-	if isSilencedEvent(event) {
+	event.Status = event.DetermineEventStatus()
+	if IsSilencedEvent(event) {
 		event.Status = 2
-	}
-	if event.IsRecovered {
-		event.Status = 3
 	}
 
 	eventOpt.PushEventToFaultCenter(event)
+}
+
+// IsSilencedEvent 静默检查
+func IsSilencedEvent(event *models.AlertCurEvent) bool {
+	return mute.IsSilence(mute.MuteParams{
+		EffectiveTime: event.EffectiveTime,
+		IsRecovered:   event.IsRecovered,
+		TenantId:      event.TenantId,
+		Metrics:       event.Metric,
+		FaultCenterId: event.FaultCenterId,
+	})
 }
 
 func GcRecoverWaitCache(alarmRecoverStore *storage.AlarmRecoverWaitStore, rule models.AlertRule, curKeys []string) {

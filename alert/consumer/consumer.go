@@ -218,6 +218,10 @@ func (c *Consume) filterAlertEvents(faultCenter models.FaultCenter, alerts map[s
 			continue
 		}
 
+		if event.Status != 1 {
+			continue
+		}
+
 		if !event.IsRecovered && c.isMutedEvent(event, faultCenter) {
 			continue
 		}

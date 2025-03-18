@@ -90,6 +90,8 @@ func (f faultCenterService) List(req interface{}) (data interface{}, err interfa
 
 		for _, event := range events {
 			switch event.Status {
+			case 0:
+				faultCenters[index].CurrentPreAlertNumber++
 			case 1:
 				faultCenters[index].CurrentAlertNumber++
 			case 2:

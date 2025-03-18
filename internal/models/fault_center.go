@@ -5,20 +5,21 @@ import "fmt"
 const FaultCenterPrefix = "faultCenter"
 
 type FaultCenter struct {
-	TenantId             string       `json:"tenantId"`
-	ID                   string       `json:"id"`
-	Name                 string       `json:"name"`
-	Description          string       `json:"description"`
-	NoticeId             string       `json:"noticeId"`
-	NoticeRoutes         NoticeRoutes `json:"noticeRoutes" gorm:"noticeRoutes;serializer:json"`
-	RepeatNoticeInterval int64        `json:"repeatNoticeInterval"`
-	RecoverNotify        *bool        `json:"recoverNotify"`
-	AggregationType      string       `json:"aggregationType"`
-	CreateAt             int64        `json:"createAt"`
-	RecoverWaitTime      int64        `json:"recoverWaitTime"`
-	CurrentAlertNumber   int64        `json:"currentAlertNumber" gorm:"-"`
-	CurrentMuteNumber    int64        `json:"currentMuteNumber" gorm:"-"`
-	CurrentRecoverNumber int64        `json:"currentRecoverNumber" gorm:"-"`
+	TenantId              string       `json:"tenantId"`
+	ID                    string       `json:"id"`
+	Name                  string       `json:"name"`
+	Description           string       `json:"description"`
+	NoticeId              string       `json:"noticeId"`
+	NoticeRoutes          NoticeRoutes `json:"noticeRoutes" gorm:"noticeRoutes;serializer:json"`
+	RepeatNoticeInterval  int64        `json:"repeatNoticeInterval"`
+	RecoverNotify         *bool        `json:"recoverNotify"`
+	AggregationType       string       `json:"aggregationType"`
+	CreateAt              int64        `json:"createAt"`
+	RecoverWaitTime       int64        `json:"recoverWaitTime"`
+	CurrentPreAlertNumber int64        `json:"currentPreAlertNumber" gorm:"-"`
+	CurrentAlertNumber    int64        `json:"currentAlertNumber" gorm:"-"`
+	CurrentMuteNumber     int64        `json:"currentMuteNumber" gorm:"-"`
+	CurrentRecoverNumber  int64        `json:"currentRecoverNumber" gorm:"-"`
 }
 
 func (f *FaultCenter) TableName() string {

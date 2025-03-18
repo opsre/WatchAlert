@@ -36,7 +36,7 @@ func (a aiService) Chat(req interface{}) (interface{}, interface{}) {
 	}
 
 	r := req.(*models.AiParams)
-	if r.Content == "" {
+	if r.RuleId == "" || r.SearchQL == "" || r.Content == "" {
 		return nil, fmt.Errorf("分析的内容不可为空")
 	}
 
