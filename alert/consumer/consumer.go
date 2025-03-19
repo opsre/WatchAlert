@@ -218,8 +218,8 @@ func (c *Consume) filterAlertEvents(faultCenter models.FaultCenter, alerts map[s
 			continue
 		}
 
-		// 过滤掉 预告警 状态的事件
-		if event.Status == 0 {
+		// 过滤掉 预告警, 待恢复 状态的事件
+		if event.Status == 0 || event.Status == 3 {
 			continue
 		}
 
