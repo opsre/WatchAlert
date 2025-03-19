@@ -9,14 +9,14 @@ import (
 func TestOpenAiChatCompletion(t *testing.T) {
 
 	c := &models.AiConfig{
-		Type:      "openai",
+		//Type:      "openai",
 		Url:       "https://free.v36.cm/v1/chat/completions",
-		AppKey:    "sk-ZauXu0adURlYp8JBCa7e2a52C7Fd433c9eE33a094226CeEf",
+		AppKey:    "sk-ZauXu0adURlYp8JBCa7e2a52C7Fd43",
 		Model:     "gpt-4o-mini",
 		MaxTokens: 2048,
+		Timeout:   3000,
 	}
-	client := NewOpenAIClient(c, WithOpenAiTimeout(300))
-	client.Check(context.Background())
+	client, _ := NewAiClient(c)
 
 	resp, err := client.ChatCompletion(context.Background(), "你好，你是谁？")
 	if err != nil {
@@ -30,14 +30,14 @@ func TestOpenAiChatCompletion(t *testing.T) {
 func TestOpenAiStreamCompletion(t *testing.T) {
 
 	c := &models.AiConfig{
-		Type:      "openai",
+		//Type:      "openai",
 		Url:       "https://free.v36.cm/v1/chat/completions",
 		AppKey:    "sk-ZauXu0adURlYp8JBCa7e2a52C7Fd433c9eE33a094226CeEf",
 		Model:     "gpt-4o-mini",
 		MaxTokens: 2048,
+		Timeout:   3000,
 	}
-	client := NewOpenAIClient(c, WithOpenAiTimeout(30))
-	client.Check(context.Background())
+	client, _ := NewAiClient(c)
 
 	resp, err := client.StreamCompletion(context.Background(), "你好，你是谁？")
 	if err != nil {

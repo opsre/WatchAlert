@@ -25,8 +25,8 @@ type phoneCallConfig struct {
 
 // AiConfig ai config
 type AiConfig struct {
-	Enable    *bool  `json:"enable"`
-	Type      string `json:"type"` // OpenAi, DeepSeek
+	Enable *bool `json:"enable"`
+	//Type      string `json:"type"` // OpenAi, DeepSeek
 	Url       string `json:"url"`
 	AppKey    string `json:"appKey"`
 	Model     string `json:"model"`
