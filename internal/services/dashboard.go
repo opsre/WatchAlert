@@ -158,7 +158,17 @@ func (ds dashboardService) DeleteFolder(req interface{}) (data interface{}, erro
 
 func (ds dashboardService) ListGrafanaDashboards(req interface{}) (data interface{}, error interface{}) {
 	r := req.(*models.DashboardFolders)
-	get, err := tools.Get(nil, fmt.Sprintf("%s/api/search?folderIds=%d", r.GrafanaHost, r.GrafanaFolderId), 10)
+	var query string
+	switch r.GrafanaVersion {
+	case models.GrafanaV11:
+		query = fmt.Sprintf("folderUIDs=%s&deleted=false&limit=1000", r.GrafanaFolderId)
+	case models.GrafanaV10:
+		query = fmt.Sprintf("folderIds=%s", r.GrafanaFolderId)
+	default:
+		return nil, fmt.Errorf("invalid grafana version, please change v10 or v11")
+	}
+
+	get, err := tools.Get(nil, fmt.Sprintf("%s/api/search?%s", r.GrafanaHost, query), 10)
 	if err != nil {
 		return nil, err
 	}
