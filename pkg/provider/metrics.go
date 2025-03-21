@@ -39,7 +39,11 @@ func (m Metrics) GetFingerprint() string {
 	return strconv.FormatUint(result, 10)
 }
 
-func (m Metrics) GetMetric() map[string]interface{} {
+func (m Metrics) GetMetric() *map[string]interface{} {
 	m.Metric["value"] = m.Value
-	return m.Metric
+	return &m.Metric
+}
+
+func (m Metrics) GetValue() *float64 {
+	return &m.Value
 }

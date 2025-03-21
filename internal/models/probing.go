@@ -2,6 +2,7 @@ package models
 
 type ProbingRule struct {
 	TenantId              string                `json:"tenantId"`
+	RuleName              string                `json:"ruleName"`
 	RuleId                string                `json:"ruleId" gorm:"ruleId"`
 	RuleType              string                `json:"ruleType"`
 	RepeatNoticeInterval  int64                 `json:"repeatNoticeInterval"`
@@ -134,6 +135,7 @@ const ProbingEventPrefix string = "PE"
 type ProbingEvent struct {
 	TenantId               string                 `json:"tenantId"`
 	RuleId                 string                 `json:"ruleId" gorm:"ruleId"`
+	RuleName               string                 `json:"ruleName"`
 	RuleType               string                 `json:"ruleType"`
 	Fingerprint            string                 `json:"fingerprint"`
 	Severity               string                 `json:"severity"`

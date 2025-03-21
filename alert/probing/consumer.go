@@ -93,6 +93,7 @@ func (m *ConsumeProbing) filterEvent(alert models.ProbingEvent) bool {
 
 func (m *ConsumeProbing) sendAlert(alert models.ProbingEvent, noticeData models.AlertNotice) {
 	err := sender.Sender(m.ctx, sender.SendParams{
+		RuleName:    alert.RuleName,
 		TenantId:    alert.TenantId,
 		Severity:    alert.Severity,
 		NoticeType:  noticeData.NoticeType,

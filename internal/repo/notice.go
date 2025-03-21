@@ -20,7 +20,7 @@ type (
 		Update(r models.AlertNotice) error
 		Delete(r models.NoticeQuery) error
 		AddRecord(r models.NoticeRecord) error
-		ListRecord(r models.NoticeQuery) ([]models.NoticeRecord, error)
+		ListRecord(r models.NoticeQuery) (models.ResponseNoticeRecords, error)
 		CountRecord(r models.CountRecord) (int64, error)
 	}
 )
@@ -152,8 +152,11 @@ func (nr NoticeRepo) AddRecord(r models.NoticeRecord) error {
 	return nil
 }
 
-func (nr NoticeRepo) ListRecord(r models.NoticeQuery) ([]models.NoticeRecord, error) {
-	var records []models.NoticeRecord
+func (nr NoticeRepo) ListRecord(r models.NoticeQuery) (models.ResponseNoticeRecords, error) {
+	var (
+		records []models.NoticeRecord
+		count   int64
+	)
 	db := nr.db.Model(&models.NoticeRecord{})
 	db.Where("tenant_id = ?", r.TenantId)
 	if r.Severity != "" {
@@ -166,12 +169,23 @@ func (nr NoticeRepo) ListRecord(r models.NoticeQuery) ([]models.NoticeRecord, er
 		db.Where("rule_name LIKE ? OR alarm_msg LIKE ? OR err_msg LIKE ?", "%"+r.Query+"%", "%"+r.Query+"%", "%"+r.Query+"%")
 	}
 
-	err := db.Order("create_at DESC").Find(&records).Error
-	if err != nil {
-		return nil, err
+	if err := db.Count(&count).Error; err != nil {
+		return models.ResponseNoticeRecords{}, err
 	}
 
-	return records, nil
+	err := db.Limit(int(r.Page.Size)).Offset(int((r.Page.Index - 1) * r.Page.Size)).Order("create_at DESC").Find(&records).Error
+	if err != nil {
+		return models.ResponseNoticeRecords{}, err
+	}
+
+	return models.ResponseNoticeRecords{
+		List: records,
+		Page: models.Page{
+			Index: r.Page.Index,
+			Size:  r.Page.Size,
+			Total: count,
+		},
+	}, nil
 }
 
 func (nr NoticeRepo) CountRecord(r models.CountRecord) (int64, error) {

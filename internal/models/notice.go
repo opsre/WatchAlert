@@ -5,17 +5,17 @@ import (
 )
 
 type AlertNotice struct {
-	TenantId     string   `json:"tenantId"`
-	Uuid         string   `json:"uuid"`
-	Name         string   `json:"name"`
-	DutyId       string   `json:"dutyId"`
-	NoticeType   string   `json:"noticeType"`
-	NoticeTmplId string   `json:"noticeTmplId"`
-	Hook         string   `json:"hook"`
-	Email        Email    `json:"email" gorm:"email;serializer:json"`
+	TenantId     string `json:"tenantId"`
+	Uuid         string `json:"uuid"`
+	Name         string `json:"name"`
+	DutyId       string `json:"dutyId"`
+	NoticeType   string `json:"noticeType"`
+	NoticeTmplId string `json:"noticeTmplId"`
+	Hook         string `json:"hook"`
+	Email        Email  `json:"email" gorm:"email;serializer:json"`
 	// 签名
-	Sign         string   `json:"sign" gorm:"sign"`
-	PhoneNumber  []string `json:"phoneNumber" gorm:"phoneNumber;serializer:json"`
+	Sign        string   `json:"sign" gorm:"sign"`
+	PhoneNumber []string `json:"phoneNumber" gorm:"phoneNumber;serializer:json"`
 }
 
 type Email struct {
@@ -52,6 +52,7 @@ type NoticeQuery struct {
 	Status       string `json:"status" form:"status"`
 	Severity     string `json:"severity" form:"severity"`
 	Query        string `json:"query" form:"query"`
+	Page
 }
 
 type NoticeTemplateExampleQuery struct {
@@ -78,4 +79,9 @@ type CountRecord struct {
 	Date     string `json:"date"`     // 记录日期
 	TenantId string `json:"tenantId"` // 租户
 	Severity string `json:"severity"` // 告警等级
+}
+
+type ResponseNoticeRecords struct {
+	List []NoticeRecord `json:"list"`
+	Page
 }

@@ -62,11 +62,9 @@ func processSubscribe(ctx *ctx.Context, alert *models.AlertCurEvent) error {
 }
 
 func getSubscribes(alert *models.AlertCurEvent) ([]models.AlertSubscribe, error) {
-	// Firing_a-csu3be5vi7ns2tmpdnhg
-	ruleId := strings.Split(alert.RuleId, "_")
 	list, err := ctx.DB.Subscribe().List(models.AlertSubscribeQuery{
 		STenantId: alert.TenantId,
-		SRuleId:   ruleId[1],
+		SRuleId:   alert.RuleId,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("获取订阅用户失败, err: %s", err.Error())

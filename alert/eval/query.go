@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 	"watchAlert/alert/process"
-	models "watchAlert/internal/models"
+	"watchAlert/internal/models"
 	"watchAlert/pkg/community/aws/cloudwatch"
 	"watchAlert/pkg/community/aws/cloudwatch/types"
 	"watchAlert/pkg/ctx"
@@ -15,25 +15,24 @@ import (
 )
 
 // Metrics 包含 Prometheus、VictoriaMetrics 数据源
-func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.AlertRule) ([]string, map[string]interface{}) {
+func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.AlertRule) []string {
 	pools := ctx.Redis.ProviderPools()
 	var (
 		resQuery       []provider.Metrics
 		externalLabels map[string]interface{}
 	)
-	fingerPrintMetrics := make(map[string]interface{})
 	switch datasourceType {
 	case provider.PrometheusDsProvider:
 		cli, err := pools.GetClient(datasourceId)
 		if err != nil {
 			logc.Errorf(ctx.Ctx, err.Error())
-			return nil, nil
+			return nil
 		}
 
 		resQuery, err = cli.(provider.PrometheusProvider).Query(rule.PrometheusConfig.PromQL)
 		if err != nil {
 			logc.Error(ctx.Ctx, err.Error())
-			return nil, nil
+			return nil
 		}
 
 		externalLabels = cli.(provider.PrometheusProvider).GetExternalLabels()
@@ -41,23 +40,23 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 		cli, err := pools.GetClient(datasourceId)
 		if err != nil {
 			logc.Errorf(ctx.Ctx, err.Error())
-			return nil, nil
+			return nil
 		}
 
 		resQuery, err = cli.(provider.VictoriaMetricsProvider).Query(rule.PrometheusConfig.PromQL)
 		if err != nil {
 			logc.Error(ctx.Ctx, err.Error())
-			return nil, nil
+			return nil
 		}
 
 		externalLabels = cli.(provider.VictoriaMetricsProvider).GetExternalLabels()
 	default:
 		logc.Errorf(ctx.Ctx, fmt.Sprintf("Unsupported metrics type, type: %s", datasourceType))
-		return nil, nil
+		return nil
 	}
 
 	if resQuery == nil {
-		return nil, nil
+		return nil
 	}
 
 	// 获取已缓存事件指纹
@@ -81,7 +80,7 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 			event := process.BuildEvent(rule)
 			event.DatasourceId = datasourceId
 			event.Fingerprint = v.GetFingerprint()
-			event.Metric = v.GetMetric()
+			event.Metric = *v.GetMetric()
 			event.Metric["severity"] = ruleExpr.Severity
 			for ek, ev := range externalLabels {
 				event.Metric[ek] = ev
@@ -98,15 +97,22 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 			} else {
 				// 仅更新已经触发事件的指纹对应指标
 				if _, exist := fingerPrintMap[event.Fingerprint]; exist {
-					fingerPrintMetrics[event.Fingerprint] = event.Metric
+					// 获取过恢复值则直接跳过
+					if _, existRecoverValue := event.Metric["recover_value"]; existRecoverValue {
+						continue
+					}
 
+					// 获取上一次告警值
+					event.Metric["value"] = ctx.Redis.Event().GetLastFiringValueForFaultCenter(event.TenantId, event.FaultCenterId, event.Fingerprint)
+					// 获取当前恢复值
+					event.Metric["recover_value"] = v.GetValue()
 					process.PushEventToFaultCenter(ctx, &event)
 				}
 			}
 		}
 	}
 
-	return curFingerprints, fingerPrintMetrics
+	return curFingerprints
 }
 
 // Logs 包含 AliSLS、Loki、ElasticSearch 数据源

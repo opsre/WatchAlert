@@ -49,17 +49,17 @@ type (
 	}
 )
 
-func (ag *AlertGroups) AddAlert(alert *models.AlertCurEvent, noticeRoutes []map[string]string) {
+func (ag *AlertGroups) AddAlert(stateId string, alert *models.AlertCurEvent, noticeRoutes []map[string]string) {
 	groupID := ag.generateGroupID(alert, noticeRoutes)
 
 	ag.lock.Lock()
 	defer ag.lock.Unlock()
 
 	// 查找 Rule 位置
-	rulePos := ag.getRuleNodePos(alert.RuleId)
+	rulePos := ag.getRuleNodePos(stateId)
 
 	// Rule 存在时的处理，找到对应的规则组
-	if rulePos < len(ag.Rules) && ag.Rules[rulePos].RuleID == alert.RuleId {
+	if rulePos < len(ag.Rules) && ag.Rules[rulePos].RuleID == stateId {
 		rule := &ag.Rules[rulePos]
 
 		// 查找 Group 位置
@@ -80,7 +80,7 @@ func (ag *AlertGroups) AddAlert(alert *models.AlertCurEvent, noticeRoutes []map[
 
 	// 插入新Rule
 	ag.Rules = append(ag.Rules, RulesGroup{
-		RuleID: alert.RuleId,
+		RuleID: stateId,
 		Groups: []EventsGroup{
 			{
 				ID:     groupID,
@@ -264,16 +264,17 @@ func (c *Consume) alarmGrouping(faultCenter models.FaultCenter, alertGroups *Ale
 
 	for _, alert := range alerts {
 		// 状态分组
+		var stateId string
 		switch alert.IsRecovered {
 		case true:
-			alert.RuleId = "Recover_" + alert.RuleId
+			stateId = "Recover_" + alert.RuleId
 		case false:
-			alert.RuleId = "Firing_" + alert.RuleId
+			stateId = "Firing_" + alert.RuleId
 		default:
-			alert.RuleId = "Unknown_" + alert.RuleId
+			stateId = "Unknown_" + alert.RuleId
 		}
 
-		alertGroups.AddAlert(alert, faultCenter.NoticeRoutes)
+		alertGroups.AddAlert(stateId, alert, faultCenter.NoticeRoutes)
 		if alert.IsRecovered {
 			c.removeAlertFromCache(alert)
 			if err := process.RecordAlertHisEvent(c.ctx, *alert); err != nil {

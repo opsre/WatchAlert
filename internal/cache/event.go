@@ -34,6 +34,7 @@ type (
 		GetLastEvalTimeForFaultCenter() int64
 		GetLastSendTimeForFaultCenter(tenantId, faultCenterId, fingerprint string) int64
 		GetEventStatusForFaultCenter(tenantId, faultCenterId, fingerprint string) int64
+		GetLastFiringValueForFaultCenter(tenantId, faultCenterId, fingerprint string) float64
 	}
 )
 
@@ -201,6 +202,15 @@ func (ec *EventCache) GetEventStatusForFaultCenter(tenantId, faultCenterId, fing
 		return 0
 	}
 	return event.Status
+}
+
+// GetLastFiringValueForFaultCenter 获取故障中心事件的最新告警值
+func (ec *EventCache) GetLastFiringValueForFaultCenter(tenantId, faultCenterId, fingerprint string) float64 {
+	event, err := ec.GetEventFromCache(tenantId, faultCenterId, fingerprint)
+	if err != nil {
+		return 0
+	}
+	return event.Metric["value"].(float64)
 }
 
 // 封装 Redis 操作
