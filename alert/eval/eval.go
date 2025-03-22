@@ -99,7 +99,7 @@ func (t *AlertRule) Eval(ctx context.Context, rule models.AlertRule) {
 				switch rule.DatasourceType {
 				case "Prometheus", "VictoriaMetrics":
 					fingerprints = metrics(t.ctx, dsId, instance.Type, rule)
-				case "AliCloudSLS", "Loki", "ElasticSearch":
+				case "AliCloudSLS", "Loki", "ElasticSearch", "Victoria":
 					fingerprints = logs(t.ctx, dsId, instance.Type, rule)
 				case "Jaeger":
 					fingerprints = traces(t.ctx, dsId, instance.Type, rule)

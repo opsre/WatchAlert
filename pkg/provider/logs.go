@@ -14,6 +14,7 @@ const (
 	LokiDsProviderName          string = "Loki"
 	AliCloudSLSDsProviderName   string = "AliCloudSLS"
 	ElasticSearchDsProviderName string = "ElasticSearch"
+	VictoriaDsProviderName      string = "Victoria"
 )
 
 type LogsFactoryProvider interface {
@@ -26,6 +27,7 @@ type LogQueryOptions struct {
 	AliCloudSLS   AliCloudSLS
 	Loki          Loki
 	ElasticSearch Elasticsearch
+	Victoria      Victoria
 	StartAt       interface{} // 查询的开始时间。
 	EndAt         interface{} // 查询的结束时间。
 }
@@ -55,6 +57,11 @@ type Elasticsearch struct {
 	QueryWildcard int64
 	// 查询sql
 	RawJson string
+}
+
+// Victoria victoriaMetrics数据源配置
+type Victoria struct {
+	Query string `json:"query"` // 查询语句
 }
 
 func (e Elasticsearch) GetIndexName() string {
