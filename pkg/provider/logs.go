@@ -14,7 +14,7 @@ const (
 	LokiDsProviderName          string = "Loki"
 	AliCloudSLSDsProviderName   string = "AliCloudSLS"
 	ElasticSearchDsProviderName string = "ElasticSearch"
-	VictoriaDsProviderName      string = "Victoria"
+	VictoriaDsProviderName      string = "VictoriaLogs"
 )
 
 type LogsFactoryProvider interface {
