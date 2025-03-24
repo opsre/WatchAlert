@@ -2,6 +2,8 @@ package tools
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/rs/xid"
@@ -167,4 +169,9 @@ func ProcessRuleExpr(ruleExpr string) (string, float64, error) {
 	}
 
 	return operator, value, nil
+}
+
+func GenerateHashPassword(passwd string) string {
+	arr := md5.Sum([]byte(passwd))
+	return hex.EncodeToString(arr[:])
 }

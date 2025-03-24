@@ -368,7 +368,7 @@ func PermissionsInfo() map[string]UserPermissions {
 			API: "/api/w8t/dashboard/createFolder",
 		},
 		"updateFolder": {
-			Key: "删除仪表盘目录",
+			Key: "更新仪表盘目录",
 			API: "/api/w8t/dashboard/updateFolder",
 		},
 		"deleteFolder": {
@@ -376,7 +376,7 @@ func PermissionsInfo() map[string]UserPermissions {
 			API: "/api/w8t/dashboard/deleteFolder",
 		},
 		"listGrafanaDashboards": {
-			Key: "获取仪表盘信息",
+			Key: "获取仪表盘图表列表",
 			API: "/api/w8t/dashboard/listGrafanaDashboards",
 		},
 		"getDashboardFullUrl": {

@@ -3,6 +3,7 @@ package eval
 import (
 	"fmt"
 	"github.com/zeromicro/go-zero/core/logc"
+	"sort"
 	"strings"
 	"time"
 	"watchAlert/alert/process"
@@ -63,8 +64,24 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 	fingerPrintMap := process.GetFingerPrint(ctx, rule.TenantId, rule.FaultCenterId, rule.RuleId)
 
 	var curFingerprints []string
+
+	// 按优先级排序规则（P0 > P1 > P2）
+	rules := rule.PrometheusConfig.Rules
+	sort.Slice(rules, func(i, j int) bool {
+		return getPriorityValue(rules[i].Severity) > getPriorityValue(rules[j].Severity)
+	})
+
+	// 按指纹分组存储事件，每个指纹只保留最高优先级的事件
+	highestPriorityEvents := make(map[string]models.AlertCurEvent)
+
 	for _, v := range resQuery {
-		for _, ruleExpr := range rule.PrometheusConfig.Rules {
+		fingerprint := v.GetFingerprint()
+
+		// 用于恢复事件的处理
+		recoveryEventProcessed := false
+
+		// 遍历按优先级排序后的规则
+		for _, ruleExpr := range rules {
 			operator, value, err := tools.ProcessRuleExpr(ruleExpr.Expr)
 			if err != nil {
 				logc.Errorf(ctx.Ctx, err.Error())
@@ -79,24 +96,29 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 
 			event := process.BuildEvent(rule)
 			event.DatasourceId = datasourceId
-			event.Fingerprint = v.GetFingerprint()
+			event.Fingerprint = fingerprint
 			event.Metric = *v.GetMetric()
+			event.Severity = ruleExpr.Severity
 			event.Metric["severity"] = ruleExpr.Severity
 			for ek, ev := range externalLabels {
 				event.Metric[ek] = ev
 			}
-			event.Severity = ruleExpr.Severity
 			event.Annotations = tools.ParserVariables(rule.PrometheusConfig.Annotations, event.Metric)
 			event.SearchQL = rule.PrometheusConfig.PromQL
 
 			if process.EvalCondition(option) {
-				// 如果告警条件满足需要将告警事件指纹加入，不满足时应当直接跳过
-				curFingerprints = append(curFingerprints, event.Fingerprint)
-
-				process.PushEventToFaultCenter(ctx, &event)
-			} else {
+				// 如果条件满足，检查是否已经有更高优先级的事件
+				if _, exists := highestPriorityEvents[fingerprint]; !exists {
+					// 如果该指纹还没有事件，添加当前事件
+					highestPriorityEvents[fingerprint] = event
+					curFingerprints = append(curFingerprints, fingerprint)
+				}
+				// 找到符合条件的规则后，跳过该指标的其他规则
+				break
+			} else if !recoveryEventProcessed {
+				// 仅处理一次恢复事件
 				// 仅更新已经触发事件的指纹对应指标
-				if _, exist := fingerPrintMap[event.Fingerprint]; exist {
+				if _, exist := fingerPrintMap[fingerprint]; exist {
 					// 获取过恢复值则直接跳过
 					if _, existRecoverValue := event.Metric["recover_value"]; existRecoverValue {
 						continue
@@ -107,12 +129,36 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 					// 获取当前恢复值
 					event.Metric["recover_value"] = v.GetValue()
 					process.PushEventToFaultCenter(ctx, &event)
+					recoveryEventProcessed = true
 				}
 			}
 		}
 	}
 
+	// 推送最高优先级的事件
+	for _, event := range highestPriorityEvents {
+		process.PushEventToFaultCenter(ctx, &event)
+	}
+
 	return curFingerprints
+}
+
+// getPriorityValue 获取优先级的数值表示，用于排序
+// p0 优先级最高
+// p1 次之
+// p2 最低
+// 其他情况排在后面
+func getPriorityValue(severity string) int {
+	switch severity {
+	case "P0":
+		return 3
+	case "P1":
+		return 2
+	case "P2":
+		return 1
+	default:
+		return 0
+	}
 }
 
 // Logs 包含 AliSLS、Loki、ElasticSearch 数据源
