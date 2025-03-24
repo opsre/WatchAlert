@@ -236,7 +236,7 @@ func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.Ale
 			ExpectedValue: value,
 		}
 
-	case provider.VictoriaDsProviderName:
+	case provider.VictoriaLogsDsProviderName:
 		cli, err := pools.GetClient(datasourceId)
 		if err != nil {
 			logc.Errorf(ctx.Ctx, err.Error())
@@ -244,10 +244,11 @@ func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.Ale
 		}
 
 		curAt := time.Now()
-		startsAt := tools.ParserDuration(curAt, rule.AliCloudSLSConfig.LogScope, "m")
+		startsAt := tools.ParserDuration(curAt, rule.LokiConfig.LogScope, "m")
 		queryOptions := provider.LogQueryOptions{
-			Victoria: provider.Victoria{
-				Query: rule.VictoriaConfig.Query,
+			Victoria: provider.VictoriaLogs{
+				Query: rule.LokiConfig.LogQL,
+				Limit: rule.LogEvalCondition,
 			},
 			StartAt: int32(startsAt.Unix()),
 			EndAt:   int32(curAt.Unix()),

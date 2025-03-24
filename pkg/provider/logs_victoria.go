@@ -1,11 +1,13 @@
 package provider
 
 import (
+	"bufio"
+	"bytes"
 	"context"
-	"errors"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
-	"net/url"
 	"strconv"
 	"time"
 
@@ -22,18 +24,29 @@ type (
 		Timeout        int64          `json:"timeout"`
 		ExternalLabels map[string]any `json:"external_labels"`
 		Ctx            context.Context
+		Username       string `json:"username"`
+		Password       string `json:"password"`
 	}
 
 	// VictoriaQueryResult represents the result of a query to VictoriaMetrics.
 	VictoriaQueryResult struct {
-		Data []struct {
-			Time  int64  `json:"_time"` // 时间戳（纳秒）
-			Msg   string `json:"_msg"`  // 日志消息
-			Level string `json:"level"` // 日志级别
-		} `json:"data"`
-		Meta any `json:"meta"`
+		Time      time.Time `json:"_time"` // 时间戳（纳秒）
+		Msg       string    `json:"_msg"`  // 日志消息
+		StreamId  string    `json:"_stream_id"`
+		AgentName string    `json:"agent.name"`
+		AgentType string    `json:"agent.type"`
 	}
 )
+
+// NewVictoriaLogsClient 创建一个新的 VictoriaLogsProvider 实例。
+func NewVictoriaLogsClient(ds models.AlertDataSource) (VictoriaLogsProvider, error) {
+	return VictoriaLogsProvider{
+		URL:            ds.HTTP.URL,
+		ExternalLabels: ds.Labels,
+		Username:       ds.Auth.User,
+		Password:       ds.Auth.Pass,
+	}, nil
+}
 
 func NewVictoriaLogsProvider(ctx context.Context, datasource models.AlertDataSource) (LogsFactoryProvider, error) {
 	return VictoriaLogsProvider{
@@ -55,45 +68,64 @@ func (v VictoriaLogsProvider) Query(options LogQueryOptions) ([]Logs, int, error
 	if options.EndAt == "" {
 		options.EndAt = curTime.Format(time.RFC3339Nano)
 	}
+
+	if options.Victoria.Limit == "" {
+		options.Victoria.Limit = "50"
+	}
+
 	// 构造请求参数
-	params := url.Values{}
-	params.Add("query",
-		fmt.Sprintf("%s AND _time:[%s TO %s]",
-			v.URL,
-			options.StartAt,
-			options.EndAt,
-		))
+	params := make(map[string]any)
+	params["query"] = "*"
+	params["limit"] = 50
 
-	requestURL := fmt.Sprintf("%s?%s", v.URL, params.Encode())
+	params["start"] = options.StartAt.(int32) // 开始时间
+	params["end"] = options.EndAt.(int32)     // 结束时间
 
+	args := fmt.Sprintf("/select/logsql/query?query=%s&limit=%s&start=%d&end=%d", options.Victoria.Query, options.Victoria.Limit, options.StartAt, options.EndAt)
+
+	requestURL := v.URL + args
 	res, err := tools.Get(nil, requestURL, 10)
+
+	respBody, _ := io.ReadAll(res.Body)
+
 	if err != nil {
 		logc.Error(ctx.Ctx, fmt.Sprintf("查询VictoriaLogs失败: %s", err.Error()))
 		return nil, 0, err
 	}
 
-	var resultData VictoriaQueryResult
-	if err := tools.ParseReaderBody(res.Body, &resultData); err != nil {
-		logc.Error(ctx.Ctx, fmt.Sprintf("解析VictoriaLogs结果失败: %s", err.Error()))
-		return nil, 0, errors.New(fmt.Sprintf("json.Unmarshal failed, %s", err.Error()))
+	var entries []VictoriaQueryResult
+	scanner := bufio.NewScanner(bytes.NewReader(respBody))
+	for scanner.Scan() {
+		line := scanner.Bytes()
+		if len(line) == 0 {
+			continue
+		}
+		var entry VictoriaQueryResult
+		if err := json.Unmarshal(line, &entry); err != nil {
+			return nil, 0, fmt.Errorf("解析行失败: %v，内容: %s", err, string(line))
+		}
+		entries = append(entries, entry)
 	}
 
 	var logs []Logs
-	var metric map[string]any
+	metric := make(map[string]any, len(entries))
 	var msg []any
-
-	for _, data := range resultData.Data {
-		metric["level"] = data.Level
+	for _, data := range entries {
+		metric["_stream_id"] = data.StreamId
+		metric["agent.name"] = data.AgentName
+		metric["agent.type"] = data.AgentType
 		metric["_time"] = data.Time
 		msg = append(msg, data.Msg)
 
 	}
+
 	logs = append(logs, Logs{
-		ProviderName: VictoriaDsProviderName,
+		ProviderName: VictoriaLogsDsProviderName,
 		Metric:       metric,
 		Message:      msg,
 	})
-	return logs, len(resultData.Data), nil
+
+	return logs, len(entries), nil
 }
 
 func (v VictoriaLogsProvider) Check() (bool, error) {
