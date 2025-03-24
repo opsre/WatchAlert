@@ -27,7 +27,7 @@ type LogQueryOptions struct {
 	AliCloudSLS   AliCloudSLS
 	Loki          Loki
 	ElasticSearch Elasticsearch
-	Victoria      VictoriaLogs
+	VictoriaLogs  VictoriaLogs
 	StartAt       interface{} // 查询的开始时间。
 	EndAt         interface{} // 查询的结束时间。
 }
@@ -62,7 +62,7 @@ type Elasticsearch struct {
 // VictoriaLogs victoriaMetrics数据源配置
 type VictoriaLogs struct {
 	Query string `json:"query"` // 查询语句
-	Limit string // 要返回的最大条目数
+	Limit int    // 要返回的最大条目数
 }
 
 func (e Elasticsearch) GetIndexName() string {

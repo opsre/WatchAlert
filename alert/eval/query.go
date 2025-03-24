@@ -244,11 +244,11 @@ func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.Ale
 		}
 
 		curAt := time.Now()
-		startsAt := tools.ParserDuration(curAt, rule.LokiConfig.LogScope, "m")
+		startsAt := tools.ParserDuration(curAt, rule.VictoriaLogsConfig.LogScope, "m")
 		queryOptions := provider.LogQueryOptions{
-			Victoria: provider.VictoriaLogs{
-				Query: rule.LokiConfig.LogQL,
-				Limit: rule.LogEvalCondition,
+			VictoriaLogs: provider.VictoriaLogs{
+				Query: rule.VictoriaLogsConfig.Query,
+				Limit: rule.VictoriaLogsConfig.Limit,
 			},
 			StartAt: int32(startsAt.Unix()),
 			EndAt:   int32(curAt.Unix()),

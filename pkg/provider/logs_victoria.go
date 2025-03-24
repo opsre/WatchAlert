@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"time"
 
@@ -69,21 +70,18 @@ func (v VictoriaLogsProvider) Query(options LogQueryOptions) ([]Logs, int, error
 		options.EndAt = curTime.Format(time.RFC3339Nano)
 	}
 
-	if options.Victoria.Limit == "" {
-		options.Victoria.Limit = "50"
+	if options.VictoriaLogs.Limit == 0 {
+		options.VictoriaLogs.Limit = 50
 	}
 
-	// 构造请求参数
-	params := make(map[string]any)
-	params["query"] = "*"
-	params["limit"] = 50
+	values := url.Values{}
+	values.Add("query", options.VictoriaLogs.Query)
+	values.Add("limit", strconv.Itoa(options.VictoriaLogs.Limit))
+	values.Add("start", strconv.Itoa(int(options.StartAt.(int32))))
+	values.Add("end", strconv.Itoa(int(options.EndAt.(int32))))
 
-	params["start"] = options.StartAt.(int32) // 开始时间
-	params["end"] = options.EndAt.(int32)     // 结束时间
+	requestURL := fmt.Sprintf("%s%s?%s", v.URL, "/select/logsql/query", values.Encode())
 
-	args := fmt.Sprintf("/select/logsql/query?query=%s&limit=%s&start=%d&end=%d", options.Victoria.Query, options.Victoria.Limit, options.StartAt, options.EndAt)
-
-	requestURL := v.URL + args
 	res, err := tools.Get(nil, requestURL, 10)
 
 	respBody, _ := io.ReadAll(res.Body)
@@ -116,7 +114,6 @@ func (v VictoriaLogsProvider) Query(options LogQueryOptions) ([]Logs, int, error
 		metric["agent.type"] = data.AgentType
 		metric["_time"] = data.Time
 		msg = append(msg, data.Msg)
-
 	}
 
 	logs = append(logs, Logs{
