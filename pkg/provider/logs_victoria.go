@@ -8,12 +8,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"strconv"
 	"time"
+	"watchAlert/pkg/ctx"
 
 	"watchAlert/internal/models"
-	"watchAlert/pkg/ctx"
 	"watchAlert/pkg/tools"
 
 	"github.com/zeromicro/go-zero/core/logc"
@@ -74,21 +73,22 @@ func (v VictoriaLogsProvider) Query(options LogQueryOptions) ([]Logs, int, error
 		options.VictoriaLogs.Limit = 50
 	}
 
-	values := url.Values{}
-	values.Add("query", options.VictoriaLogs.Query)
-	values.Add("limit", strconv.Itoa(options.VictoriaLogs.Limit))
-	values.Add("start", strconv.Itoa(int(options.StartAt.(int32))))
-	values.Add("end", strconv.Itoa(int(options.EndAt.(int32))))
+	args := fmt.Sprintf("/select/logsql/query?query=%s&limit=%d&start=%d&end=%d", options.VictoriaLogs.Query, options.VictoriaLogs.Limit, options.StartAt, options.EndAt)
 
-	requestURL := fmt.Sprintf("%s%s?%s", v.URL, "/select/logsql/query", values.Encode())
-
+	requestURL := v.URL + args
 	res, err := tools.Get(nil, requestURL, 10)
-
-	respBody, _ := io.ReadAll(res.Body)
 
 	if err != nil {
 		logc.Error(ctx.Ctx, fmt.Sprintf("查询VictoriaLogs失败: %s", err.Error()))
 		return nil, 0, err
+	}
+
+	respBody, _ := io.ReadAll(res.Body)
+
+	if res.StatusCode != 200 {
+		errMsg := fmt.Sprintf("查询VictoriaLogs失败: %s", string(respBody))
+		logc.Error(v.Ctx, errMsg)
+		return nil, 0, fmt.Errorf(errMsg)
 	}
 
 	var entries []VictoriaQueryResult
