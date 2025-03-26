@@ -34,18 +34,17 @@ func NewAiClient(config *models.AiConfig) (AiClient, error) {
 }
 
 func (o *AiConfig) ChatCompletion(_ context.Context, prompt string) (string, error) {
-	// 构造请求消息
-	messages := []*Message{
-		{
-			Role:    "user",
-			Content: prompt,
-		},
-	}
-	// 组装请求参数
+	// 构建请求参数
 	reqParams := Request{
-		Model:    o.Model,
-		Messages: messages,
-		Stream:   false,
+		Model: o.Model,
+		Messages: []*Message{
+			{
+				Role:    "user",
+				Content: prompt,
+			},
+		},
+		Stream:    false,
+		MaxTokens: o.MaxTokens,
 	}
 
 	bodyBytes, _ := json.Marshal(reqParams)
@@ -61,7 +60,7 @@ func (o *AiConfig) ChatCompletion(_ context.Context, prompt string) (string, err
 		errorBody, _ := io.ReadAll(response.Body)
 		var errResp Response
 		_ = json.Unmarshal(errorBody, &errResp)
-		return "", fmt.Errorf("OpenAI API错误: %d - %s", response.StatusCode, errResp.Error.Message)
+		return "", fmt.Errorf("API 请求错误: %d - %s", response.StatusCode, errResp.Error.Message)
 	}
 
 	// 解析响应

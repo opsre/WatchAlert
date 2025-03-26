@@ -375,6 +375,7 @@ func (c *Consume) handleAlert(faultCenter models.FaultCenter, alerts []*models.A
 
 			alert.DutyUser = process.GetDutyUser(c.ctx, noticeData)
 			alert.DutyUserPhoneNumber = process.GetDutyUserPhoneNumber(c.ctx, noticeData)
+			alert.FaultCenter = faultCenter
 			content := c.generateAlertContent(alert, noticeData)
 			return sender.Sender(c.ctx, sender.SendParams{
 				TenantId:    alert.TenantId,
@@ -399,7 +400,6 @@ func (c *Consume) handleAlert(faultCenter models.FaultCenter, alerts []*models.A
 
 // generateAlertContent 生成告警内容
 func (c *Consume) generateAlertContent(alert *models.AlertCurEvent, noticeData models.AlertNotice) string {
-	alert.FaultCenter = c.ctx.Redis.FaultCenter().GetFaultCenterInfo(models.BuildCacheInfoKey(alert.TenantId, alert.FaultCenterId))
 	if noticeData.NoticeType == "CustomHook" {
 		return tools.JsonMarshal(alert)
 	}

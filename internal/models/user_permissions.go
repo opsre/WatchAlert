@@ -76,7 +76,7 @@ func PermissionsInfo() map[string]UserPermissions {
 			API: "/api/w8t/dutyManage/dutyManageCreate",
 		},
 		"dutyManageDelete": {
-			Key: "更新值班表",
+			Key: "删除值班表",
 			API: "/api/w8t/dutyManage/dutyManageDelete",
 		},
 		"dutyManageList": {
