@@ -22,6 +22,9 @@ WatchAlert 是一款为云原生环境量身打造的轻量级监控告警引擎
 
 AI + WatchAlert 实现智能化告警分析 高效处理故障告警;
 
+**架构图**
+![img.png](assets/architecture.png)
+
 **能力**
 - AI 智能分析
   - 针对`Metrics` `Logs` `Traces` 告警内容做内容分析，高效定位告警根因，并提供排查思路和解决方案;
