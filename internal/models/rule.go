@@ -26,6 +26,8 @@ type AlertRule struct {
 	// Loki
 	LokiConfig LokiConfig `json:"lokiConfig" gorm:"lokiConfig;serializer:json"`
 
+	VictoriaLogsConfig VictoriaLogsConfig `json:"victoriaLogsConfig" gorm:"victoriaConfig;serializer:json"`
+
 	// Jaeger
 	JaegerConfig JaegerConfig `json:"jaegerConfig" gorm:"JaegerConfig;serializer:json"`
 
@@ -114,6 +116,12 @@ type AliCloudSLSConfig struct {
 type LokiConfig struct {
 	LogQL    string `json:"logQL"`
 	LogScope int    `json:"logScope"`
+}
+
+type VictoriaLogsConfig struct {
+	Query    string `json:"query"`
+	LogScope int    `json:"logScope"`
+	Limit    int    `json:"limit"`
 }
 
 type CloudWatchConfig struct {
