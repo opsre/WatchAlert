@@ -119,7 +119,7 @@ type LokiConfig struct {
 }
 
 type VictoriaLogsConfig struct {
-	Query    string `json:"query"`
+	LogQL    string `json:"logQL"`
 	LogScope int    `json:"logScope"`
 	Limit    int    `json:"limit"`
 }

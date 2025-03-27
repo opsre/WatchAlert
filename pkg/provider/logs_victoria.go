@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"time"
 	"watchAlert/pkg/ctx"
@@ -26,15 +27,6 @@ type (
 		Ctx            context.Context
 		Username       string `json:"username"`
 		Password       string `json:"password"`
-	}
-
-	// VictoriaQueryResult represents the result of a query to VictoriaMetrics.
-	VictoriaQueryResult struct {
-		Time      time.Time `json:"_time"` // 时间戳（纳秒）
-		Msg       string    `json:"_msg"`  // 日志消息
-		StreamId  string    `json:"_stream_id"`
-		AgentName string    `json:"agent.name"`
-		AgentType string    `json:"agent.type"`
 	}
 )
 
@@ -70,13 +62,12 @@ func (v VictoriaLogsProvider) Query(options LogQueryOptions) ([]Logs, int, error
 	}
 
 	if options.VictoriaLogs.Limit == 0 {
-		options.VictoriaLogs.Limit = 50
+		options.VictoriaLogs.Limit = 500
 	}
 
-	args := fmt.Sprintf("/select/logsql/query?query=%s&limit=%d&start=%d&end=%d", options.VictoriaLogs.Query, options.VictoriaLogs.Limit, options.StartAt, options.EndAt)
-
+	args := fmt.Sprintf("/select/logsql/query?query=%s&limit=%d&start=%d&end=%d", url.QueryEscape(options.VictoriaLogs.Query), options.VictoriaLogs.Limit, options.StartAt.(int32), options.EndAt.(int32))
 	requestURL := v.URL + args
-	res, err := tools.Get(nil, requestURL, 10)
+	res, err := tools.Get(tools.CreateBasicAuthHeader(v.Username, v.Password), requestURL, 10)
 
 	if err != nil {
 		logc.Error(ctx.Ctx, fmt.Sprintf("查询VictoriaLogs失败: %s", err.Error()))
@@ -91,38 +82,44 @@ func (v VictoriaLogsProvider) Query(options LogQueryOptions) ([]Logs, int, error
 		return nil, 0, fmt.Errorf(errMsg)
 	}
 
-	var entries []VictoriaQueryResult
+	var entries []map[string]interface{}
 	scanner := bufio.NewScanner(bytes.NewReader(respBody))
 	for scanner.Scan() {
 		line := scanner.Bytes()
 		if len(line) == 0 {
 			continue
 		}
-		var entry VictoriaQueryResult
+		var entry map[string]interface{}
 		if err := json.Unmarshal(line, &entry); err != nil {
 			return nil, 0, fmt.Errorf("解析行失败: %v，内容: %s", err, string(line))
 		}
 		entries = append(entries, entry)
 	}
 
-	var logs []Logs
-	metric := make(map[string]any, len(entries))
-	var msg []any
+	var (
+		logs []Logs
+		msg  []any
+	)
+
 	for _, data := range entries {
-		metric["_stream_id"] = data.StreamId
-		metric["agent.name"] = data.AgentName
-		metric["agent.type"] = data.AgentType
-		metric["_time"] = data.Time
-		msg = append(msg, data.Msg)
+		msg = append(msg, data["_msg"])
 	}
 
 	logs = append(logs, Logs{
 		ProviderName: VictoriaLogsDsProviderName,
-		Metric:       metric,
+		Metric:       v.getMetricLabels(entries),
 		Message:      msg,
 	})
 
 	return logs, len(entries), nil
+}
+
+func (v VictoriaLogsProvider) getMetricLabels(entries []map[string]interface{}) map[string]interface{} {
+	metric := commonKeyValuePairs(entries)
+	delete(metric, "_stream")
+	delete(metric, "_stream_id")
+	delete(metric, "log.file.path")
+	return metric
 }
 
 func (v VictoriaLogsProvider) Check() (bool, error) {

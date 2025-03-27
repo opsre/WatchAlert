@@ -293,7 +293,7 @@ func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.Ale
 		startsAt := tools.ParserDuration(curAt, rule.VictoriaLogsConfig.LogScope, "m")
 		queryOptions := provider.LogQueryOptions{
 			VictoriaLogs: provider.VictoriaLogs{
-				Query: rule.VictoriaLogsConfig.Query,
+				Query: rule.VictoriaLogsConfig.LogQL,
 				Limit: rule.VictoriaLogsConfig.Limit,
 			},
 			StartAt: int32(startsAt.Unix()),
@@ -330,6 +330,7 @@ func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.Ale
 			event.DatasourceId = datasourceId
 			event.Fingerprint = v.GetFingerprint()
 			event.Metric = v.GetMetric()
+			event.Metric["value"] = count
 			for ek, ev := range externalLabels {
 				event.Metric[ek] = ev
 			}
@@ -346,6 +347,8 @@ func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.Ale
 				} else {
 					event.SearchQL = tools.JsonMarshal(rule.ElasticSearchConfig.Filter)
 				}
+			case provider.VictoriaLogsDsProviderName:
+				event.SearchQL = rule.VictoriaLogsConfig.LogQL
 			}
 
 			curFingerprints = append(curFingerprints, event.Fingerprint)
