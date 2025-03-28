@@ -1,7 +1,5 @@
 package models
 
-type NoticeRoutes []map[string]string
-
 type AlertRule struct {
 	//gorm.Model
 	TenantId             string        `json:"tenantId"`

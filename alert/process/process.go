@@ -77,33 +77,6 @@ func getRecoverWaitList(recoverStore *storage.AlarmRecoverWaitStore, rule models
 	return fingerprints
 }
 
-// GetNoticeRouteId 获取告警分组的通知ID
-func GetNoticeRouteId(alert *models.AlertCurEvent, faultCenter models.FaultCenter) string {
-	if len(faultCenter.NoticeRoutes) != 0 {
-		var noticeRoutes []map[string]string
-		for _, v := range faultCenter.NoticeRoutes {
-			noticeRoutes = append(noticeRoutes, map[string]string{
-				v["key"]:   v["value"],
-				"noticeId": v["noticeId"],
-			})
-		}
-
-		// 从Metric中获取Key/Value
-		for metricKey, metricValue := range alert.Metric {
-			// 如果配置分组的Key/Value 和 Metric中的Key/Value 一致，则使用分组的 noticeId，匹配不到则用默认的。
-			for _, noticeInfo := range noticeRoutes {
-				value, ok := noticeInfo[metricKey]
-				if ok && metricValue == value {
-					noticeId := noticeInfo["noticeId"]
-					return noticeId
-				}
-			}
-		}
-	}
-
-	return faultCenter.NoticeId
-}
-
 func GetDutyUser(ctx *ctx.Context, noticeData models.AlertNotice) string {
 	user, ok := ctx.DB.DutyCalendar().GetDutyUserInfo(noticeData.DutyId, time.Now().Format("2006-1-2"))
 	if ok {
