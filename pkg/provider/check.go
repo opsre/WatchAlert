@@ -42,7 +42,7 @@ var datasourceFactories = map[string]ClientFactory{
 		return &CloudWatchDummyChecker{}, nil
 	},
 	"VictoriaLogs": func(ds models.AlertDataSource) (HealthChecker, error) {
-		return NewVictoriaLogsClient(ds)
+		return NewVictoriaLogsClient(context.Background(), ds)
 	},
 }
 

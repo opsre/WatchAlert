@@ -168,14 +168,15 @@ func (ds dashboardService) ListGrafanaDashboards(req interface{}) (data interfac
 		return nil, fmt.Errorf("invalid grafana version, please change v10 or v11")
 	}
 
-	get, err := tools.Get(nil, fmt.Sprintf("%s/api/search?%s", r.GrafanaHost, query), 10)
+	requestURL := fmt.Sprintf("%s/api/search?%s", r.GrafanaHost, query)
+	get, err := tools.Get(nil, requestURL, 10)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("请求错误, err: %s", err.Error())
 	}
 
 	var d []models.GrafanaDashboardInfo
 	if err := tools.ParseReaderBody(get.Body, &d); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("读取body错误, err: %s", err.Error())
 	}
 
 	return d, nil

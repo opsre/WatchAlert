@@ -9,7 +9,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"strconv"
 	"time"
 	"watchAlert/pkg/ctx"
 
@@ -31,20 +30,13 @@ type (
 )
 
 // NewVictoriaLogsClient 创建一个新的 VictoriaLogsProvider 实例。
-func NewVictoriaLogsClient(ds models.AlertDataSource) (VictoriaLogsProvider, error) {
-	return VictoriaLogsProvider{
-		URL:            ds.HTTP.URL,
-		ExternalLabels: ds.Labels,
-		Username:       ds.Auth.User,
-		Password:       ds.Auth.Pass,
-	}, nil
-}
-
-func NewVictoriaLogsProvider(ctx context.Context, datasource models.AlertDataSource) (LogsFactoryProvider, error) {
+func NewVictoriaLogsClient(ctx context.Context, datasource models.AlertDataSource) (LogsFactoryProvider, error) {
 	return VictoriaLogsProvider{
 		URL:            datasource.HTTP.URL,
 		Timeout:        datasource.HTTP.Timeout,
 		ExternalLabels: datasource.Labels,
+		Username:       datasource.Auth.User,
+		Password:       datasource.Auth.Pass,
 		Ctx:            ctx,
 	}, nil
 }
@@ -52,13 +44,12 @@ func NewVictoriaLogsProvider(ctx context.Context, datasource models.AlertDataSou
 func (v VictoriaLogsProvider) Query(options LogQueryOptions) ([]Logs, int, error) {
 	curTime := time.Now()
 
-	if options.StartAt == "" {
-		duration, _ := time.ParseDuration(strconv.Itoa(1) + "h")
-		options.StartAt = curTime.Add(-duration).Format(time.RFC3339Nano)
+	if options.StartAt == "" || options.StartAt == nil {
+		options.StartAt = int32(tools.ParserDuration(curTime, 30, "m").Unix())
 	}
 
-	if options.EndAt == "" {
-		options.EndAt = curTime.Format(time.RFC3339Nano)
+	if options.EndAt == "" || options.EndAt == nil {
+		options.EndAt = int32(curTime.Unix())
 	}
 
 	if options.VictoriaLogs.Limit == 0 {
