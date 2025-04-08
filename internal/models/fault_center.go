@@ -9,7 +9,7 @@ type FaultCenter struct {
 	ID                    string        `json:"id"`
 	Name                  string        `json:"name"`
 	Description           string        `json:"description"`
-	NoticeId              string        `json:"noticeId"`
+	NoticeIds             []string      `json:"noticeIds" gorm:"column:noticeIds;serializer:json"`
 	NoticeRoutes          []NoticeRoute `json:"noticeRoutes" gorm:"noticeRoutes;serializer:json"`
 	RepeatNoticeInterval  int64         `json:"repeatNoticeInterval"`
 	RecoverNotify         *bool         `json:"recoverNotify"`
@@ -23,9 +23,9 @@ type FaultCenter struct {
 }
 
 type NoticeRoute struct {
-	Key      string `json:"key"`
-	Value    string `json:"value"`
-	NoticeId string `json:"noticeId"`
+	Key       string   `json:"key"`
+	Value     string   `json:"value"`
+	NoticeIds []string `json:"noticeIds" gorm:"column:noticeIds;serializer:json"`
 }
 
 func (f *FaultCenter) TableName() string {

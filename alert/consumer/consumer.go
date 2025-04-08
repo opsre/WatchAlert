@@ -50,60 +50,62 @@ type (
 )
 
 func (ag *AlertGroups) AddAlert(stateId string, alert *models.AlertCurEvent, faultCenter models.FaultCenter) {
-	// 获取通知对象 ID 用于事件分组
-	noticeObjId := ag.getNoticeId(alert, faultCenter)
+	// 获取通知对象 ID 列表 用于事件分组
+	noticeObjIds := ag.getNoticeId(alert, faultCenter)
 
 	ag.lock.Lock()
 	defer ag.lock.Unlock()
 
-	// 查找 Rule 位置
-	rulePos := ag.getRuleNodePos(stateId)
+	for _, noticeObjId := range noticeObjIds {
+		// 查找 Rule 位置
+		rulePos := ag.getRuleNodePos(stateId)
 
-	// Rule 存在时的处理，找到对应的规则组
-	if rulePos < len(ag.Rules) && ag.Rules[rulePos].RuleID == stateId {
-		rule := &ag.Rules[rulePos]
+		// Rule 存在时的处理，找到对应的规则组
+		if rulePos < len(ag.Rules) && ag.Rules[rulePos].RuleID == stateId {
+			rule := &ag.Rules[rulePos]
 
-		// 查找 Group 位置
-		groupPos := ag.getGroupNodePos(rule, noticeObjId)
+			// 查找 Group 位置
+			groupPos := ag.getGroupNodePos(rule, noticeObjId)
 
-		if groupPos < len(rule.Groups) && (rule.Groups)[groupPos].ID == noticeObjId {
-			// 追加事件
-			(rule.Groups)[groupPos].Events = append((rule.Groups)[groupPos].Events, alert)
-		} else {
-			// 插入新数据
-			rule.Groups = append(rule.Groups, EventsGroup{
-				ID:     noticeObjId,
-				Events: []*models.AlertCurEvent{alert},
-			})
+			if groupPos < len(rule.Groups) && (rule.Groups)[groupPos].ID == noticeObjId {
+				// 追加事件
+				(rule.Groups)[groupPos].Events = append((rule.Groups)[groupPos].Events, alert)
+			} else {
+				// 插入新数据
+				rule.Groups = append(rule.Groups, EventsGroup{
+					ID:     noticeObjId,
+					Events: []*models.AlertCurEvent{alert},
+				})
+			}
+			return
 		}
-		return
-	}
 
-	// 插入新Rule
-	ag.Rules = append(ag.Rules, RulesGroup{
-		RuleID: stateId,
-		Groups: []EventsGroup{
-			{
-				ID:     noticeObjId,
-				Events: []*models.AlertCurEvent{alert},
+		// 插入新Rule
+		ag.Rules = append(ag.Rules, RulesGroup{
+			RuleID: stateId,
+			Groups: []EventsGroup{
+				{
+					ID:     noticeObjId,
+					Events: []*models.AlertCurEvent{alert},
+				},
 			},
-		},
-	})
+		})
+	}
 }
 
 // getNoticeId 从告警路由中获取该事件匹配的通知对象
-func (ag *AlertGroups) getNoticeId(alert *models.AlertCurEvent, faultCenter models.FaultCenter) string {
+func (ag *AlertGroups) getNoticeId(alert *models.AlertCurEvent, faultCenter models.FaultCenter) []string {
 	if len(faultCenter.NoticeRoutes) > 0 {
 		metrics := alert.Metric
 
 		for _, route := range faultCenter.NoticeRoutes {
 			if metrics[route.Key] == route.Value {
-				return route.NoticeId
+				return route.NoticeIds
 			}
 		}
 	}
 
-	return faultCenter.NoticeId
+	return faultCenter.NoticeIds
 }
 
 // getRuleNodePos 获取 Rule 点位
