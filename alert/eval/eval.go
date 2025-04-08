@@ -170,13 +170,6 @@ func (t *AlertRule) Recover(RuleId, faultCenterKey string, faultCenterInfoKey st
 			return
 		}
 
-		// 如果是 预告警 状态的事件，触发了恢复逻辑，但它并非是真正触发告警而恢复，所以只需要删除历史事件即可，无需继续处理恢复逻辑。
-		if event.Status == 0 {
-			t.ctx.Redis.Event().RemoveEventFromFaultCenter(event.TenantId, event.FaultCenterId, event.Fingerprint)
-			t.alarmRecoverWaitStore.Remove(RuleId, fingerprint)
-			continue
-		}
-
 		// 调整为待恢复状态
 		event.Status = 3
 		t.ctx.Redis.Event().PushEventToFaultCenter(&event)

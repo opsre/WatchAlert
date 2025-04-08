@@ -119,6 +119,12 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 				// 仅处理一次恢复事件
 				// 仅更新已经触发事件的指纹对应指标
 				if _, exist := fingerPrintMap[fingerprint]; exist {
+					// 如果是 预告警 状态的事件，触发了恢复逻辑，但它并非是真正触发告警而恢复，所以只需要删除历史事件即可，无需继续处理恢复逻辑。
+					if ctx.Redis.Event().GetEventStatusForFaultCenter(event.TenantId, event.FaultCenterId, fingerprint) == 0 {
+						ctx.Redis.Event().RemoveEventFromFaultCenter(event.TenantId, event.FaultCenterId, fingerprint)
+						continue
+					}
+
 					// 获取过恢复值则直接跳过
 					if _, existRecoverValue := event.Metric["recover_value"]; existRecoverValue {
 						continue

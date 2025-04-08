@@ -12,7 +12,6 @@ func (t *ProductProbing) buildEvent(rule models.ProbingRule) models.ProbingEvent
 		RuleName:              rule.RuleName,
 		RuleType:              rule.RuleType,
 		NoticeId:              rule.NoticeId,
-		Severity:              rule.Severity,
 		IsRecovered:           false,
 		RepeatNoticeInterval:  rule.RepeatNoticeInterval,
 		RecoverNotify:         rule.GetRecoverNotify(),

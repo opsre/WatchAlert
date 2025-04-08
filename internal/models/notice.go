@@ -5,23 +5,36 @@ import (
 )
 
 type AlertNotice struct {
-	TenantId     string `json:"tenantId"`
-	Uuid         string `json:"uuid"`
-	Name         string `json:"name"`
-	DutyId       string `json:"dutyId"`
-	NoticeType   string `json:"noticeType"`
-	NoticeTmplId string `json:"noticeTmplId"`
-	Hook         string `json:"hook"`
-	Email        Email  `json:"email" gorm:"email;serializer:json"`
+	TenantId     string   `json:"tenantId"`
+	Uuid         string   `json:"uuid"`
+	Name         string   `json:"name"`
+	DutyId       string   `json:"dutyId"`
+	NoticeType   string   `json:"noticeType"`
+	NoticeTmplId string   `json:"noticeTmplId"`
+	DefaultHook  string   `json:"hook" gorm:"column:hook"`
+	DefaultSign  string   `json:"sign" gorm:"column:sign"`
+	Routes       []Route  `json:"routes" gorm:"column:routes;serializer:json"`
+	Email        Email    `json:"email" gorm:"email;serializer:json"`
+	PhoneNumber  []string `json:"phoneNumber" gorm:"phoneNumber;serializer:json"`
+}
+
+type Route struct {
+	// 告警等级
+	Severity string `json:"severity"`
+	// WebHook
+	Hook string `json:"hook"`
 	// 签名
-	Sign        string   `json:"sign" gorm:"sign"`
-	PhoneNumber []string `json:"phoneNumber" gorm:"phoneNumber;serializer:json"`
+	Sign string `json:"sign"`
+	// 收件人
+	To []string `json:"to" gorm:"column:to;serializer:json"`
+	// 抄送人
+	CC []string `json:"cc" gorm:"column:cc;serializer:json"`
 }
 
 type Email struct {
 	Subject string   `json:"subject"`
-	To      []string `json:"to" gorm:"to;serializer:json"`
-	CC      []string `json:"cc" gorm:"cc;serializer:json"`
+	To      []string `json:"to" gorm:"column:to;serializer:json"`
+	CC      []string `json:"cc" gorm:"column:cc;serializer:json"`
 }
 
 type AlertRecord struct {

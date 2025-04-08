@@ -6,7 +6,6 @@ type ProbingRule struct {
 	RuleId                string                `json:"ruleId" gorm:"ruleId"`
 	RuleType              string                `json:"ruleType"`
 	RepeatNoticeInterval  int64                 `json:"repeatNoticeInterval"`
-	Severity              string                `json:"severity"`
 	ProbingEndpointConfig ProbingEndpointConfig `json:"probingEndpointConfig" gorm:"probingEndpointConfig;serializer:json"`
 	ProbingEndpointValues ProbingEndpointValues `json:"probingEndpointValues" gorm:"-"`
 	NoticeId              string                `json:"noticeId"`
@@ -138,7 +137,6 @@ type ProbingEvent struct {
 	RuleName               string                 `json:"ruleName"`
 	RuleType               string                 `json:"ruleType"`
 	Fingerprint            string                 `json:"fingerprint"`
-	Severity               string                 `json:"severity"`
 	Metric                 map[string]interface{} `json:"metric" gorm:"metric;serializer:json"`
 	ProbingEndpointConfig  ProbingEndpointConfig  `json:"probingEndpointConfig" gorm:"probingEndpointConfig;serializer:json"`
 	NoticeId               string                 `json:"noticeId"`

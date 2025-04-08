@@ -201,10 +201,8 @@ func (c *Consume) executeTask(faultCenter models.FaultCenter, taskChan chan stru
 	// 事件分组
 	var alertGroups AlertGroups
 	c.alarmGrouping(faultCenter, &alertGroups, filterEvents)
-	// 事件聚合
-	aggEvents := c.alarmAggregation(faultCenter, &alertGroups)
 	// 发送事件
-	c.sendAlerts(faultCenter, aggEvents)
+	c.sendAlerts(faultCenter, &alertGroups)
 }
 
 // filterAlertEvents 过滤告警事件
@@ -223,7 +221,7 @@ func (c *Consume) filterAlertEvents(faultCenter models.FaultCenter, alerts map[s
 			continue
 		}
 
-		if !event.IsRecovered && c.isMutedEvent(event, faultCenter) {
+		if c.isMutedEvent(event, faultCenter) {
 			continue
 		}
 
@@ -285,20 +283,19 @@ func (c *Consume) alarmGrouping(faultCenter models.FaultCenter, alertGroups *Ale
 }
 
 // alarmAggregation 告警聚合
-func (c *Consume) alarmAggregation(faultCenter models.FaultCenter, alertGroups *AlertGroups) *AlertGroups {
+func (c *Consume) alarmAggregation(faultCenter models.FaultCenter, alertGroups map[string][]*models.AlertCurEvent) map[string][]*models.AlertCurEvent {
 	curTime := time.Now().Unix()
-	newAlertMapping := alertGroups
+	newAlertGroups := alertGroups
 	switch faultCenter.GetAlarmAggregationType() {
 	case "Rule":
-		for ri, rule := range newAlertMapping.Rules {
-			for ei, events := range rule.Groups {
-				newAlertMapping.Rules[ri].Groups[ei].Events = c.withRuleGroupByAlerts(curTime, events.Events)
-			}
+		for severity, events := range alertGroups {
+			newAlertGroups[severity] = c.withRuleGroupByAlerts(curTime, events)
 		}
 	default:
+		return alertGroups
 	}
 
-	return newAlertMapping
+	return newAlertGroups
 }
 
 // sendAlerts 发送告警
@@ -346,55 +343,100 @@ func (c *Consume) handleSubscribe(faultCenter models.FaultCenter, alerts []*mode
 func (c *Consume) handleAlert(faultCenter models.FaultCenter, noticeId string, alerts []*models.AlertCurEvent) error {
 	curTime := time.Now().Unix()
 	g := new(errgroup.Group)
+
+	// 获取通知对象详细信息
+	noticeData, err := c.getNoticeData(faultCenter.TenantId, noticeId)
+	if err != nil {
+		logc.Error(c.ctx.Ctx, fmt.Sprintf("Failed to get notice data: %v", err))
+		return err
+	}
+
+	// 按告警等级分组
+	severityGroups := make(map[string][]*models.AlertCurEvent)
 	for _, alert := range alerts {
+		severityGroups[alert.Severity] = append(severityGroups[alert.Severity], alert)
+	}
+
+	// 告警聚合
+	aggregationEvents := c.alarmAggregation(faultCenter, severityGroups)
+	for severity, events := range aggregationEvents {
 		g.Go(func() error {
-			if alert == nil {
+			if events == nil {
 				return nil
 			}
-			noticeData, err := c.getNoticeData(alert.TenantId, noticeId)
-			if err != nil {
-				logc.Error(c.ctx.Ctx, fmt.Sprintf("Failed to get notice data: %v", err))
-				return err
-			}
 
-			if !alert.IsRecovered {
-				alert.LastSendTime = curTime
-				c.ctx.Redis.Event().PushEventToFaultCenter(alert)
-			}
+			// 获取当前事件等级对应的 Hook 和 Sign
+			Hook, Sign := c.getNoticeHookUrlAndSign(noticeData, severity)
 
-			phoneNumber := func() []string {
-				if len(alert.DutyUserPhoneNumber) > 0 {
-					return alert.DutyUserPhoneNumber
+			for _, event := range events {
+				if !event.IsRecovered {
+					event.LastSendTime = curTime
+					c.ctx.Redis.Event().PushEventToFaultCenter(event)
 				}
-				if len(noticeData.PhoneNumber) > 0 {
-					return noticeData.PhoneNumber
-				}
-				return []string{}
-			}()
 
-			alert.DutyUser = process.GetDutyUser(c.ctx, noticeData)
-			alert.DutyUserPhoneNumber = process.GetDutyUserPhoneNumber(c.ctx, noticeData)
-			alert.FaultCenter = faultCenter
-			content := c.generateAlertContent(alert, noticeData)
-			return sender.Sender(c.ctx, sender.SendParams{
-				TenantId:    alert.TenantId,
-				RuleName:    alert.RuleName,
-				Severity:    alert.Severity,
-				NoticeType:  noticeData.NoticeType,
-				NoticeId:    noticeId,
-				NoticeName:  noticeData.Name,
-				IsRecovered: alert.IsRecovered,
-				Hook:        noticeData.Hook,
-				Email:       noticeData.Email,
-				Content:     content,
-				Event:       nil,
-				PhoneNumber: phoneNumber,
-				Sign:        noticeData.Sign,
-			})
+				phoneNumber := func() []string {
+					if len(event.DutyUserPhoneNumber) > 0 {
+						return event.DutyUserPhoneNumber
+					}
+					if len(noticeData.PhoneNumber) > 0 {
+						return noticeData.PhoneNumber
+					}
+					return []string{}
+				}()
+
+				event.DutyUser = process.GetDutyUser(c.ctx, noticeData)
+				event.DutyUserPhoneNumber = process.GetDutyUserPhoneNumber(c.ctx, noticeData)
+				event.FaultCenter = faultCenter
+				content := c.generateAlertContent(event, noticeData)
+				return sender.Sender(c.ctx, sender.SendParams{
+					TenantId:    event.TenantId,
+					RuleName:    event.RuleName,
+					Severity:    event.Severity,
+					NoticeType:  noticeData.NoticeType,
+					NoticeId:    noticeId,
+					NoticeName:  noticeData.Name,
+					IsRecovered: event.IsRecovered,
+					Hook:        Hook,
+					Email:       c.getNoticeEmail(noticeData, severity),
+					Content:     content,
+					Event:       nil,
+					PhoneNumber: phoneNumber,
+					Sign:        Sign,
+				})
+			}
+			return nil
 		})
 	}
 
 	return g.Wait()
+}
+
+// getNoticeHookUrlAndSign 获取事件等级对应的 Hook 和 Sign
+func (c *Consume) getNoticeHookUrlAndSign(notice models.AlertNotice, severity string) (string, string) {
+	if notice.Routes != nil {
+		for _, hook := range notice.Routes {
+			if hook.Severity == severity {
+				return hook.Hook, hook.Sign
+			}
+		}
+	}
+	return notice.DefaultHook, notice.DefaultSign
+}
+
+// getNoticeEmail 获取事件等级对应的 Email
+func (c *Consume) getNoticeEmail(notice models.AlertNotice, severity string) models.Email {
+	if notice.Routes != nil {
+		for _, route := range notice.Routes {
+			if route.Severity == severity {
+				return models.Email{
+					Subject: notice.Email.Subject,
+					To:      route.To,
+					CC:      route.CC,
+				}
+			}
+		}
+	}
+	return notice.Email
 }
 
 // generateAlertContent 生成告警内容
