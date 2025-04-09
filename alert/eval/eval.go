@@ -142,19 +142,12 @@ func (t *AlertRule) Recover(RuleId, faultCenterKey string, faultCenterInfoKey st
 		return
 	}
 
-	// 只获取当前规则的事件
-	var currentRuleEvents = make(map[string]models.AlertCurEvent)
+	// 只获取所属当前规则的告警指纹
+	fingerprints := make([]string, 0)
 	for fingerprint, event := range events {
 		if strings.Contains(event.RuleId, RuleId) {
-			currentRuleEvents[fingerprint] = event
+			fingerprints = append(fingerprints, fingerprint)
 		}
-	}
-	events = currentRuleEvents
-
-	// 提取事件中的告警指纹
-	fingerprints := make([]string, 0)
-	for fingerprint := range events {
-		fingerprints = append(fingerprints, fingerprint)
 	}
 
 	// 获取已恢复告警的keys

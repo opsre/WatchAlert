@@ -21,6 +21,10 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 	var (
 		resQuery       []provider.Metrics
 		externalLabels map[string]interface{}
+		// 当前活跃告警的指纹列表
+		curFingerprints []string
+		// 按指纹分组存储事件，每个指纹只保留最高优先级的事件
+		highestPriorityEvents = make(map[string]models.AlertCurEvent)
 	)
 	switch datasourceType {
 	case provider.PrometheusDsProvider:
@@ -63,22 +67,11 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 	// 获取已缓存事件指纹
 	fingerPrintMap := process.GetFingerPrint(ctx, rule.TenantId, rule.FaultCenterId, rule.RuleId)
 
-	var curFingerprints []string
-
 	// 按优先级排序规则（P0 > P1 > P2）
-	rules := rule.PrometheusConfig.Rules
-	sort.Slice(rules, func(i, j int) bool {
-		return getPriorityValue(rules[i].Severity) > getPriorityValue(rules[j].Severity)
-	})
-
-	// 按指纹分组存储事件，每个指纹只保留最高优先级的事件
-	highestPriorityEvents := make(map[string]models.AlertCurEvent)
+	rules := sortRulesByPriority(rule.PrometheusConfig.Rules)
 
 	for _, v := range resQuery {
 		fingerprint := v.GetFingerprint()
-
-		// 用于恢复事件的处理
-		recoveryEventProcessed := false
 
 		// 遍历按优先级排序后的规则
 		for _, ruleExpr := range rules {
@@ -115,28 +108,24 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 				}
 				// 找到符合条件的规则后，跳过该指标的其他规则
 				break
-			} else if !recoveryEventProcessed {
-				// 仅处理一次恢复事件
-				// 仅更新已经触发事件的指纹对应指标
-				if _, exist := fingerPrintMap[fingerprint]; exist {
-					// 如果是 预告警 状态的事件，触发了恢复逻辑，但它并非是真正触发告警而恢复，所以只需要删除历史事件即可，无需继续处理恢复逻辑。
-					if ctx.Redis.Event().GetEventStatusForFaultCenter(event.TenantId, event.FaultCenterId, fingerprint) == 0 {
-						ctx.Redis.Event().RemoveEventFromFaultCenter(event.TenantId, event.FaultCenterId, fingerprint)
-						continue
-					}
-
-					// 获取过恢复值则直接跳过
-					if _, existRecoverValue := event.Metric["recover_value"]; existRecoverValue {
-						continue
-					}
-
-					// 获取上一次告警值
-					event.Metric["value"] = ctx.Redis.Event().GetLastFiringValueForFaultCenter(event.TenantId, event.FaultCenterId, event.Fingerprint)
-					// 获取当前恢复值
-					event.Metric["recover_value"] = v.GetValue()
-					process.PushEventToFaultCenter(ctx, &event)
-					recoveryEventProcessed = true
+			} else if _, exist := fingerPrintMap[fingerprint]; exist {
+				// 如果是 预告警 状态的事件，触发了恢复逻辑，但它并非是真正触发告警而恢复，所以只需要删除历史事件即可，无需继续处理恢复逻辑。
+				if ctx.Redis.Event().GetEventStatusForFaultCenter(event.TenantId, event.FaultCenterId, fingerprint) == 0 {
+					logc.Alert(ctx.Ctx, fmt.Sprintf("移除预告警恢复事件, Rule: %s, Fingerprint: %s", rule.RuleName, fingerprint))
+					ctx.Redis.Event().RemoveEventFromFaultCenter(event.TenantId, event.FaultCenterId, fingerprint)
+					continue
 				}
+
+				// 获取过恢复值则直接跳过
+				if _, existRecoverValue := event.Metric["recover_value"]; existRecoverValue {
+					continue
+				}
+
+				// 获取上一次告警值
+				event.Metric["value"] = ctx.Redis.Event().GetLastFiringValueForFaultCenter(event.TenantId, event.FaultCenterId, event.Fingerprint)
+				// 获取当前恢复值
+				event.Metric["recover_value"] = v.GetValue()
+				process.PushEventToFaultCenter(ctx, &event)
 			}
 		}
 	}
@@ -147,6 +136,18 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 	}
 
 	return curFingerprints
+}
+
+// sortRulesByPriority 按优先级排序规则
+func sortRulesByPriority(rules []models.Rules) []models.Rules {
+	sortedRules := make([]models.Rules, len(rules))
+	copy(sortedRules, rules)
+
+	sort.Slice(sortedRules, func(i, j int) bool {
+		return getPriorityValue(sortedRules[i].Severity) > getPriorityValue(sortedRules[j].Severity)
+	})
+
+	return sortedRules
 }
 
 // getPriorityValue 获取优先级的数值表示，用于排序
