@@ -68,4 +68,6 @@ type DutyScheduleQuery struct {
 	TenantId string `json:"tenantId" form:"tenantId"`
 	DutyId   string `json:"dutyId" form:"dutyId"`
 	Time     string `json:"time" form:"time"`
+	Year     string `json:"year" form:"year"`
+	Month    string `json:"mouth" form:"month"`
 }
