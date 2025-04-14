@@ -20,9 +20,20 @@ type InterSilenceService interface {
 }
 
 func newInterSilenceService(ctx *ctx.Context) InterSilenceService {
-	return &alertSilenceService{
-		ctx: ctx,
+	service := &alertSilenceService{ctx: ctx}
+	// 重启后本地缓存中数据丢失，需要从数据库中重新同步以免mute失效
+	switch ctx.CacheType {
+	case "Redis":
+	default:
+		data, _ := service.ctx.DB.Silence().List(models.AlertSilenceQuery{})
+		if len(data.List) != 0 {
+			for _, alertSilence := range data.List {
+				service.ctx.Cache.Cache().SetHash(models.BuildCacheMuteKey(alertSilence.TenantId, alertSilence.FaultCenterId),
+					alertSilence.Id, tools.JsonMarshal(alertSilence))
+			}
+		}
 	}
+	return service
 }
 
 func (ass alertSilenceService) Create(req interface{}) (interface{}, interface{}) {
@@ -46,7 +57,7 @@ func (ass alertSilenceService) Create(req interface{}) (interface{}, interface{}
 		r.Status = 0
 	}
 
-	ass.ctx.Redis.Silence().PushMuteToFaultCenter(silenceEvent)
+	ass.ctx.Cache.Silence().PushMuteToFaultCenter(silenceEvent)
 	err := ass.ctx.DB.Silence().Create(silenceEvent)
 	if err != nil {
 		return nil, err
@@ -66,7 +77,7 @@ func (ass alertSilenceService) Update(req interface{}) (interface{}, interface{}
 		r.Status = 1
 	}
 
-	ass.ctx.Redis.Silence().PushMuteToFaultCenter(*r)
+	ass.ctx.Cache.Silence().PushMuteToFaultCenter(*r)
 	err := ass.ctx.DB.Silence().Update(*r)
 	if err != nil {
 		return nil, err
@@ -77,7 +88,7 @@ func (ass alertSilenceService) Update(req interface{}) (interface{}, interface{}
 
 func (ass alertSilenceService) Delete(req interface{}) (interface{}, interface{}) {
 	r := req.(*models.AlertSilenceQuery)
-	ass.ctx.Redis.Silence().RemoveMuteFromFaultCenter(r.TenantId, r.FaultCenterId, r.Id)
+	ass.ctx.Cache.Silence().RemoveMuteFromFaultCenter(r.TenantId, r.FaultCenterId, r.Id)
 	err := ass.ctx.DB.Silence().Delete(*r)
 	if err != nil {
 		return nil, err

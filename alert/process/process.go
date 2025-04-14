@@ -33,7 +33,7 @@ func PushEventToFaultCenter(ctx *ctx.Context, event *models.AlertCurEvent) {
 		return
 	}
 
-	eventOpt := ctx.Redis.Event()
+	eventOpt := ctx.Cache.Event()
 	event.FirstTriggerTime = eventOpt.GetFirstTimeForFaultCenter(event.TenantId, event.FaultCenterId, event.Fingerprint)
 	event.LastEvalTime = eventOpt.GetLastEvalTimeForFaultCenter()
 	event.LastSendTime = eventOpt.GetLastSendTimeForFaultCenter(event.TenantId, event.FaultCenterId, event.Fingerprint)
@@ -138,7 +138,7 @@ func RecordAlertHisEvent(ctx *ctx.Context, alert models.AlertCurEvent) error {
 
 // GetFingerPrint 获取指纹信息
 func GetFingerPrint(ctx *ctx.Context, tenantId string, faultCenterId string, ruleId string) map[string]struct{} {
-	fingerPrints := ctx.Redis.Event().GetFingerprintsByRuleId(tenantId, faultCenterId, ruleId)
+	fingerPrints := ctx.Cache.Event().GetFingerprintsByRuleId(tenantId, faultCenterId, ruleId)
 	fingerPrintMap := make(map[string]struct{})
 	for _, fingerPrint := range fingerPrints {
 		fingerPrintMap[fingerPrint] = struct{}{}

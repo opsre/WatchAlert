@@ -17,7 +17,7 @@ import (
 
 // Metrics 包含 Prometheus、VictoriaMetrics 数据源
 func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.AlertRule) []string {
-	pools := ctx.Redis.ProviderPools()
+	pools := ctx.Cache.ProviderPools()
 	var (
 		resQuery       []provider.Metrics
 		externalLabels map[string]interface{}
@@ -110,9 +110,9 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 				break
 			} else if _, exist := fingerPrintMap[fingerprint]; exist {
 				// 如果是 预告警 状态的事件，触发了恢复逻辑，但它并非是真正触发告警而恢复，所以只需要删除历史事件即可，无需继续处理恢复逻辑。
-				if ctx.Redis.Event().GetEventStatusForFaultCenter(event.TenantId, event.FaultCenterId, fingerprint) == 0 {
+				if ctx.Cache.Event().GetEventStatusForFaultCenter(event.TenantId, event.FaultCenterId, fingerprint) == 0 {
 					logc.Alert(ctx.Ctx, fmt.Sprintf("移除预告警恢复事件, Rule: %s, Fingerprint: %s", rule.RuleName, fingerprint))
-					ctx.Redis.Event().RemoveEventFromFaultCenter(event.TenantId, event.FaultCenterId, fingerprint)
+					ctx.Cache.Event().RemoveEventFromFaultCenter(event.TenantId, event.FaultCenterId, fingerprint)
 					continue
 				}
 
@@ -122,7 +122,7 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 				}
 
 				// 获取上一次告警值
-				event.Metric["value"] = ctx.Redis.Event().GetLastFiringValueForFaultCenter(event.TenantId, event.FaultCenterId, event.Fingerprint)
+				event.Metric["value"] = ctx.Cache.Event().GetLastFiringValueForFaultCenter(event.TenantId, event.FaultCenterId, event.Fingerprint)
 				// 获取当前恢复值
 				event.Metric["recover_value"] = v.GetValue()
 				process.PushEventToFaultCenter(ctx, &event)
@@ -177,7 +177,7 @@ func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.Ale
 		externalLabels map[string]interface{}
 	)
 
-	pools := ctx.Redis.ProviderPools()
+	pools := ctx.Cache.ProviderPools()
 	switch datasourceType {
 	case provider.LokiDsProviderName:
 		cli, err := pools.GetClient(datasourceId)
@@ -379,7 +379,7 @@ func traces(ctx *ctx.Context, datasourceId, datasourceType string, rule models.A
 		externalLabels map[string]interface{}
 	)
 
-	pools := ctx.Redis.ProviderPools()
+	pools := ctx.Cache.ProviderPools()
 	switch datasourceType {
 	case provider.JaegerDsProviderName:
 		curAt := time.Now().UTC()
@@ -427,7 +427,7 @@ func traces(ctx *ctx.Context, datasourceId, datasourceType string, rule models.A
 
 func cloudWatch(ctx *ctx.Context, datasourceId string, rule models.AlertRule) []string {
 	var externalLabels map[string]interface{}
-	pools := ctx.Redis.ProviderPools()
+	pools := ctx.Cache.ProviderPools()
 	cfg, err := pools.GetClient(datasourceId)
 	if err != nil {
 		logc.Errorf(ctx.Ctx, err.Error())
@@ -489,7 +489,7 @@ func kubernetesEvent(ctx *ctx.Context, datasourceId string, rule models.AlertRul
 		return []string{}
 	}
 
-	pools := ctx.Redis.ProviderPools()
+	pools := ctx.Cache.ProviderPools()
 	cli, err := pools.GetClient(datasourceId)
 	if err != nil {
 		logc.Errorf(ctx.Ctx, err.Error())

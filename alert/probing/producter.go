@@ -173,7 +173,7 @@ func (t *ProductProbing) Evaluation(event models.ProbingEvent, option models.Eva
 				t.cleanFrequency(t.OkFrequency, event.RuleId)
 			}()
 
-			c := ctx.Redis.Event()
+			c := ctx.Cache.Event()
 			neCache, err := c.GetProbingEventCache(event.GetFiringAlertCacheKey())
 			if err != nil {
 				logc.Error(ctx.Ctx, err.Error())

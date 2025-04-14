@@ -22,8 +22,8 @@ func InitBasic() {
 	global.Config = config.InitConfig()
 
 	dbRepo := repo.NewRepoEntry()
-	rCache := cache.NewEntryCache()
-	ctx := ctx.NewContext(context.Background(), dbRepo, rCache)
+	rCache := cache.NewEntryCache(global.Config.Cache)
+	ctx := ctx.NewContext(context.Background(), dbRepo, rCache, global.Config.Cache)
 
 	services.NewServices(ctx)
 
@@ -56,7 +56,7 @@ func InitBasic() {
 			logc.Error(ctx.Ctx, fmt.Sprintf("创建 Ai 客户端失败: %s", err.Error()))
 			return
 		}
-		ctx.Redis.ProviderPools().SetClient("AiClient", client)
+		ctx.Cache.ProviderPools().SetClient("AiClient", client)
 	}
 }
 

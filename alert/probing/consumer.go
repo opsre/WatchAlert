@@ -36,7 +36,7 @@ func (m *ConsumeProbing) Add(r models.ProbingRule) {
 		for {
 			select {
 			case <-ticker:
-				result, err := m.ctx.Redis.Event().GetProbingEventCache(r.GetFiringAlertCacheKey())
+				result, err := m.ctx.Cache.Event().GetProbingEventCache(r.GetFiringAlertCacheKey())
 				if err == nil {
 					m.handleAlert(result)
 				}
@@ -81,7 +81,7 @@ func (m *ConsumeProbing) filterEvent(alert models.ProbingEvent) bool {
 	if !alert.IsRecovered {
 		if alert.LastSendTime == 0 || alert.LastEvalTime >= alert.LastSendTime+alert.RepeatNoticeInterval*60 {
 			alert.LastSendTime = time.Now().Unix()
-			m.ctx.Redis.Event().SetProbingEventCache(alert, 0)
+			m.ctx.Cache.Event().SetProbingEventCache(alert, 0)
 			return true
 		}
 	} else {
@@ -120,7 +120,7 @@ func (m *ConsumeProbing) getContent(alert models.ProbingEvent, noticeData models
 
 // 删除缓存
 func removeAlertFromCache(alert models.ProbingEvent) {
-	ctx.DO().Redis.Redis().Del(alert.GetFiringAlertCacheKey())
+	ctx.DO().Cache.Cache().DeleteKey(alert.GetFiringAlertCacheKey())
 }
 
 func buildEvent(event models.ProbingEvent) models.AlertCurEvent {

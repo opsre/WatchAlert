@@ -43,7 +43,7 @@ func (a settingService) Save(req interface{}) (interface{}, interface{}) {
 		if err != nil {
 			return nil, err
 		}
-		a.ctx.Redis.ProviderPools().SetClient("AiClient", client)
+		a.ctx.Cache.ProviderPools().SetClient("AiClient", client)
 	}
 
 	return nil, nil

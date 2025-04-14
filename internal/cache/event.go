@@ -3,19 +3,18 @@ package cache
 import (
 	"context"
 	"encoding/json"
-	"github.com/go-redis/redis"
 	"github.com/zeromicro/go-zero/core/logc"
 	"sync"
 	"time"
 	"watchAlert/internal/models"
-	"watchAlert/pkg/client"
 	"watchAlert/pkg/tools"
 )
 
 type (
 	// EventCache 用于管理事件缓存操作
 	EventCache struct {
-		rc *redis.Client
+		//rc    *redis.Client
+		cache Cache
 		sync.RWMutex
 	}
 
@@ -39,9 +38,9 @@ type (
 )
 
 // newEventCacheInterface 创建一个新的 EventCache 实例
-func newEventCacheInterface(r *redis.Client) EventCacheInterface {
+func newEventCacheInterface(c Cache) EventCacheInterface {
 	return &EventCache{
-		rc: r,
+		cache: c,
 	}
 }
 
@@ -51,14 +50,14 @@ func (ec *EventCache) SetProbingEventCache(event models.ProbingEvent, expiration
 	defer ec.Unlock()
 
 	eventJSON, _ := json.Marshal(event)
-	ec.setRedisKey(event.GetFiringAlertCacheKey(), string(eventJSON), expiration)
+	ec.cache.SetKey(event.GetFiringAlertCacheKey(), string(eventJSON), expiration)
 }
 
 // GetProbingEventCache 获取探测事件缓存
 func (ec *EventCache) GetProbingEventCache(key string) (models.ProbingEvent, error) {
 	var event models.ProbingEvent
 
-	data, err := ec.getRedisKey(key)
+	data, err := ec.cache.GetKey(key)
 	if err != nil {
 		return event, err
 	}
@@ -104,7 +103,7 @@ func (ec *EventCache) PushEventToFaultCenter(event *models.AlertCurEvent) {
 	defer ec.Unlock()
 
 	key := models.BuildCacheEventKey(event.TenantId, event.FaultCenterId)
-	ec.setRedisHash(key, event.Fingerprint, tools.JsonMarshal(event))
+	ec.cache.SetHash(key, event.Fingerprint, tools.JsonMarshal(event))
 }
 
 // RemoveEventFromFaultCenter 从故障中心的缓存中移除事件
@@ -113,7 +112,7 @@ func (ec *EventCache) RemoveEventFromFaultCenter(tenantId, faultCenterId, finger
 	defer ec.Unlock()
 
 	key := models.BuildCacheEventKey(tenantId, faultCenterId)
-	ec.deleteRedisHash(key, fingerprint)
+	ec.cache.DeleteHash(key, fingerprint)
 }
 
 // GetAllEventsForFaultCenter 获取故障中心的所有事件
@@ -121,7 +120,7 @@ func (ec *EventCache) GetAllEventsForFaultCenter(fcKey string) (map[string]model
 	ec.RLock()
 	defer ec.RUnlock()
 
-	result, err := ec.getRedisHashAll(fcKey)
+	result, err := ec.cache.GetHashAll(fcKey)
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +158,7 @@ func (ec *EventCache) GetFingerprintsByRuleId(tenantId, faultCenterId, ruleId st
 // GetEventFromCache 从缓存中获取事件数据
 func (ec *EventCache) GetEventFromCache(tenantId, faultCenterId, fingerprint string) (models.AlertCurEvent, error) {
 	key := models.BuildCacheEventKey(tenantId, faultCenterId)
-	data, err := ec.getRedisHash(key, fingerprint)
+	data, err := ec.cache.GetHash(key, fingerprint)
 	if err != nil {
 		return models.AlertCurEvent{}, err
 	}
@@ -213,27 +212,27 @@ func (ec *EventCache) GetLastFiringValueForFaultCenter(tenantId, faultCenterId, 
 	return event.Metric["value"].(float64)
 }
 
-// 封装 Redis 操作
-func (ec *EventCache) setRedisKey(key, value string, expiration time.Duration) {
-	ec.rc.Set(key, value, expiration)
-}
-
-func (ec *EventCache) getRedisKey(key string) (string, error) {
-	return ec.rc.Get(key).Result()
-}
-
-func (ec *EventCache) setRedisHash(key, field, value string) {
-	client.Redis.HSet(key, field, value)
-}
-
-func (ec *EventCache) deleteRedisHash(key, field string) {
-	client.Redis.HDel(key, field)
-}
-
-func (ec *EventCache) getRedisHash(key, field string) (string, error) {
-	return ec.rc.HGet(key, field).Result()
-}
-
-func (ec *EventCache) getRedisHashAll(key string) (map[string]string, error) {
-	return ec.rc.HGetAll(key).Result()
-}
+//// 封装 Redis 操作
+//func (ec *EventCache) setRedisKey(key, value string, expiration time.Duration) {
+//	ec.rc.Set(key, value, expiration)
+//}
+//
+//func (ec *EventCache) getRedisKey(key string) (string, error) {
+//	return ec.rc.Get(key).Result()
+//}
+//
+//func (ec *EventCache) setRedisHash(key, field, value string) {
+//	client.Redis.HSet(key, field, value)
+//}
+//
+//func (ec *EventCache) deleteRedisHash(key, field string) {
+//	client.Redis.HDel(key, field)
+//}
+//
+//func (ec *EventCache) getRedisHash(key, field string) (string, error) {
+//	return ec.rc.HGet(key, field).Result()
+//}
+//
+//func (ec *EventCache) getRedisHashAll(key string) (map[string]string, error) {
+//	return ec.rc.HGetAll(key).Result()
+//}
