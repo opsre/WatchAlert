@@ -67,9 +67,9 @@ func (rs ruleService) Update(req interface{}) (interface{}, interface{}) {
 		logc.Infof(rs.ctx.Ctx, fmt.Sprintf("重启 RuleId 为 %s 的 Worker 进程", rule.RuleId))
 	} else {
 		// 删除缓存
-		fingerprints := rs.ctx.Redis.Event().GetFingerprintsByRuleId(rule.TenantId, rule.FaultCenterId, rule.RuleId)
+		fingerprints := rs.ctx.Cache.Event().GetFingerprintsByRuleId(rule.TenantId, rule.FaultCenterId, rule.RuleId)
 		for _, fingerprint := range fingerprints {
-			rs.ctx.Redis.Event().RemoveEventFromFaultCenter(rule.TenantId, rule.FaultCenterId, fingerprint)
+			rs.ctx.Cache.Event().RemoveEventFromFaultCenter(rule.TenantId, rule.FaultCenterId, fingerprint)
 		}
 	}
 
@@ -102,9 +102,9 @@ func (rs ruleService) Delete(req interface{}) (interface{}, interface{}) {
 	}
 
 	// 删除缓存
-	fingerprints := rs.ctx.Redis.Event().GetFingerprintsByRuleId(rule.TenantId, info.FaultCenterId, rule.RuleId)
+	fingerprints := rs.ctx.Cache.Event().GetFingerprintsByRuleId(rule.TenantId, info.FaultCenterId, rule.RuleId)
 	for _, fingerprint := range fingerprints {
-		rs.ctx.Redis.Event().RemoveEventFromFaultCenter(rule.TenantId, info.FaultCenterId, fingerprint)
+		rs.ctx.Cache.Event().RemoveEventFromFaultCenter(rule.TenantId, info.FaultCenterId, fingerprint)
 	}
 
 	return nil, nil

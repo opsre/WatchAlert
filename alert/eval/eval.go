@@ -137,7 +137,7 @@ func (t *AlertRule) getEvalTimeDuration(evalTimeType string, evalInterval int64)
 
 func (t *AlertRule) Recover(RuleId, faultCenterKey string, faultCenterInfoKey string, curFingerprints []string) {
 	// 获取所有的故障中心的告警事件
-	events, err := t.ctx.Redis.Event().GetAllEventsForFaultCenter(faultCenterKey)
+	events, err := t.ctx.Cache.Event().GetAllEventsForFaultCenter(faultCenterKey)
 	if err != nil {
 		return
 	}
@@ -165,7 +165,7 @@ func (t *AlertRule) Recover(RuleId, faultCenterKey string, faultCenterInfoKey st
 
 		// 调整为待恢复状态
 		event.Status = 3
-		t.ctx.Redis.Event().PushEventToFaultCenter(&event)
+		t.ctx.Cache.Event().PushEventToFaultCenter(&event)
 
 		// 判断是否在等待时间范围内
 		wTime, exists := t.alarmRecoverWaitStore.Get(RuleId, fingerprint)
@@ -185,14 +185,14 @@ func (t *AlertRule) Recover(RuleId, faultCenterKey string, faultCenterInfoKey st
 		event.IsRecovered = true
 		event.RecoverTime = curTime
 		event.LastSendTime = 0
-		t.ctx.Redis.Event().PushEventToFaultCenter(&event)
+		t.ctx.Cache.Event().PushEventToFaultCenter(&event)
 		// 触发恢复删除带恢复中的 key
 		t.alarmRecoverWaitStore.Remove(RuleId, fingerprint)
 	}
 }
 
 func (t *AlertRule) getRecoverWaitTime(faultCenterInfoKey string) int64 {
-	faultCenter := t.ctx.Redis.FaultCenter().GetFaultCenterInfo(faultCenterInfoKey)
+	faultCenter := t.ctx.Cache.FaultCenter().GetFaultCenterInfo(faultCenterInfoKey)
 	if faultCenter.RecoverWaitTime == 0 {
 		return 1
 	}

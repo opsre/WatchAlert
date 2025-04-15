@@ -59,7 +59,7 @@ func RecoverNotify(mp MuteParams) bool {
 
 // IsSilence 判断是否静默
 func IsSilence(mute MuteParams) bool {
-	silenceCtx := ctx.Redis.Silence()
+	silenceCtx := ctx.Cache.Silence()
 	// 获取静默列表中所有的id
 	ids, err := silenceCtx.GetMutesForFaultCenter(mute.TenantId, mute.FaultCenterId)
 	if err != nil {

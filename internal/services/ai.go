@@ -41,7 +41,7 @@ func (a aiService) Chat(req interface{}) (interface{}, interface{}) {
 		return nil, err
 	}
 
-	client, err := a.ctx.Redis.ProviderPools().GetClient("AiClient")
+	client, err := a.ctx.Cache.ProviderPools().GetClient("AiClient")
 	if err != nil {
 		return "", err
 	}

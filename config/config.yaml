@@ -11,6 +11,8 @@ MySQL:
   dbName: watchalert
   timeout: 10s
 
+Cache: default
+
 Redis:
   host: w8t-redis
   port: 6379

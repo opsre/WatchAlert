@@ -12,6 +12,7 @@ type App struct {
 	Jwt    Jwt    `json:"Jwt"`
 	Jaeger Jaeger `json:"Jaeger"`
 	Ldap   Ldap   `json:"ldap"`
+	Cache  string `json:"Cache"`
 }
 
 type Server struct {

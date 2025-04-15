@@ -114,7 +114,7 @@ func (ds datasourceService) WithAddClientToProviderPools(datasource models.Alert
 		cli interface{}
 		err error
 	)
-	pools := ds.ctx.Redis.ProviderPools()
+	pools := ds.ctx.Cache.ProviderPools()
 	switch datasource.Type {
 	case provider.PrometheusDsProvider:
 		cli, err = provider.NewPrometheusClient(datasource)
@@ -145,6 +145,6 @@ func (ds datasourceService) WithAddClientToProviderPools(datasource models.Alert
 }
 
 func (ds datasourceService) WithRemoveClientForProviderPools(datasourceId string) {
-	pools := ds.ctx.Redis.ProviderPools()
+	pools := ds.ctx.Cache.ProviderPools()
 	pools.RemoveClient(datasourceId)
 }

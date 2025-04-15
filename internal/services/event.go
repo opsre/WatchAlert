@@ -25,7 +25,7 @@ func newInterEventService(ctx *ctx.Context) InterEventService {
 
 func (e eventService) ListCurrentEvent(req interface{}) (interface{}, interface{}) {
 	r := req.(*models.AlertCurEventQuery)
-	center, err := e.ctx.Redis.Event().GetAllEventsForFaultCenter(models.BuildCacheEventKey(r.TenantId, r.FaultCenterId))
+	center, err := e.ctx.Cache.Event().GetAllEventsForFaultCenter(models.BuildCacheEventKey(r.TenantId, r.FaultCenterId))
 	if err != nil {
 		return nil, err
 	}

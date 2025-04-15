@@ -9,34 +9,39 @@ import (
 
 type Context struct {
 	DB                 repo.InterEntryRepo
-	Redis              cache.InterEntryCache
+	Cache              cache.InterEntryCache
 	Ctx                context.Context
 	Mux                sync.RWMutex
 	ConsumerContextMap map[string]context.CancelFunc
+	CacheType          string
 }
 
 var (
-	DB    repo.InterEntryRepo
-	Redis cache.InterEntryCache
-	Ctx   context.Context
+	DB        repo.InterEntryRepo
+	Cache     cache.InterEntryCache
+	Ctx       context.Context
+	CacheType string
 )
 
-func NewContext(ctx context.Context, db repo.InterEntryRepo, redis cache.InterEntryCache) *Context {
+func NewContext(ctx context.Context, db repo.InterEntryRepo, c cache.InterEntryCache, cacheType string) *Context {
 	DB = db
-	Redis = redis
+	Cache = c
 	Ctx = ctx
+	CacheType = cacheType
 	return &Context{
 		DB:                 db,
-		Redis:              redis,
+		Cache:              c,
 		Ctx:                ctx,
 		ConsumerContextMap: make(map[string]context.CancelFunc),
+		CacheType:          cacheType,
 	}
 }
 
 func DO() *Context {
 	return &Context{
-		DB:    DB,
-		Redis: Redis,
-		Ctx:   Ctx,
+		DB:        DB,
+		Cache:     Cache,
+		Ctx:       Ctx,
+		CacheType: CacheType,
 	}
 }

@@ -38,7 +38,7 @@ func (f faultCenterService) Create(req interface{}) (data interface{}, err inter
 		return nil, err
 	}
 
-	f.ctx.Redis.FaultCenter().PushFaultCenterInfo(*r)
+	f.ctx.Cache.FaultCenter().PushFaultCenterInfo(*r)
 	alert.ConsumerWork.Submit(*r)
 
 	return nil, nil
@@ -51,7 +51,7 @@ func (f faultCenterService) Update(req interface{}) (data interface{}, err inter
 		return nil, err
 	}
 
-	f.ctx.Redis.FaultCenter().PushFaultCenterInfo(*r)
+	f.ctx.Cache.FaultCenter().PushFaultCenterInfo(*r)
 	alert.ConsumerWork.Stop(r.ID)
 	alert.ConsumerWork.Submit(*r)
 
@@ -65,7 +65,7 @@ func (f faultCenterService) Delete(req interface{}) (data interface{}, err inter
 		return nil, err
 	}
 
-	f.ctx.Redis.FaultCenter().RemoveFaultCenterInfo(models.BuildCacheInfoKey(r.TenantId, r.ID))
+	f.ctx.Cache.FaultCenter().RemoveFaultCenterInfo(models.BuildCacheInfoKey(r.TenantId, r.ID))
 	alert.ConsumerWork.Stop(r.ID)
 
 	return nil, nil
@@ -83,7 +83,7 @@ func (f faultCenterService) List(req interface{}) (data interface{}, err interfa
 
 	faultCenters := data.([]models.FaultCenter)
 	for index, fc := range data.([]models.FaultCenter) {
-		events, err := f.ctx.Redis.Event().GetAllEventsForFaultCenter(fc.GetFaultCenterKey())
+		events, err := f.ctx.Cache.Event().GetAllEventsForFaultCenter(fc.GetFaultCenterKey())
 		if err != nil {
 			return nil, err
 		}
@@ -123,7 +123,7 @@ func (f faultCenterService) Reset(req interface{}) (data interface{}, err interf
 
 	alert.ConsumerWork.Stop(r.ID)
 	data, err = f.ctx.DB.FaultCenter().Get(models.FaultCenterQuery{ID: r.ID})
-	f.ctx.Redis.FaultCenter().PushFaultCenterInfo(data.(models.FaultCenter))
+	f.ctx.Cache.FaultCenter().PushFaultCenterInfo(data.(models.FaultCenter))
 	alert.ConsumerWork.Submit(data.(models.FaultCenter))
 
 	return nil, nil

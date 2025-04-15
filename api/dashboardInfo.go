@@ -101,7 +101,7 @@ func getUserNumber(ctx *ctx.Context) int64 {
 
 // getAlertList 获取当前告警 annotations 列表
 func getAlertList(ctx *ctx.Context, faultCenter models.FaultCenter) []string {
-	events, err := ctx.Redis.Event().GetAllEventsForFaultCenter(faultCenter.GetFaultCenterKey())
+	events, err := ctx.Cache.Event().GetAllEventsForFaultCenter(faultCenter.GetFaultCenterKey())
 	if err != nil {
 		return nil
 	}
@@ -115,7 +115,7 @@ func getAlertList(ctx *ctx.Context, faultCenter models.FaultCenter) []string {
 
 // getAlarmDistribution 获取告警分布
 func getAlarmDistribution(ctx *ctx.Context, faultCenter models.FaultCenter, severity string) int64 {
-	events, err := ctx.Redis.Event().GetAllEventsForFaultCenter(faultCenter.GetFaultCenterKey())
+	events, err := ctx.Cache.Event().GetAllEventsForFaultCenter(faultCenter.GetFaultCenterKey())
 	if err != nil {
 		return 0
 	}

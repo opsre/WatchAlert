@@ -50,7 +50,7 @@ func IsTokenValid(ctx *ctx.Context, tokenStr string) (int64, bool) {
 
 	// 密码校验, 当修改密码后其他已登陆的终端会被下线。
 	var user models.Member
-	result, err := ctx.Redis.Redis().Get("uid-" + token.ID).Result()
+	result, err := ctx.Cache.Cache().GetKey("uid-" + token.ID)
 	if err != nil {
 		return 400, false
 	}

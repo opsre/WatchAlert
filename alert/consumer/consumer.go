@@ -192,7 +192,7 @@ func (c *Consume) executeTask(faultCenter models.FaultCenter, taskChan chan stru
 	// 处理静默规则
 	c.processSilenceRule(faultCenter)
 	// 获取故障中心的所有告警事件
-	data, err := c.ctx.Redis.Redis().HGetAll(faultCenter.GetFaultCenterKey()).Result()
+	data, err := c.ctx.Cache.Cache().GetHashAll(faultCenter.GetFaultCenterKey())
 	if err != nil {
 		logc.Error(c.ctx.Ctx, fmt.Sprintf("从 Redis 中获取事件信息错误, faultCenterKey: %s, err: %s", faultCenter.GetFaultCenterKey(), err.Error()))
 		return
@@ -373,7 +373,7 @@ func (c *Consume) handleAlert(faultCenter models.FaultCenter, noticeId string, a
 			for _, event := range events {
 				if !event.IsRecovered {
 					event.LastSendTime = curTime
-					c.ctx.Redis.Event().PushEventToFaultCenter(event)
+					c.ctx.Cache.Event().PushEventToFaultCenter(event)
 				}
 
 				phoneNumber := func() []string {
@@ -465,7 +465,7 @@ func (c *Consume) withRuleGroupByAlerts(timeInt int64, alerts []*models.AlertCur
 
 		if !alert.IsRecovered {
 			alert.LastSendTime = timeInt
-			c.ctx.Redis.Event().PushEventToFaultCenter(alert)
+			c.ctx.Cache.Event().PushEventToFaultCenter(alert)
 		}
 	}
 
@@ -474,7 +474,7 @@ func (c *Consume) withRuleGroupByAlerts(timeInt int64, alerts []*models.AlertCur
 
 // removeAlertFromCache 从缓存中删除告警
 func (c *Consume) removeAlertFromCache(alert *models.AlertCurEvent) {
-	c.ctx.Redis.Event().RemoveEventFromFaultCenter(alert.TenantId, alert.FaultCenterId, alert.Fingerprint)
+	c.ctx.Cache.Event().RemoveEventFromFaultCenter(alert.TenantId, alert.FaultCenterId, alert.Fingerprint)
 }
 
 // getNoticeData 获取 Notice 数据
@@ -499,7 +499,7 @@ func (c *Consume) RestartAllConsumers() {
 
 func (c *Consume) processSilenceRule(faultCenter models.FaultCenter) {
 	currentTime := time.Now().Unix()
-	silenceCtx := c.ctx.Redis.Silence()
+	silenceCtx := c.ctx.Cache.Silence()
 	// 获取静默列表中所有的id
 	silenceIds, err := silenceCtx.GetMutesForFaultCenter(faultCenter.TenantId, faultCenter.ID)
 	if err != nil {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/go-redis/redis"
 	"log"
+	"time"
 	"watchAlert/internal/global"
 )
 
@@ -28,4 +29,44 @@ func InitRedis() *redis.Client {
 
 	return client
 
+}
+
+type RedisCache struct {
+	*redis.Client
+}
+
+func NewRedisCache() *RedisCache {
+	return &RedisCache{InitRedis()}
+}
+
+func (c *RedisCache) SetKey(key, value string, expiration time.Duration) {
+	c.Set(key, value, expiration)
+}
+
+func (c *RedisCache) GetKey(key string) (string, error) {
+	return c.Get(key).Result()
+}
+
+func (c *RedisCache) SetHashAny(key, field string, value any) {
+	c.HSet(key, field, value)
+}
+
+func (c *RedisCache) DeleteKey(key string) {
+	c.Del(key)
+}
+
+func (c *RedisCache) SetHash(key, field, value string) {
+	c.HSet(key, field, value)
+}
+
+func (c *RedisCache) DeleteHash(key, field string) {
+	c.HDel(key, field)
+}
+
+func (c *RedisCache) GetHash(key, field string) (string, error) {
+	return c.HGet(key, field).Result()
+}
+
+func (c *RedisCache) GetHashAll(key string) (map[string]string, error) {
+	return c.HGetAll(key).Result()
 }
