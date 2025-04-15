@@ -20,20 +20,9 @@ type InterSilenceService interface {
 }
 
 func newInterSilenceService(ctx *ctx.Context) InterSilenceService {
-	service := &alertSilenceService{ctx: ctx}
-	// 重启后本地缓存中数据丢失，需要从数据库中重新同步以免mute失效
-	switch ctx.CacheType {
-	case "Redis":
-	default:
-		data, _ := service.ctx.DB.Silence().List(models.AlertSilenceQuery{})
-		if len(data.List) != 0 {
-			for _, alertSilence := range data.List {
-				service.ctx.Cache.Cache().SetHash(models.BuildCacheMuteKey(alertSilence.TenantId, alertSilence.FaultCenterId),
-					alertSilence.Id, tools.JsonMarshal(alertSilence))
-			}
-		}
+	return &alertSilenceService{
+		ctx: ctx,
 	}
-	return service
 }
 
 func (ass alertSilenceService) Create(req interface{}) (interface{}, interface{}) {

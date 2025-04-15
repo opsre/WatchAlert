@@ -24,20 +24,9 @@ type (
 )
 
 func newInterFaultCenterService(ctx *ctx.Context) InterFaultCenterService {
-	service := &faultCenterService{ctx: ctx}
-	// 使用redis时持久化数据，使用localCache时没有持久化数据，需要手动在缓存中添加对应的key
-	switch ctx.CacheType {
-	case "Redis":
-	default:
-		data, _ := service.ctx.DB.FaultCenter().List(models.FaultCenterQuery{})
-		if len(data) != 0 {
-			//for _, faultCenter := range data {
-			//service.ctx.Cache.Cache().SetHash(faultCenter.GetFaultCenterKey(), "", "")
-			//service.ctx.Cache.Cache().SetKey(faultCenter.GetFaultCenterInfoKey(), tools.JsonMarshal(faultCenter), 0)
-			//}
-		}
+	return &faultCenterService{
+		ctx: ctx,
 	}
-	return service
 }
 
 func (f faultCenterService) Create(req interface{}) (data interface{}, err interface{}) {

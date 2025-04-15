@@ -1,34 +1,57 @@
 package client
 
 import (
-	"errors"
+	"context"
+	"encoding/gob"
+	"fmt"
 	"github.com/patrickmn/go-cache"
+	log "github.com/sirupsen/logrus"
+	"github.com/zeromicro/go-zero/core/logc"
+	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 )
 
-var LocalCache *Cache
-var once sync.Once
+var (
+	LocalCache *Cache
+	once       sync.Once
+	cacheFile  = "cache_file"
+)
 
 type Cache struct {
-	cache *cache.Cache
-	mu    sync.Mutex
+	cache    *cache.Cache
+	mu       sync.Mutex
+	shutdown chan struct{}
+	//wg       sync.WaitGroup
 }
-
-var (
-	ErrKeyNotFound   = errors.New("key not found")
-	ErrFieldNotFound = errors.New("field not found")
-	ErrInvalidType   = errors.New("invalid type")
-)
 
 func InitLocalCache() *Cache {
 	var localCache *Cache
 	once.Do(
 		func() {
 			c := cache.New(cache.DefaultExpiration, cache.NoExpiration)
-			localCache = &Cache{cache: c}
+			gob.Register(cache.Item{})
+			gob.Register(map[string]interface{}{})
+			gob.Register(map[string]string{})
+
+			if err := c.LoadFile(cacheFile); err != nil {
+				logc.Debugf(context.Background(), "缓存加载失败，首次启动请忽略。%v", err)
+			} else {
+				logc.Debugf(context.Background(), "加载缓存成功")
+			}
+
+			localCache = &Cache{cache: c, shutdown: make(chan struct{})}
 			LocalCache = localCache
 		})
+
+	//localCache.wg.Add(1)
+	go localCache.persist()
+
+	//localCache.wg.Add(1)
+	go localCache.listenSignals()
+
 	return localCache
 }
 
@@ -133,4 +156,40 @@ func (c *Cache) GetHashAll(key string) (map[string]string, error) {
 	}
 
 	return hashMap, nil
+}
+
+func (c *Cache) listenSignals() {
+	//defer c.wg.Done()
+
+	sigChan := make(chan os.Signal, 2)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	select {
+	case <-sigChan:
+		logc.Infof(context.Background(), "接收到终止信号，启动关闭流程")
+		close(c.shutdown)
+	case <-c.shutdown:
+	}
+}
+
+func (c *Cache) persist() {
+	//defer c.wg.Done()
+
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			if err := c.cache.SaveFile(cacheFile); err != nil {
+				log.Warn(err)
+			}
+			logc.Debugf(context.Background(), "定时缓存持久化成功")
+		case <-c.shutdown:
+			if err := c.cache.SaveFile(cacheFile); err != nil {
+				logc.Errorf(context.Background(), fmt.Sprintf("退出前缓存持久化异常: %v", err))
+			}
+			logc.Debugf(context.Background(), "缓存持久化成功")
+			return
+		}
+	}
 }
