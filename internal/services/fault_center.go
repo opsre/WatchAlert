@@ -90,6 +90,8 @@ func (f faultCenterService) List(req interface{}) (data interface{}, err interfa
 
 		for _, event := range events {
 			switch event.Status {
+			case 0:
+				faultCenters[index].CurrentPreAlertNumber++
 			case 1:
 				faultCenters[index].CurrentAlertNumber++
 			case 2:
@@ -121,6 +123,7 @@ func (f faultCenterService) Reset(req interface{}) (data interface{}, err interf
 
 	alert.ConsumerWork.Stop(r.ID)
 	data, err = f.ctx.DB.FaultCenter().Get(models.FaultCenterQuery{ID: r.ID})
+	f.ctx.Redis.FaultCenter().PushFaultCenterInfo(data.(models.FaultCenter))
 	alert.ConsumerWork.Submit(data.(models.FaultCenter))
 
 	return nil, nil

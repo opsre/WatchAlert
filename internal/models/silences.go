@@ -1,7 +1,5 @@
 package models
 
-const SilenceCachePrefix = "mute-"
-
 type AlertSilences struct {
 	TenantId      string         `json:"tenantId"`
 	Name          string         `json:"name"`

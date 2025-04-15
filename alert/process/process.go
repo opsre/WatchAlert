@@ -23,19 +23,7 @@ func BuildEvent(rule models.AlertRule) models.AlertCurEvent {
 		Severity:             rule.Severity,
 		EffectiveTime:        rule.EffectiveTime,
 		FaultCenterId:        rule.FaultCenterId,
-		Status:               1,
 	}
-}
-
-// isSilencedEvent 静默检查
-func isSilencedEvent(event *models.AlertCurEvent) bool {
-	return mute.IsSilence(mute.MuteParams{
-		EffectiveTime: event.EffectiveTime,
-		IsRecovered:   event.IsRecovered,
-		TenantId:      event.TenantId,
-		Metrics:       event.Metric,
-		FaultCenterId: event.FaultCenterId,
-	})
 }
 
 func PushEventToFaultCenter(ctx *ctx.Context, event *models.AlertCurEvent) {
@@ -49,18 +37,23 @@ func PushEventToFaultCenter(ctx *ctx.Context, event *models.AlertCurEvent) {
 	event.FirstTriggerTime = eventOpt.GetFirstTimeForFaultCenter(event.TenantId, event.FaultCenterId, event.Fingerprint)
 	event.LastEvalTime = eventOpt.GetLastEvalTimeForFaultCenter()
 	event.LastSendTime = eventOpt.GetLastSendTimeForFaultCenter(event.TenantId, event.FaultCenterId, event.Fingerprint)
-
-	if event.IsArriveForDuration() {
-		event.Status = 1
-	}
-	if isSilencedEvent(event) {
+	event.Status = event.DetermineEventStatus()
+	if IsSilencedEvent(event) {
 		event.Status = 2
-	}
-	if event.IsRecovered {
-		event.Status = 3
 	}
 
 	eventOpt.PushEventToFaultCenter(event)
+}
+
+// IsSilencedEvent 静默检查
+func IsSilencedEvent(event *models.AlertCurEvent) bool {
+	return mute.IsSilence(mute.MuteParams{
+		EffectiveTime: event.EffectiveTime,
+		IsRecovered:   event.IsRecovered,
+		TenantId:      event.TenantId,
+		Metrics:       event.Metric,
+		FaultCenterId: event.FaultCenterId,
+	})
 }
 
 func GcRecoverWaitCache(alarmRecoverStore *storage.AlarmRecoverWaitStore, rule models.AlertRule, curKeys []string) {
@@ -82,33 +75,6 @@ func getRecoverWaitList(recoverStore *storage.AlarmRecoverWaitStore, rule models
 	}
 
 	return fingerprints
-}
-
-// GetNoticeRouteId 获取告警分组的通知ID
-func GetNoticeRouteId(alert *models.AlertCurEvent, faultCenter models.FaultCenter) string {
-	if len(faultCenter.NoticeRoutes) != 0 {
-		var noticeRoutes []map[string]string
-		for _, v := range faultCenter.NoticeRoutes {
-			noticeRoutes = append(noticeRoutes, map[string]string{
-				v["key"]:   v["value"],
-				"noticeId": v["noticeId"],
-			})
-		}
-
-		// 从Metric中获取Key/Value
-		for metricKey, metricValue := range alert.Metric {
-			// 如果配置分组的Key/Value 和 Metric中的Key/Value 一致，则使用分组的 noticeId，匹配不到则用默认的。
-			for _, noticeInfo := range noticeRoutes {
-				value, ok := noticeInfo[metricKey]
-				if ok && metricValue == value {
-					noticeId := noticeInfo["noticeId"]
-					return noticeId
-				}
-			}
-		}
-	}
-
-	return faultCenter.NoticeId
 }
 
 func GetDutyUser(ctx *ctx.Context, noticeData models.AlertNotice) string {

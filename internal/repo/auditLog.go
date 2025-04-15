@@ -47,6 +47,13 @@ func (a AuditLogRepo) List(r models.AuditLogQuery) (models.AuditLogResponse, err
 
 	db.Where("tenant_id = ?", r.TenantId)
 
+	if r.Scope != "" {
+		curTime := time.Now()
+		i, _ := strconv.Atoi(r.Scope)
+		eTime := curTime.Add(-time.Duration(i) * (time.Hour * 24))
+		db.Where("created_at >= ?", eTime.Unix())
+	}
+
 	db.Count(&count)
 
 	db.Limit(int(pageSizeInt)).Offset(int((pageIndexInt - 1) * pageSizeInt)).Order("created_at desc")

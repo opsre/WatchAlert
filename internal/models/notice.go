@@ -11,17 +11,30 @@ type AlertNotice struct {
 	DutyId       string   `json:"dutyId"`
 	NoticeType   string   `json:"noticeType"`
 	NoticeTmplId string   `json:"noticeTmplId"`
-	Hook         string   `json:"hook"`
+	DefaultHook  string   `json:"hook" gorm:"column:hook"`
+	DefaultSign  string   `json:"sign" gorm:"column:sign"`
+	Routes       []Route  `json:"routes" gorm:"column:routes;serializer:json"`
 	Email        Email    `json:"email" gorm:"email;serializer:json"`
-	// 签名
-	Sign         string   `json:"sign" gorm:"sign"`
 	PhoneNumber  []string `json:"phoneNumber" gorm:"phoneNumber;serializer:json"`
+}
+
+type Route struct {
+	// 告警等级
+	Severity string `json:"severity"`
+	// WebHook
+	Hook string `json:"hook"`
+	// 签名
+	Sign string `json:"sign"`
+	// 收件人
+	To []string `json:"to" gorm:"column:to;serializer:json"`
+	// 抄送人
+	CC []string `json:"cc" gorm:"column:cc;serializer:json"`
 }
 
 type Email struct {
 	Subject string   `json:"subject"`
-	To      []string `json:"to" gorm:"to;serializer:json"`
-	CC      []string `json:"cc" gorm:"cc;serializer:json"`
+	To      []string `json:"to" gorm:"column:to;serializer:json"`
+	CC      []string `json:"cc" gorm:"column:cc;serializer:json"`
 }
 
 type AlertRecord struct {
@@ -52,6 +65,7 @@ type NoticeQuery struct {
 	Status       string `json:"status" form:"status"`
 	Severity     string `json:"severity" form:"severity"`
 	Query        string `json:"query" form:"query"`
+	Page
 }
 
 type NoticeTemplateExampleQuery struct {
@@ -78,4 +92,9 @@ type CountRecord struct {
 	Date     string `json:"date"`     // 记录日期
 	TenantId string `json:"tenantId"` // 租户
 	Severity string `json:"severity"` // 告警等级
+}
+
+type ResponseNoticeRecords struct {
+	List []NoticeRecord `json:"list"`
+	Page
 }

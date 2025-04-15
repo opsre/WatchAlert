@@ -27,7 +27,7 @@ func InitRoute() {
 		// 自定义请求日志格式
 		middleware.GinZapLogger(),
 		gin.Recovery(),
-		//gin.LoggerWithFormatter(middleware.RequestLoggerFormatter),
+		middleware.LoggingMiddleware(),
 	)
 	allRouter(ginEngine)
 

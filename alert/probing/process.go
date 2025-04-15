@@ -9,9 +9,9 @@ func (t *ProductProbing) buildEvent(rule models.ProbingRule) models.ProbingEvent
 	return models.ProbingEvent{
 		TenantId:              rule.TenantId,
 		RuleId:                rule.RuleId,
+		RuleName:              rule.RuleName,
 		RuleType:              rule.RuleType,
 		NoticeId:              rule.NoticeId,
-		Severity:              rule.Severity,
 		IsRecovered:           false,
 		RepeatNoticeInterval:  rule.RepeatNoticeInterval,
 		RecoverNotify:         rule.GetRecoverNotify(),

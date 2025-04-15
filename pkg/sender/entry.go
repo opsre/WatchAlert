@@ -8,7 +8,6 @@ import (
 	"watchAlert/internal/models"
 	"watchAlert/pkg/ctx"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/zeromicro/go-zero/core/logc"
 )
 
@@ -112,7 +111,7 @@ func (s *SendParams) GetSendMsg() map[string]any {
 	}
 	err := json.Unmarshal([]byte(s.Content), &msg)
 	if err != nil {
-		log.Fatal("解析发送内容失败!", err)
+		logc.Errorf(ctx.Ctx, fmt.Sprintf("发送的内容解析失败, err: %s", err.Error()))
 		return msg
 	}
 	return msg

@@ -1,6 +1,8 @@
 package models
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type AlertCurEvent struct {
 	TenantId               string                 `json:"tenantId"`
@@ -29,7 +31,7 @@ type AlertCurEvent struct {
 	EffectiveTime          EffectiveTime          `json:"effectiveTime" gorm:"effectiveTime;serializer:json"`
 	FaultCenterId          string                 `json:"faultCenterId"`
 	FaultCenter            FaultCenter            `json:"faultCenter" gorm:"-"`
-	Status                 int64                  `json:"status" gorm:"-"` // 事件状态，告警中：1，静默中：2，待恢复：3，已恢复：4
+	Status                 int64                  `json:"status" gorm:"-"` // 事件状态，预告警：0，告警中：1，静默中：2，待恢复：3，已恢复：4
 }
 
 type AlertCurEventQuery struct {
@@ -58,4 +60,17 @@ func (ace *AlertCurEvent) GetCacheEventsKey() string {
 // IsArriveForDuration 比对持续时间
 func (ace *AlertCurEvent) IsArriveForDuration() bool {
 	return ace.LastEvalTime-ace.FirstTriggerTime > ace.ForDuration
+}
+
+// DetermineEventStatus 判断事件状态
+func (ace *AlertCurEvent) DetermineEventStatus() int64 {
+	if !ace.IsArriveForDuration() {
+		return 0 // 未达到持续时间
+	}
+
+	if ace.IsRecovered {
+		return 3 // 事件待恢复
+	}
+
+	return 1 // 事件处于触发状态
 }

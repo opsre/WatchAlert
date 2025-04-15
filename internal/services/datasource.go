@@ -126,6 +126,8 @@ func (ds datasourceService) WithAddClientToProviderPools(datasource models.Alert
 		cli, err = provider.NewAliCloudSlsClient(datasource)
 	case provider.ElasticSearchDsProviderName:
 		cli, err = provider.NewElasticSearchClient(ctx.Ctx, datasource)
+	case provider.VictoriaLogsDsProviderName:
+		cli, err = provider.NewVictoriaLogsClient(ctx.Ctx, datasource)
 	case provider.JaegerDsProviderName:
 		cli, err = provider.NewJaegerClient(datasource)
 	case "Kubernetes":

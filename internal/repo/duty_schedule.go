@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"errors"
 	"fmt"
 	"gorm.io/gorm"
 	"time"
@@ -93,7 +94,7 @@ func (dc DutyCalendarRepo) Search(r models.DutyScheduleQuery) ([]models.DutySche
 		return dutyScheduleList, nil
 	}
 
-	yearMonth := fmt.Sprintf("%d-%d-", time.Now().Year(), time.Now().Month())
+	yearMonth := fmt.Sprintf("%v-%v-", r.Year, r.Month)
 	db.Where("tenant_id = ? AND duty_id = ? AND time LIKE ?", r.TenantId, r.DutyId, yearMonth+"%")
 	err := db.Find(&dutyScheduleList).Error
 	if err != nil {
@@ -103,16 +104,26 @@ func (dc DutyCalendarRepo) Search(r models.DutyScheduleQuery) ([]models.DutySche
 	return dutyScheduleList, nil
 }
 
+// GetCalendarUsers 获取值班用户
+// 只获取当前月份到月底正在值班的用户，避免已经移除过的用户仍存在值班用户列表当中；
 func (dc DutyCalendarRepo) GetCalendarUsers(r models.DutyScheduleQuery) ([]models.Users, error) {
 	var users []models.Users
+
+	// 获取当前年月日
+	now := time.Now().UTC()
+	currentDate := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	// 计算当年12月31日
+	endOfYear := time.Date(now.Year(), 12, 31, 0, 0, 0, 0, time.UTC)
+
 	db := dc.db.Model(&models.DutySchedule{})
 	db.Where("tenant_id = ? AND duty_id = ?", r.TenantId, r.DutyId)
+	db.Where("time >= ? AND time <= ?", currentDate, endOfYear)
 	db.Distinct("user_id", "username")
 	if err := db.Find(&users).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
-		return nil, err
+		return nil, fmt.Errorf("failed to get calendar users: %w", err)
 	}
 
 	return users, nil

@@ -76,7 +76,7 @@ func PermissionsInfo() map[string]UserPermissions {
 			API: "/api/w8t/dutyManage/dutyManageCreate",
 		},
 		"dutyManageDelete": {
-			Key: "更新值班表",
+			Key: "删除值班表",
 			API: "/api/w8t/dutyManage/dutyManageDelete",
 		},
 		"dutyManageList": {
@@ -368,7 +368,7 @@ func PermissionsInfo() map[string]UserPermissions {
 			API: "/api/w8t/dashboard/createFolder",
 		},
 		"updateFolder": {
-			Key: "删除仪表盘目录",
+			Key: "更新仪表盘目录",
 			API: "/api/w8t/dashboard/updateFolder",
 		},
 		"deleteFolder": {
@@ -376,7 +376,7 @@ func PermissionsInfo() map[string]UserPermissions {
 			API: "/api/w8t/dashboard/deleteFolder",
 		},
 		"listGrafanaDashboards": {
-			Key: "获取仪表盘信息",
+			Key: "获取仪表盘图表列表",
 			API: "/api/w8t/dashboard/listGrafanaDashboards",
 		},
 		"getDashboardFullUrl": {
@@ -435,9 +435,9 @@ func PermissionsInfo() map[string]UserPermissions {
 			Key: "修改故障中心基本信息",
 			API: "/api/w8t/faultCenter/faultCenterReset",
 		},
-		"esSearch": {
-			Key: "ElasticSearch搜索",
-			API: "/api/w8t/datasource/esSearch",
+		"searchViewLogsContent": {
+			Key: "搜索VictoriaLogs数据源内容",
+			API: "/api/w8t/datasource/searchViewLogsContent",
 		},
 	}
 }

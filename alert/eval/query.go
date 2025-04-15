@@ -3,10 +3,11 @@ package eval
 import (
 	"fmt"
 	"github.com/zeromicro/go-zero/core/logc"
+	"sort"
 	"strings"
 	"time"
 	"watchAlert/alert/process"
-	models "watchAlert/internal/models"
+	"watchAlert/internal/models"
 	"watchAlert/pkg/community/aws/cloudwatch"
 	"watchAlert/pkg/community/aws/cloudwatch/types"
 	"watchAlert/pkg/ctx"
@@ -15,25 +16,28 @@ import (
 )
 
 // Metrics 包含 Prometheus、VictoriaMetrics 数据源
-func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.AlertRule) ([]string, map[string]interface{}) {
+func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.AlertRule) []string {
 	pools := ctx.Redis.ProviderPools()
 	var (
 		resQuery       []provider.Metrics
 		externalLabels map[string]interface{}
+		// 当前活跃告警的指纹列表
+		curFingerprints []string
+		// 按指纹分组存储事件，每个指纹只保留最高优先级的事件
+		highestPriorityEvents = make(map[string]models.AlertCurEvent)
 	)
-	fingerPrintMetrics := make(map[string]interface{})
 	switch datasourceType {
 	case provider.PrometheusDsProvider:
 		cli, err := pools.GetClient(datasourceId)
 		if err != nil {
 			logc.Errorf(ctx.Ctx, err.Error())
-			return nil, nil
+			return nil
 		}
 
 		resQuery, err = cli.(provider.PrometheusProvider).Query(rule.PrometheusConfig.PromQL)
 		if err != nil {
 			logc.Error(ctx.Ctx, err.Error())
-			return nil, nil
+			return nil
 		}
 
 		externalLabels = cli.(provider.PrometheusProvider).GetExternalLabels()
@@ -41,31 +45,36 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 		cli, err := pools.GetClient(datasourceId)
 		if err != nil {
 			logc.Errorf(ctx.Ctx, err.Error())
-			return nil, nil
+			return nil
 		}
 
 		resQuery, err = cli.(provider.VictoriaMetricsProvider).Query(rule.PrometheusConfig.PromQL)
 		if err != nil {
 			logc.Error(ctx.Ctx, err.Error())
-			return nil, nil
+			return nil
 		}
 
 		externalLabels = cli.(provider.VictoriaMetricsProvider).GetExternalLabels()
 	default:
 		logc.Errorf(ctx.Ctx, fmt.Sprintf("Unsupported metrics type, type: %s", datasourceType))
-		return nil, nil
+		return nil
 	}
 
 	if resQuery == nil {
-		return nil, nil
+		return nil
 	}
 
 	// 获取已缓存事件指纹
 	fingerPrintMap := process.GetFingerPrint(ctx, rule.TenantId, rule.FaultCenterId, rule.RuleId)
 
-	var curFingerprints []string
+	// 按优先级排序规则（P0 > P1 > P2）
+	rules := sortRulesByPriority(rule.PrometheusConfig.Rules)
+
 	for _, v := range resQuery {
-		for _, ruleExpr := range rule.PrometheusConfig.Rules {
+		fingerprint := v.GetFingerprint()
+
+		// 遍历按优先级排序后的规则
+		for _, ruleExpr := range rules {
 			operator, value, err := tools.ProcessRuleExpr(ruleExpr.Expr)
 			if err != nil {
 				logc.Errorf(ctx.Ctx, err.Error())
@@ -80,33 +89,83 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 
 			event := process.BuildEvent(rule)
 			event.DatasourceId = datasourceId
-			event.Fingerprint = v.GetFingerprint()
-			event.Metric = v.GetMetric()
+			event.Fingerprint = fingerprint
+			event.Metric = *v.GetMetric()
+			event.Severity = ruleExpr.Severity
 			event.Metric["severity"] = ruleExpr.Severity
 			for ek, ev := range externalLabels {
 				event.Metric[ek] = ev
 			}
-			event.Severity = ruleExpr.Severity
 			event.Annotations = tools.ParserVariables(rule.PrometheusConfig.Annotations, event.Metric)
 			event.SearchQL = rule.PrometheusConfig.PromQL
 
 			if process.EvalCondition(option) {
-				// 如果告警条件满足需要将告警事件指纹加入，不满足时应当直接跳过
-				curFingerprints = append(curFingerprints, event.Fingerprint)
-
-				process.PushEventToFaultCenter(ctx, &event)
-			} else {
-				// 仅更新已经触发事件的指纹对应指标
-				if _, exist := fingerPrintMap[event.Fingerprint]; exist {
-					fingerPrintMetrics[event.Fingerprint] = event.Metric
-
-					process.PushEventToFaultCenter(ctx, &event)
+				// 如果条件满足，检查是否已经有更高优先级的事件
+				if _, exists := highestPriorityEvents[fingerprint]; !exists {
+					// 如果该指纹还没有事件，添加当前事件
+					highestPriorityEvents[fingerprint] = event
+					curFingerprints = append(curFingerprints, fingerprint)
 				}
+				// 找到符合条件的规则后，跳过该指标的其他规则
+				break
+			} else if _, exist := fingerPrintMap[fingerprint]; exist {
+				// 如果是 预告警 状态的事件，触发了恢复逻辑，但它并非是真正触发告警而恢复，所以只需要删除历史事件即可，无需继续处理恢复逻辑。
+				if ctx.Redis.Event().GetEventStatusForFaultCenter(event.TenantId, event.FaultCenterId, fingerprint) == 0 {
+					logc.Alert(ctx.Ctx, fmt.Sprintf("移除预告警恢复事件, Rule: %s, Fingerprint: %s", rule.RuleName, fingerprint))
+					ctx.Redis.Event().RemoveEventFromFaultCenter(event.TenantId, event.FaultCenterId, fingerprint)
+					continue
+				}
+
+				// 获取过恢复值则直接跳过
+				if _, existRecoverValue := event.Metric["recover_value"]; existRecoverValue {
+					continue
+				}
+
+				// 获取上一次告警值
+				event.Metric["value"] = ctx.Redis.Event().GetLastFiringValueForFaultCenter(event.TenantId, event.FaultCenterId, event.Fingerprint)
+				// 获取当前恢复值
+				event.Metric["recover_value"] = v.GetValue()
+				process.PushEventToFaultCenter(ctx, &event)
 			}
 		}
 	}
 
-	return curFingerprints, fingerPrintMetrics
+	// 推送最高优先级的事件
+	for _, event := range highestPriorityEvents {
+		process.PushEventToFaultCenter(ctx, &event)
+	}
+
+	return curFingerprints
+}
+
+// sortRulesByPriority 按优先级排序规则
+func sortRulesByPriority(rules []models.Rules) []models.Rules {
+	sortedRules := make([]models.Rules, len(rules))
+	copy(sortedRules, rules)
+
+	sort.Slice(sortedRules, func(i, j int) bool {
+		return getPriorityValue(sortedRules[i].Severity) > getPriorityValue(sortedRules[j].Severity)
+	})
+
+	return sortedRules
+}
+
+// getPriorityValue 获取优先级的数值表示，用于排序
+// p0 优先级最高
+// p1 次之
+// p2 最低
+// 其他情况排在后面
+func getPriorityValue(severity string) int {
+	switch severity {
+	case "P0":
+		return 3
+	case "P1":
+		return 2
+	case "P2":
+		return 1
+	default:
+		return 0
+	}
 }
 
 // Logs 包含 AliSLS、Loki、ElasticSearch 数据源
@@ -229,6 +288,42 @@ func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.Ale
 			QueryValue:    float64(count),
 			ExpectedValue: value,
 		}
+
+	case provider.VictoriaLogsDsProviderName:
+		cli, err := pools.GetClient(datasourceId)
+		if err != nil {
+			logc.Errorf(ctx.Ctx, err.Error())
+			return []string{}
+		}
+
+		curAt := time.Now()
+		startsAt := tools.ParserDuration(curAt, rule.VictoriaLogsConfig.LogScope, "m")
+		queryOptions := provider.LogQueryOptions{
+			VictoriaLogs: provider.VictoriaLogs{
+				Query: rule.VictoriaLogsConfig.LogQL,
+				Limit: rule.VictoriaLogsConfig.Limit,
+			},
+			StartAt: int32(startsAt.Unix()),
+			EndAt:   int32(curAt.Unix()),
+		}
+		queryRes, count, err = cli.(provider.VictoriaLogsProvider).Query(queryOptions)
+		if err != nil {
+			logc.Error(ctx.Ctx, err.Error())
+			return []string{}
+		}
+
+		externalLabels = cli.(provider.VictoriaLogsProvider).GetExternalLabels()
+		operator, value, err := tools.ProcessRuleExpr(rule.LogEvalCondition)
+		if err != nil {
+			logc.Errorf(ctx.Ctx, err.Error())
+			return []string{}
+		}
+
+		evalOptions = models.EvalCondition{
+			Operator:      operator,
+			QueryValue:    float64(count),
+			ExpectedValue: value,
+		}
 	}
 
 	if count <= 0 {
@@ -242,6 +337,7 @@ func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.Ale
 			event.DatasourceId = datasourceId
 			event.Fingerprint = v.GetFingerprint()
 			event.Metric = v.GetMetric()
+			event.Metric["value"] = count
 			for ek, ev := range externalLabels {
 				event.Metric[ek] = ev
 			}
@@ -258,6 +354,8 @@ func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.Ale
 				} else {
 					event.SearchQL = tools.JsonMarshal(rule.ElasticSearchConfig.Filter)
 				}
+			case provider.VictoriaLogsDsProviderName:
+				event.SearchQL = rule.VictoriaLogsConfig.LogQL
 			}
 
 			curFingerprints = append(curFingerprints, event.Fingerprint)

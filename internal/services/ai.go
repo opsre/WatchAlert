@@ -36,8 +36,9 @@ func (a aiService) Chat(req interface{}) (interface{}, interface{}) {
 	}
 
 	r := req.(*models.AiParams)
-	if r.Content == "" {
-		return nil, fmt.Errorf("分析的内容不可为空")
+	err = r.ValidateParams()
+	if err != nil {
+		return nil, err
 	}
 
 	client, err := a.ctx.Redis.ProviderPools().GetClient("AiClient")

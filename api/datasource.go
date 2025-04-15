@@ -48,7 +48,7 @@ func (dc DatasourceController) API(gin *gin.RouterGroup) {
 		datasourceB.GET("dataSourceSearch", dc.Search)
 		datasourceB.GET("promQuery", dc.PromQuery)
 		datasourceB.POST("dataSourcePing", dc.Ping)
-		datasourceB.POST("esSearch", dc.EsSearch)
+		datasourceB.POST("searchViewLogsContent", dc.SearchViewLogsContent)
 	}
 
 }
@@ -180,9 +180,9 @@ func (dc DatasourceController) Ping(ctx *gin.Context) {
 	})
 }
 
-// EsSearch es 内容搜索
-func (dc DatasourceController) EsSearch(ctx *gin.Context) {
-	r := new(models.EsSearchReq)
+// SearchViewLogsContent Logs 数据预览
+func (dc DatasourceController) SearchViewLogsContent(ctx *gin.Context) {
+	r := new(models.SearchLogsContentReq)
 	BindJson(ctx, r)
 
 	Service(ctx, func() (interface{}, interface{}) {
@@ -192,45 +192,54 @@ func (dc DatasourceController) EsSearch(ctx *gin.Context) {
 		if err != nil {
 			return nil, err
 		}
+
 		datasource := data.(models.AlertDataSource)
-		client, err := provider.NewElasticSearchClient(ctx, datasource)
-		if err != nil {
-			return nil, err
-		}
+
+		var (
+			client  provider.LogsFactoryProvider
+			options provider.LogQueryOptions
+		)
 
 		// 使用 base64.StdEncoding 进行解码
 		decodedBytes, err := base64.StdEncoding.DecodeString(r.Query)
 		if err != nil {
 			return nil, fmt.Errorf("base64 解码失败: %s", err)
 		}
-
 		// 将解码后的字节转换为字符串
 		QueryStr := string(decodedBytes)
 
-		query, _, err := client.Query(provider.LogQueryOptions{ElasticSearch: provider.Elasticsearch{
-			Index:     r.GetIndexName(),
-			QueryType: "RawJson",
-			RawJson:   QueryStr,
-		}})
+		switch r.Type {
+		case provider.VictoriaLogsDsProviderName:
+			client, err = provider.NewVictoriaLogsClient(ctx, datasource)
+			if err != nil {
+				return nil, err
+			}
+
+			options = provider.LogQueryOptions{
+				VictoriaLogs: provider.VictoriaLogs{
+					Query: QueryStr,
+				},
+			}
+		case provider.ElasticSearchDsProviderName:
+			client, err = provider.NewElasticSearchClient(ctx, datasource)
+			if err != nil {
+				return nil, err
+			}
+
+			options = provider.LogQueryOptions{
+				ElasticSearch: provider.Elasticsearch{
+					Index:     r.GetElasticSearchIndexName(),
+					QueryType: "RawJson",
+					RawJson:   QueryStr,
+				},
+			}
+		}
+
+		query, _, err := client.Query(options)
 		if err != nil {
 			return nil, err
 		}
 
-		type newLogStruct struct {
-			Metric  map[string]interface{}
-			Message interface{}
-		}
-
-		var newData []newLogStruct
-		for _, v := range query {
-			for _, message := range v.Message {
-				newData = append(newData, newLogStruct{
-					Metric:  v.Metric,
-					Message: message,
-				})
-			}
-		}
-
-		return tools.JsonMarshal(newData), nil
+		return query, nil
 	})
 }

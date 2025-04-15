@@ -93,13 +93,13 @@ func (m *ConsumeProbing) filterEvent(alert models.ProbingEvent) bool {
 
 func (m *ConsumeProbing) sendAlert(alert models.ProbingEvent, noticeData models.AlertNotice) {
 	err := sender.Sender(m.ctx, sender.SendParams{
+		RuleName:    alert.RuleName,
 		TenantId:    alert.TenantId,
-		Severity:    alert.Severity,
 		NoticeType:  noticeData.NoticeType,
 		NoticeId:    noticeData.Uuid,
 		NoticeName:  noticeData.Name,
 		IsRecovered: alert.IsRecovered,
-		Hook:        noticeData.Hook,
+		Hook:        noticeData.DefaultHook,
 		Email:       noticeData.Email,
 		Content:     m.getContent(alert, noticeData),
 		Event:       nil,
@@ -128,7 +128,6 @@ func buildEvent(event models.ProbingEvent) models.AlertCurEvent {
 		TenantId:               event.TenantId,
 		RuleId:                 event.RuleId,
 		Fingerprint:            event.Fingerprint,
-		Severity:               event.Severity,
 		Metric:                 event.Metric,
 		Annotations:            event.Annotations,
 		IsRecovered:            event.IsRecovered,

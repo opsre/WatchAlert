@@ -63,7 +63,7 @@ func parserEvent(alert models.AlertCurEvent) map[string]interface{} {
 		logc.Error(context.Background(), "parserEvent Unmarshal failed: ", err)
 	}
 
-	if alert.DatasourceType == "AliCloudSLS" || alert.DatasourceType == "Loki" {
+	if alert.DatasourceType == "AliCloudSLS" || alert.DatasourceType == "Loki" || alert.DatasourceType == "ElasticSearch" || alert.DatasourceType == "VictoriaLogs" {
 		// 需要转义, 日志中可能会出现特殊符号
 		alarmInfo := strconv.Quote(data["annotations"].(string))
 		data["annotations"] = alarmInfo[1 : len(alarmInfo)-1]
