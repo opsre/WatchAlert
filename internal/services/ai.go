@@ -55,11 +55,11 @@ func (a aiService) Chat(req interface{}) (interface{}, interface{}) {
 
 	switch r.Deep {
 	case "true":
+		r.Content = fmt.Sprintf("注意, 请深度思考下面的问题!\n%s", r.Content)
 		completion, err := aiClient.ChatCompletion(a.ctx.Ctx, r.Content)
 		if err != nil {
 			return "", err
 		}
-		r.Content = fmt.Sprintf("注意, 请深度思考下面的问题!\n%s", r.Content)
 		err = a.ctx.DB.Ai().Update(models.AiContentRecord{
 			RuleId:  r.RuleId,
 			Content: completion,
