@@ -45,19 +45,26 @@ func (rs ruleService) Create(req interface{}) (interface{}, interface{}) {
 
 func (rs ruleService) Update(req interface{}) (interface{}, interface{}) {
 	rule := req.(*models.AlertRule)
-	alertInfo := models.AlertRule{}
+	oldRule := models.AlertRule{}
 	rs.ctx.DB.DB().Model(&models.AlertRule{}).
 		Where("tenant_id = ? AND rule_id = ?", rule.TenantId, rule.RuleId).
-		First(&alertInfo)
+		First(&oldRule)
+
+	if oldRule.FaultCenterId != rule.FaultCenterId {
+		fingerprints := rs.ctx.Redis.Alert().GetFingerprintsByRuleId(oldRule.TenantId, oldRule.FaultCenterId, oldRule.RuleId)
+		for _, fingerprint := range fingerprints {
+			rs.ctx.Redis.Alert().RemoveAlertEvent(oldRule.TenantId, oldRule.FaultCenterId, fingerprint)
+		}
+	}
 
 	/*
 		重启协程
 		判断当前状态是否是false 并且 历史状态是否为true
 	*/
-	if *alertInfo.Enabled == true && *rule.Enabled == false {
+	if *oldRule.Enabled == true && *rule.Enabled == false {
 		alert.AlertRule.Stop(rule.RuleId)
 	}
-	if *alertInfo.Enabled == true && *rule.Enabled == true {
+	if *oldRule.Enabled == true && *rule.Enabled == true {
 		alert.AlertRule.Stop(rule.RuleId)
 	}
 
@@ -67,9 +74,9 @@ func (rs ruleService) Update(req interface{}) (interface{}, interface{}) {
 		logc.Infof(rs.ctx.Ctx, fmt.Sprintf("重启 RuleId 为 %s 的 Worker 进程", rule.RuleId))
 	} else {
 		// 删除缓存
-		fingerprints := rs.ctx.Redis.Event().GetFingerprintsByRuleId(rule.TenantId, rule.FaultCenterId, rule.RuleId)
+		fingerprints := rs.ctx.Redis.Alert().GetFingerprintsByRuleId(rule.TenantId, rule.FaultCenterId, rule.RuleId)
 		for _, fingerprint := range fingerprints {
-			rs.ctx.Redis.Event().RemoveEventFromFaultCenter(rule.TenantId, rule.FaultCenterId, fingerprint)
+			rs.ctx.Redis.Alert().RemoveAlertEvent(rule.TenantId, rule.FaultCenterId, fingerprint)
 		}
 	}
 
@@ -102,9 +109,9 @@ func (rs ruleService) Delete(req interface{}) (interface{}, interface{}) {
 	}
 
 	// 删除缓存
-	fingerprints := rs.ctx.Redis.Event().GetFingerprintsByRuleId(rule.TenantId, info.FaultCenterId, rule.RuleId)
+	fingerprints := rs.ctx.Redis.Alert().GetFingerprintsByRuleId(rule.TenantId, info.FaultCenterId, rule.RuleId)
 	for _, fingerprint := range fingerprints {
-		rs.ctx.Redis.Event().RemoveEventFromFaultCenter(rule.TenantId, info.FaultCenterId, fingerprint)
+		rs.ctx.Redis.Alert().RemoveAlertEvent(rule.TenantId, info.FaultCenterId, fingerprint)
 	}
 
 	return nil, nil

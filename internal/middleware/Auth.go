@@ -21,9 +21,6 @@ func Auth() gin.HandlerFunc {
 			return
 		}
 
-		// Bearer Token, 获取 Token 值
-		tokenStr = tokenStr[len(tools.TokenType)+1:]
-
 		// 校验 Token
 		code, ok := IsTokenValid(ctx.DO(), tokenStr)
 		if !ok {
@@ -38,6 +35,8 @@ func Auth() gin.HandlerFunc {
 }
 
 func IsTokenValid(ctx *ctx.Context, tokenStr string) (int64, bool) {
+	// Bearer Token, 获取 Token 值
+	tokenStr = tokenStr[len(tools.TokenType)+1:]
 	token, err := tools.ParseToken(tokenStr)
 	if err != nil {
 		return 400, false

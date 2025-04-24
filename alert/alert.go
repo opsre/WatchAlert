@@ -4,7 +4,6 @@ import (
 	"watchAlert/alert/consumer"
 	"watchAlert/alert/eval"
 	"watchAlert/alert/probing"
-	"watchAlert/alert/storage"
 	"watchAlert/pkg/ctx"
 )
 
@@ -17,11 +16,8 @@ var (
 )
 
 func Initialize(ctx *ctx.Context) {
-	// 初始化监控告警的基础配置
-	alarmRecoverWaitStore := storage.NewAlarmRecoverStore()
-
 	// 初始化告警规则评估任务
-	AlertRule = eval.NewAlertRuleEval(ctx, alarmRecoverWaitStore)
+	AlertRule = eval.NewAlertRuleEval(ctx)
 	AlertRule.RestartAllEvals()
 
 	ConsumerWork = consumer.NewConsumerWork(ctx)

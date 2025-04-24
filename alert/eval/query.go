@@ -103,6 +103,7 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 				// 如果条件满足，检查是否已经有更高优先级的事件
 				if _, exists := highestPriorityEvents[fingerprint]; !exists {
 					// 如果该指纹还没有事件，添加当前事件
+					event.Status = models.StatePreAlert
 					highestPriorityEvents[fingerprint] = event
 					curFingerprints = append(curFingerprints, fingerprint)
 				}
@@ -110,9 +111,9 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 				break
 			} else if _, exist := fingerPrintMap[fingerprint]; exist {
 				// 如果是 预告警 状态的事件，触发了恢复逻辑，但它并非是真正触发告警而恢复，所以只需要删除历史事件即可，无需继续处理恢复逻辑。
-				if ctx.Redis.Event().GetEventStatusForFaultCenter(event.TenantId, event.FaultCenterId, fingerprint) == 0 {
+				if ctx.Redis.Alert().GetEventStatus(event.TenantId, event.FaultCenterId, fingerprint) == models.StatePreAlert {
 					logc.Alert(ctx.Ctx, fmt.Sprintf("移除预告警恢复事件, Rule: %s, Fingerprint: %s", rule.RuleName, fingerprint))
-					ctx.Redis.Event().RemoveEventFromFaultCenter(event.TenantId, event.FaultCenterId, fingerprint)
+					ctx.Redis.Alert().RemoveAlertEvent(event.TenantId, event.FaultCenterId, fingerprint)
 					continue
 				}
 
@@ -122,7 +123,7 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 				}
 
 				// 获取上一次告警值
-				event.Metric["value"] = ctx.Redis.Event().GetLastFiringValueForFaultCenter(event.TenantId, event.FaultCenterId, event.Fingerprint)
+				event.Metric["value"] = ctx.Redis.Alert().GetLastFiringValue(event.TenantId, event.FaultCenterId, event.Fingerprint)
 				// 获取当前恢复值
 				event.Metric["recover_value"] = v.GetValue()
 				process.PushEventToFaultCenter(ctx, &event)

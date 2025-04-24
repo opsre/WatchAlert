@@ -46,7 +46,7 @@ func (ass alertSilenceService) Create(req interface{}) (interface{}, interface{}
 		r.Status = 0
 	}
 
-	ass.ctx.Redis.Silence().PushMuteToFaultCenter(silenceEvent)
+	ass.ctx.Redis.Silence().PushAlertMute(silenceEvent)
 	err := ass.ctx.DB.Silence().Create(silenceEvent)
 	if err != nil {
 		return nil, err
@@ -66,7 +66,7 @@ func (ass alertSilenceService) Update(req interface{}) (interface{}, interface{}
 		r.Status = 1
 	}
 
-	ass.ctx.Redis.Silence().PushMuteToFaultCenter(*r)
+	ass.ctx.Redis.Silence().PushAlertMute(*r)
 	err := ass.ctx.DB.Silence().Update(*r)
 	if err != nil {
 		return nil, err
@@ -77,7 +77,7 @@ func (ass alertSilenceService) Update(req interface{}) (interface{}, interface{}
 
 func (ass alertSilenceService) Delete(req interface{}) (interface{}, interface{}) {
 	r := req.(*models.AlertSilenceQuery)
-	ass.ctx.Redis.Silence().RemoveMuteFromFaultCenter(r.TenantId, r.FaultCenterId, r.Id)
+	ass.ctx.Redis.Silence().RemoveAlertMute(r.TenantId, r.FaultCenterId, r.Id)
 	err := ass.ctx.DB.Silence().Delete(*r)
 	if err != nil {
 		return nil, err

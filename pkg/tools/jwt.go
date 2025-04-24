@@ -74,6 +74,7 @@ func GetUserID(tokenStr string) string {
 		return ""
 	}
 
+	tokenStr = tokenStr[len(TokenType)+1:]
 	token, err := ParseToken(tokenStr)
 	if err != nil {
 		return ""

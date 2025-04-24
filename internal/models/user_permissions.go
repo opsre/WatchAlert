@@ -439,5 +439,9 @@ func PermissionsInfo() map[string]UserPermissions {
 			Key: "搜索VictoriaLogs数据源内容",
 			API: "/api/w8t/datasource/searchViewLogsContent",
 		},
+		"processAlertEvent": {
+			Key: "认领/处理告警",
+			API: "/api/w8t/event/processAlertEvent",
+		},
 	}
 }

@@ -39,6 +39,10 @@ func (o *AiConfig) ChatCompletion(_ context.Context, prompt string) (string, err
 		Model: o.Model,
 		Messages: []*Message{
 			{
+				Role:    "system",
+				Content: "您是站点可靠性工程 (SRE) 可观测性监控专家、资深 DevOps 工程师、资深运维专家",
+			},
+			{
 				Role:    "user",
 				Content: prompt,
 			},

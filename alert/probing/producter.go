@@ -108,7 +108,7 @@ func (t *ProductProbing) worker(rule models.ProbingRule) {
 		}
 	}
 
-	err = SetProbingValueMap(event.GetProbingMappingKey(), eValue)
+	err = SetProbingValueMap(models.BuildProbingValueCacheKey(event.TenantId, event.RuleId), eValue)
 	if err != nil {
 		return
 	}
@@ -173,13 +173,14 @@ func (t *ProductProbing) Evaluation(event models.ProbingEvent, option models.Eva
 				t.cleanFrequency(t.OkFrequency, event.RuleId)
 			}()
 
-			c := ctx.Redis.Event()
-			neCache, err := c.GetProbingEventCache(event.GetFiringAlertCacheKey())
+			key := models.BuildProbingEventCacheKey(event.TenantId, event.RuleId)
+			c := ctx.Redis.Probing()
+			neCache, err := c.GetProbingEventCache(key)
 			if err != nil {
 				logc.Error(ctx.Ctx, err.Error())
 				return
 			}
-			neCache.FirstTriggerTime = c.GetProbingEventFirstTime(event.GetFiringAlertCacheKey())
+			neCache.FirstTriggerTime = c.GetProbingEventFirstTime(key)
 			neCache.IsRecovered = true
 			neCache.RecoverTime = time.Now().Unix()
 			neCache.LastSendTime = 0

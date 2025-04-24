@@ -1,5 +1,7 @@
 package models
 
+import "fmt"
+
 type ProbingRule struct {
 	TenantId              string                `json:"tenantId"`
 	RuleName              string                `json:"ruleName"`
@@ -16,14 +18,6 @@ type ProbingRule struct {
 
 func (n *ProbingRule) TableName() string {
 	return "w8t_probing_rule"
-}
-
-func (n *ProbingRule) GetFiringAlertCacheKey() string {
-	return "w8t" + ":" + n.TenantId + ":" + "probing" + ":" + n.RuleId + ".event"
-}
-
-func (n *ProbingRule) GetProbingMappingKey() string {
-	return "w8t" + ":" + n.TenantId + ":" + "probing" + ":" + n.RuleId + ".value"
 }
 
 func (n *ProbingRule) GetRecoverNotify() *bool {
@@ -129,8 +123,6 @@ type eicmp struct {
 
 // ------------------------ Event ------------------------
 
-const ProbingEventPrefix string = "PE"
-
 type ProbingEvent struct {
 	TenantId               string                 `json:"tenantId"`
 	RuleId                 string                 `json:"ruleId" gorm:"ruleId"`
@@ -153,18 +145,22 @@ type ProbingEvent struct {
 	Annotations            string                 `json:"annotations" gorm:"-"`
 }
 
-func (n *ProbingEvent) GetFiringAlertCacheKey() string {
-	return "w8t" + ":" + n.TenantId + ":" + "probing" + ":" + n.RuleId + ".event"
-}
-
-func (n *ProbingEvent) GetProbingMappingKey() string {
-	return "w8t" + ":" + n.TenantId + ":" + "probing" + ":" + n.RuleId + ".value"
-}
-
 func (n *ProbingEvent) GetRecoverNotify() *bool {
 	if n.RecoverNotify == nil {
 		isOk := false
 		return &isOk
 	}
 	return n.RecoverNotify
+}
+
+type ProbingEventCacheKey string
+
+func BuildProbingEventCacheKey(tenantId, ruleId string) ProbingEventCacheKey {
+	return ProbingEventCacheKey(fmt.Sprintf("w8t:%s:probing:%s.event", tenantId, ruleId))
+}
+
+type ProbingValueCacheKey string
+
+func BuildProbingValueCacheKey(tenantId, ruleId string) ProbingValueCacheKey {
+	return ProbingValueCacheKey(fmt.Sprintf("w8t:%s:probing:%s.value", tenantId, ruleId))
 }

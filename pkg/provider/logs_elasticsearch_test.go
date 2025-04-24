@@ -47,8 +47,8 @@ func TestElasticsearch_GetIndexName(t *testing.T) {
 
 func TestElasticSearch_Query(t *testing.T) {
 	client, err := NewElasticSearchClient(context.Background(), models.AlertDataSource{
-		ElasticSearch: models.ElasticSearch{
-			Url: "http://192.168.1.190:9200",
+		HTTP: models.HTTP{
+			URL: "http://192.168.1.190:9200",
 		},
 	})
 	if err != nil {

@@ -20,8 +20,8 @@ func (t *ProductProbing) buildEvent(rule models.ProbingRule) models.ProbingEvent
 }
 
 func SaveProbingEndpointEvent(event models.ProbingEvent) {
-	firingKey := event.GetFiringAlertCacheKey()
-	cache := ctx.DO().Redis.Event()
+	firingKey := models.BuildProbingEventCacheKey(event.TenantId, event.Fingerprint)
+	cache := ctx.DO().Redis.Probing()
 	resFiring, _ := cache.GetProbingEventCache(firingKey)
 	event.FirstTriggerTime = cache.GetProbingEventFirstTime(firingKey)
 	event.LastEvalTime = cache.GetProbingEventLastEvalTime(firingKey)
@@ -29,14 +29,14 @@ func SaveProbingEndpointEvent(event models.ProbingEvent) {
 	cache.SetProbingEventCache(event, 0)
 }
 
-func SetProbingValueMap(key string, m map[string]any) error {
+func SetProbingValueMap(key models.ProbingValueCacheKey, m map[string]any) error {
 	for k, v := range m {
-		ctx.DO().Redis.Redis().HSet(key, k, v)
+		ctx.DO().Redis.Redis().HSet(string(key), k, v)
 	}
 	return nil
 }
 
-func GetProbingValueMap(key string) map[string]string {
-	result := ctx.DO().Redis.Redis().HGetAll(key).Val()
+func GetProbingValueMap(key models.ProbingValueCacheKey) map[string]string {
+	result := ctx.DO().Redis.Redis().HGetAll(string(key)).Val()
 	return result
 }

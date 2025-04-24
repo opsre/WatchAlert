@@ -17,6 +17,7 @@ type AlertHisEvent struct {
 	LastSendTime     int64                  `json:"last_send_time"`     // 最近发送时间
 	RecoverTime      int64                  `json:"recover_time"`       // 恢复时间
 	FaultCenterId    string                 `json:"faultCenterId"`
+	UpgradeState     UpgradeState           `json:"upgradeState" gorm:"metric;serializer:json"`
 }
 
 type AlertHisEventQuery struct {

@@ -2,6 +2,7 @@ package services
 
 import (
 	"strings"
+	"sync"
 	"time"
 	"watchAlert/internal/models"
 	"watchAlert/pkg/ctx"
@@ -15,6 +16,7 @@ type eventService struct {
 type InterEventService interface {
 	ListCurrentEvent(req interface{}) (interface{}, interface{})
 	ListHistoryEvent(req interface{}) (interface{}, interface{})
+	ProcessAlertEvent(req interface{}) (interface{}, interface{})
 }
 
 func newInterEventService(ctx *ctx.Context) InterEventService {
@@ -23,16 +25,56 @@ func newInterEventService(ctx *ctx.Context) InterEventService {
 	}
 }
 
+func (e eventService) ProcessAlertEvent(req interface{}) (interface{}, interface{}) {
+	r := req.(*models.ProcessAlertEvent)
+
+	var wg sync.WaitGroup
+	wg.Add(len(r.Fingerprints))
+	for _, fingerprint := range r.Fingerprints {
+		go func(fingerprint string) {
+			defer wg.Done()
+			cache, err := e.ctx.Redis.Alert().GetEventFromCache(r.TenantId, r.FaultCenterId, fingerprint)
+			if err != nil {
+				return
+			}
+
+			switch r.State {
+			case 1:
+				if cache.UpgradeState.IsConfirm {
+					return
+				}
+
+				cache.UpgradeState.IsConfirm = true
+				cache.UpgradeState.WhoAreConfirm = r.Username
+				cache.UpgradeState.ConfirmOkTime = r.Time
+			case 2:
+				if !cache.UpgradeState.IsConfirm && cache.UpgradeState.IsHandle {
+					return
+				}
+
+				cache.UpgradeState.IsHandle = true
+				cache.UpgradeState.WhoAreHandle = r.Username
+				cache.UpgradeState.HandleOkTime = r.Time
+			}
+
+			e.ctx.Redis.Alert().PushAlertEvent(&cache)
+		}(fingerprint)
+	}
+
+	wg.Wait()
+	return nil, nil
+}
+
 func (e eventService) ListCurrentEvent(req interface{}) (interface{}, interface{}) {
 	r := req.(*models.AlertCurEventQuery)
-	center, err := e.ctx.Redis.Event().GetAllEventsForFaultCenter(models.BuildCacheEventKey(r.TenantId, r.FaultCenterId))
+	center, err := e.ctx.Redis.Alert().GetAllEvents(models.BuildAlertEventCacheKey(r.TenantId, r.FaultCenterId))
 	if err != nil {
 		return nil, err
 	}
 
 	var dataList []models.AlertCurEvent
 	for _, alert := range center {
-		dataList = append(dataList, alert)
+		dataList = append(dataList, *alert)
 	}
 
 	if r.DatasourceType != "" {
@@ -133,15 +175,19 @@ func pageSlice(data []models.AlertCurEvent, index, size int) []models.AlertCurEv
 		index = 10
 	}
 
-	offset := (index - 1) * size
-	limit := index * size
-
-	if index > len(data) {
-		return nil
+	total := len(data)
+	if total == 0 {
+		return []models.AlertCurEvent{}
 	}
 
-	if limit > len(data) {
-		limit = len(data)
+	offset := (index - 1) * size
+	if offset >= total {
+		return []models.AlertCurEvent{}
+	}
+
+	limit := index * size
+	if limit > total {
+		limit = total
 	}
 
 	return data[offset:limit]

@@ -61,7 +61,7 @@ func RecoverNotify(mp MuteParams) bool {
 func IsSilence(mute MuteParams) bool {
 	silenceCtx := ctx.Redis.Silence()
 	// 获取静默列表中所有的id
-	ids, err := silenceCtx.GetMutesForFaultCenter(mute.TenantId, mute.FaultCenterId)
+	ids, err := silenceCtx.GetAlertMutes(mute.TenantId, mute.FaultCenterId)
 	if err != nil {
 		logc.Errorf(ctx.Ctx, err.Error())
 		return false

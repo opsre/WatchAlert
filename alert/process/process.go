@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 	"watchAlert/alert/mute"
-	"watchAlert/alert/storage"
 	"watchAlert/internal/models"
 	"watchAlert/pkg/ctx"
 	"watchAlert/pkg/tools"
@@ -33,16 +32,52 @@ func PushEventToFaultCenter(ctx *ctx.Context, event *models.AlertCurEvent) {
 		return
 	}
 
-	eventOpt := ctx.Redis.Event()
-	event.FirstTriggerTime = eventOpt.GetFirstTimeForFaultCenter(event.TenantId, event.FaultCenterId, event.Fingerprint)
-	event.LastEvalTime = eventOpt.GetLastEvalTimeForFaultCenter()
-	event.LastSendTime = eventOpt.GetLastSendTimeForFaultCenter(event.TenantId, event.FaultCenterId, event.Fingerprint)
-	event.Status = event.DetermineEventStatus()
-	if IsSilencedEvent(event) {
-		event.Status = 2
+	cache := ctx.Redis
+
+	// 获取基础信息
+	event.FirstTriggerTime = cache.Alert().GetFirstTime(event.TenantId, event.FaultCenterId, event.Fingerprint)
+	event.LastEvalTime = cache.Alert().GetLastEvalTime()
+	event.LastSendTime = cache.Alert().GetLastSendTime(event.TenantId, event.FaultCenterId, event.Fingerprint)
+	event.UpgradeState = cache.Alert().GetLastUpgradeState(event.TenantId, event.FaultCenterId, event.Fingerprint)
+	event.FaultCenter = cache.FaultCenter().GetFaultCenterInfo(models.BuildFaultCenterInfoCacheKey(event.TenantId, event.FaultCenterId))
+
+	// 获取当前缓存中的状态
+	currentStatus := cache.Alert().GetEventStatus(event.TenantId, event.FaultCenterId, event.Fingerprint)
+
+	// 如果是新的告警事件，设置为 StatePreAlert
+	if currentStatus == "" {
+		event.Status = models.StatePreAlert
+	} else {
+		event.Status = currentStatus
 	}
 
-	eventOpt.PushEventToFaultCenter(event)
+	// 检查是否处于静默状态
+	isSilenced := IsSilencedEvent(event)
+
+	// 根据不同情况处理状态转换
+	switch event.Status {
+	case models.StatePreAlert:
+		// 如果需要静默
+		if isSilenced {
+			event.TransitionStatus(models.StateSilenced)
+		} else if event.IsArriveForDuration() {
+			// 如果达到持续时间，转为告警状态
+			event.TransitionStatus(models.StateAlerting)
+		}
+	case models.StateAlerting:
+		// 如果需要静默
+		if isSilenced {
+			event.TransitionStatus(models.StateSilenced)
+		}
+	case models.StateSilenced:
+		// 如果不再静默，转换回预告警状态
+		if !isSilenced {
+			event.TransitionStatus(models.StatePreAlert)
+		}
+	}
+
+	// 更新缓存
+	cache.Alert().PushAlertEvent(event)
 }
 
 // IsSilencedEvent 静默检查
@@ -56,20 +91,20 @@ func IsSilencedEvent(event *models.AlertCurEvent) bool {
 	})
 }
 
-func GcRecoverWaitCache(alarmRecoverStore *storage.AlarmRecoverWaitStore, rule models.AlertRule, curKeys []string) {
+func GcRecoverWaitCache(ctx *ctx.Context, rule models.AlertRule, curKeys []string) {
 	// 获取等待恢复告警的keys
-	recoverWaitKeys := getRecoverWaitList(alarmRecoverStore, rule)
+	recoverWaitKeys := getRecoverWaitList(ctx, rule)
 	// 删除正常告警的key
 	fks := tools.GetSliceSame(curKeys, recoverWaitKeys)
 
 	for _, key := range fks {
-		alarmRecoverStore.Remove(rule.RuleId, key)
+		ctx.Redis.PendingRecover().Delete(rule.TenantId, rule.RuleId, key)
 	}
 }
 
-func getRecoverWaitList(recoverStore *storage.AlarmRecoverWaitStore, rule models.AlertRule) []string {
+func getRecoverWaitList(ctx *ctx.Context, rule models.AlertRule) []string {
 	var fingerprints []string
-	list := recoverStore.List(rule.RuleId)
+	list := ctx.Redis.PendingRecover().List(rule.TenantId, rule.RuleId)
 	for fingerprint := range list {
 		fingerprints = append(fingerprints, fingerprint)
 	}
@@ -126,6 +161,7 @@ func RecordAlertHisEvent(ctx *ctx.Context, alert models.AlertCurEvent) error {
 		LastSendTime:     alert.LastSendTime,
 		RecoverTime:      alert.RecoverTime,
 		FaultCenterId:    alert.FaultCenterId,
+		UpgradeState:     alert.UpgradeState,
 	}
 
 	err := ctx.DB.Event().CreateHistoryEvent(hisData)
@@ -138,7 +174,7 @@ func RecordAlertHisEvent(ctx *ctx.Context, alert models.AlertCurEvent) error {
 
 // GetFingerPrint 获取指纹信息
 func GetFingerPrint(ctx *ctx.Context, tenantId string, faultCenterId string, ruleId string) map[string]struct{} {
-	fingerPrints := ctx.Redis.Event().GetFingerprintsByRuleId(tenantId, faultCenterId, ruleId)
+	fingerPrints := ctx.Redis.Alert().GetFingerprintsByRuleId(tenantId, faultCenterId, ruleId)
 	fingerPrintMap := make(map[string]struct{})
 	for _, fingerPrint := range fingerPrints {
 		fingerPrintMap[fingerPrint] = struct{}{}

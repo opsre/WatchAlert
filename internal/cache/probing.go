@@ -1,0 +1,111 @@
+package cache
+
+import (
+	"encoding/json"
+	"github.com/go-redis/redis"
+	"sync"
+	"time"
+	"watchAlert/internal/models"
+)
+
+type (
+	// ProbingCache 用于管理拨测事件缓存操作
+	ProbingCache struct {
+		rc *redis.Client
+		sync.RWMutex
+	}
+
+	// ProbingCacheInterface 定义了事件缓存的操作接口
+	ProbingCacheInterface interface {
+		SetProbingEventCache(event models.ProbingEvent, expiration time.Duration)
+		GetProbingEventCache(key models.ProbingEventCacheKey) (models.ProbingEvent, error)
+		GetProbingEventFirstTime(key models.ProbingEventCacheKey) int64
+		GetProbingEventLastEvalTime(key models.ProbingEventCacheKey) int64
+		GetProbingEventLastSendTime(key models.ProbingEventCacheKey) int64
+	}
+)
+
+// newProbingCacheInterface 创建一个新的 ProbingCache 实例
+func newProbingCacheInterface(r *redis.Client) ProbingCacheInterface {
+	return &ProbingCache{
+		rc: r,
+	}
+}
+
+// SetProbingEventCache 设置探测事件缓存
+func (p *ProbingCache) SetProbingEventCache(event models.ProbingEvent, expiration time.Duration) {
+	p.Lock()
+	defer p.Unlock()
+
+	eventJSON, _ := json.Marshal(event)
+	p.setProbingCache(models.BuildProbingEventCacheKey(event.TenantId, event.RuleId), string(eventJSON), expiration)
+}
+
+// GetProbingEventCache 获取探测事件缓存
+func (p *ProbingCache) GetProbingEventCache(key models.ProbingEventCacheKey) (models.ProbingEvent, error) {
+	var event models.ProbingEvent
+
+	data, err := p.getProbingCache(key)
+	if err != nil {
+		return event, err
+	}
+
+	if err := json.Unmarshal([]byte(data), &event); err != nil {
+		return event, err
+	}
+
+	return event, nil
+}
+
+// GetProbingEventFirstTime 获取探测事件的首次触发时间
+func (p *ProbingCache) GetProbingEventFirstTime(key models.ProbingEventCacheKey) int64 {
+	event, err := p.GetProbingEventCache(key)
+	if err != nil || event.FirstTriggerTime == 0 {
+		return time.Now().Unix()
+	}
+	return event.FirstTriggerTime
+}
+
+// GetProbingEventLastEvalTime 获取探测事件的最后评估时间
+func (p *ProbingCache) GetProbingEventLastEvalTime(key models.ProbingEventCacheKey) int64 {
+	curTime := time.Now().Unix()
+	event, err := p.GetProbingEventCache(key)
+	if err != nil || event.LastEvalTime == 0 || event.LastEvalTime < curTime {
+		return curTime
+	}
+	return event.LastEvalTime
+}
+
+// GetProbingEventLastSendTime 获取探测事件的最后发送时间
+func (p *ProbingCache) GetProbingEventLastSendTime(key models.ProbingEventCacheKey) int64 {
+	event, err := p.GetProbingEventCache(key)
+	if err != nil {
+		return 0
+	}
+	return event.LastSendTime
+}
+
+// 封装 Redis 操作
+func (p *ProbingCache) setProbingCache(key models.ProbingEventCacheKey, value string, expiration time.Duration) {
+	p.rc.Set(string(key), value, expiration)
+}
+
+func (p *ProbingCache) getProbingCache(key models.ProbingEventCacheKey) (string, error) {
+	return p.rc.Get(string(key)).Result()
+}
+
+func (p *ProbingCache) setProbingCacheHash(key models.ProbingEventCacheKey, field, value string) {
+	p.rc.HSet(string(key), field, value)
+}
+
+func (p *ProbingCache) deleteProbingCacheHash(key models.ProbingEventCacheKey, field string) {
+	p.rc.HDel(string(key), field)
+}
+
+func (p *ProbingCache) getProbingCacheHash(key models.ProbingEventCacheKey, field string) (string, error) {
+	return p.rc.HGet(string(key), field).Result()
+}
+
+func (p *ProbingCache) getProbingCacheHashAll(key models.ProbingEventCacheKey) (map[string]string, error) {
+	return p.rc.HGetAll(string(key)).Result()
+}

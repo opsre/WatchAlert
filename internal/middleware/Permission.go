@@ -26,9 +26,6 @@ func Permission() gin.HandlerFunc {
 			return
 		}
 
-		// Bearer Token, 获取 Token 值
-		tokenStr = tokenStr[len(utils2.TokenType)+1:]
-
 		userId := utils2.GetUserID(tokenStr)
 
 		c := ctx.DO()

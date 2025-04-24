@@ -86,7 +86,7 @@ func (m probingService) Delete(req interface{}) (interface{}, interface{}) {
 
 	m.ProductTask.Stop(r.RuleId)
 	m.ConsumerTask.Stop(r.RuleId)
-	err = m.ctx.Redis.Redis().Del(res.GetFiringAlertCacheKey(), res.GetProbingMappingKey()).Err()
+	err = m.ctx.Redis.Redis().Del(string(models.BuildProbingEventCacheKey(res.TenantId, res.RuleId)), string(models.BuildProbingValueCacheKey(res.TenantId, res.RuleId))).Err()
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +103,7 @@ func (m probingService) List(req interface{}) (interface{}, interface{}) {
 
 	for k, v := range data {
 		value := &data[k].ProbingEndpointValues
-		nv := probing.GetProbingValueMap(v.GetProbingMappingKey())
+		nv := probing.GetProbingValueMap(models.BuildProbingValueCacheKey(v.TenantId, v.RuleId))
 		switch r.RuleType {
 		case provider.HTTPEndpointProvider:
 			value.PHTTP.Latency = nv["Latency"]

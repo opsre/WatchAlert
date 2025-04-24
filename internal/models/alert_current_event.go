@@ -1,7 +1,23 @@
 package models
 
 import (
+	"context"
 	"fmt"
+	"time"
+
+	"github.com/zeromicro/go-zero/core/logc"
+)
+
+// AlertStatus 定义状态类型
+type AlertStatus string
+
+// 所有可能的状态
+const (
+	StatePreAlert        AlertStatus = "pre_alert"        // 预告警
+	StateAlerting        AlertStatus = "alerting"         // 告警中
+	StatePendingRecovery AlertStatus = "pending_recovery" // 待恢复
+	StateRecovered       AlertStatus = "recovered"        // 已恢复
+	StateSilenced        AlertStatus = "silenced"         // 静默中
 )
 
 type AlertCurEvent struct {
@@ -31,7 +47,20 @@ type AlertCurEvent struct {
 	EffectiveTime          EffectiveTime          `json:"effectiveTime" gorm:"effectiveTime;serializer:json"`
 	FaultCenterId          string                 `json:"faultCenterId"`
 	FaultCenter            FaultCenter            `json:"faultCenter" gorm:"-"`
-	Status                 int64                  `json:"status" gorm:"-"` // 事件状态，预告警：0，告警中：1，静默中：2，待恢复：3，已恢复：4
+	UpgradeState           UpgradeState           `json:"upgradeState" gorm:"-"`
+	Status                 AlertStatus            `json:"status" gorm:"-"` // 事件状态
+}
+
+type UpgradeState struct {
+	IsConfirm       bool   `json:"isConfirm"`       // 是否已认领
+	ConfirmOkTime   int64  `json:"confirmOkTime"`   // 点击认领时间
+	ConfirmSendTime int64  `json:"confirmSendTime"` // 认领超时通知时间
+	WhoAreConfirm   string `json:"whoAreConfirm"`
+
+	IsHandle       bool   `json:"isHandle"`       // 是否已处理
+	HandleOkTime   int64  `json:"HandleOkTime"`   // 点击处理时间
+	HandleSendTime int64  `json:"handleSendTime"` // 处理超时通知时间
+	WhoAreHandle   string `json:"whoAreHandle"`
 }
 
 type AlertCurEventQuery struct {
@@ -48,29 +77,111 @@ type AlertCurEventQuery struct {
 	Page
 }
 
+type ProcessAlertEvent struct {
+	TenantId      string   `json:"tenantId"`
+	State         int64    `json:"state"`
+	FaultCenterId string   `json:"faultCenterId"`
+	Fingerprints  []string `json:"fingerprints"`
+	Time          int64    `json:"time"`
+	Username      string   `json:"username"`
+}
+
 type CurEventResponse struct {
 	List []AlertCurEvent `json:"list"`
 	Page
 }
 
-func (ace *AlertCurEvent) GetCacheEventsKey() string {
-	return fmt.Sprintf("w8t:%s:%s:%s.events", ace.TenantId, FaultCenterPrefix, ace.FaultCenterId)
+func (alert *AlertCurEvent) TransitionStatus(newStatus AlertStatus) error {
+	// 相同状态不需要转换
+	if alert.Status == newStatus {
+		return nil
+	}
+
+	// 检查当前状态是否允许转换到新状态
+	if err := alert.validateTransition(newStatus); err != nil {
+		logc.Error(context.Background(), "状态转换失败: "+err.Error())
+		return err
+	}
+
+	// 记录状态转换前的状态
+	oldStatus := alert.Status
+
+	// 执行状态转换时的附加操作
+	if err := alert.handleStateTransition(newStatus); err != nil {
+		return err
+	}
+
+	// 更新状态
+	alert.Status = newStatus
+
+	logc.Info(context.Background(), fmt.Sprintf("告警 [%s] 状态从 %s 转换为 %s", alert.Fingerprint, oldStatus, newStatus))
+	return nil
+}
+
+// 验证状态转换是否有效
+func (alert *AlertCurEvent) validateTransition(newState AlertStatus) error {
+	current := alert.Status
+
+	// 定义允许的状态转换规则
+	allowedTransitions := map[AlertStatus][]AlertStatus{
+		StatePreAlert:        {StateAlerting, StateSilenced},
+		StateAlerting:        {StatePendingRecovery, StateSilenced},
+		StatePendingRecovery: {StateRecovered, StateAlerting},
+		StateRecovered:       {StatePreAlert},
+		StateSilenced:        {StatePreAlert, StateAlerting},
+	}
+
+	// 检查转换是否允许
+	allowed := false
+	for _, allowedState := range allowedTransitions[current] {
+		if allowedState == newState {
+			allowed = true
+			break
+		}
+	}
+
+	if !allowed {
+		return StateTransitionError{
+			FromState: current,
+			ToState:   newState,
+			Reason:    "不允许的状态转换",
+		}
+	}
+
+	return nil
+}
+
+// handleStateTransition 处理状态转换时的附加操作
+func (alert *AlertCurEvent) handleStateTransition(newState AlertStatus) error {
+	now := time.Now().Unix()
+
+	switch newState {
+	case StatePreAlert:
+		alert.FirstTriggerTime = now
+		alert.LastEvalTime = now
+	case StateAlerting:
+	case StateRecovered:
+		alert.LastSendTime = 0
+		alert.RecoverTime = now
+		alert.IsRecovered = true
+	case StateSilenced:
+	}
+
+	return nil
+}
+
+// StateTransitionError 状态转换错误
+type StateTransitionError struct {
+	FromState AlertStatus
+	ToState   AlertStatus
+	Reason    string
+}
+
+func (e StateTransitionError) Error() string {
+	return fmt.Sprintf("invalid transition from %s to %s: %s", e.FromState, e.ToState, e.Reason)
 }
 
 // IsArriveForDuration 比对持续时间
-func (ace *AlertCurEvent) IsArriveForDuration() bool {
-	return ace.LastEvalTime-ace.FirstTriggerTime > ace.ForDuration
-}
-
-// DetermineEventStatus 判断事件状态
-func (ace *AlertCurEvent) DetermineEventStatus() int64 {
-	if !ace.IsArriveForDuration() {
-		return 0 // 未达到持续时间
-	}
-
-	if ace.IsRecovered {
-		return 3 // 事件待恢复
-	}
-
-	return 1 // 事件处于触发状态
+func (alert *AlertCurEvent) IsArriveForDuration() bool {
+	return alert.LastEvalTime-alert.FirstTriggerTime > alert.ForDuration
 }

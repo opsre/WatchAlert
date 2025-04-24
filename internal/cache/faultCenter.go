@@ -18,8 +18,8 @@ type (
 
 	FaultCenterCacheInterface interface {
 		PushFaultCenterInfo(center models.FaultCenter)
-		GetFaultCenterInfo(faultCenterInfoKey string) models.FaultCenter
-		RemoveFaultCenterInfo(faultCenterInfoKey string)
+		GetFaultCenterInfo(faultCenterInfoKey models.FaultCenterInfoCacheKey) models.FaultCenter
+		RemoveFaultCenterInfo(faultCenterInfoKey models.FaultCenterInfoCacheKey)
 	}
 )
 
@@ -32,7 +32,7 @@ func newFaultCenterCacheInterface(r *redis.Client) FaultCenterCacheInterface {
 
 // PushFaultCenterInfo 添加 Info 数据
 func (f *FaultCenterCache) PushFaultCenterInfo(center models.FaultCenter) {
-	err := f.rc.Set(center.GetFaultCenterInfoKey(), tools.JsonMarshal(center), 0).Err()
+	err := f.rc.Set(string(models.BuildFaultCenterInfoCacheKey(center.TenantId, center.ID)), tools.JsonMarshal(center), 0).Err()
 	if err != nil {
 		logc.Errorf(context.Background(), err.Error())
 		return
@@ -40,8 +40,8 @@ func (f *FaultCenterCache) PushFaultCenterInfo(center models.FaultCenter) {
 }
 
 // GetFaultCenterInfo 获取 Info 数据
-func (f *FaultCenterCache) GetFaultCenterInfo(faultCenterInfoKey string) models.FaultCenter {
-	result, err := f.rc.Get(faultCenterInfoKey).Result()
+func (f *FaultCenterCache) GetFaultCenterInfo(faultCenterInfoKey models.FaultCenterInfoCacheKey) models.FaultCenter {
+	result, err := f.rc.Get(string(faultCenterInfoKey)).Result()
 	if err != nil {
 		return models.FaultCenter{}
 	}
@@ -52,6 +52,6 @@ func (f *FaultCenterCache) GetFaultCenterInfo(faultCenterInfoKey string) models.
 }
 
 // RemoveFaultCenterInfo 删除 Info 数据
-func (f *FaultCenterCache) RemoveFaultCenterInfo(faultCenterInfoKey string) {
-	f.rc.Del(faultCenterInfoKey)
+func (f *FaultCenterCache) RemoveFaultCenterInfo(faultCenterInfoKey models.FaultCenterInfoCacheKey) {
+	f.rc.Del(string(faultCenterInfoKey))
 }

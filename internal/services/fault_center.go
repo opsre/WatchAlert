@@ -65,7 +65,7 @@ func (f faultCenterService) Delete(req interface{}) (data interface{}, err inter
 		return nil, err
 	}
 
-	f.ctx.Redis.FaultCenter().RemoveFaultCenterInfo(models.BuildCacheInfoKey(r.TenantId, r.ID))
+	f.ctx.Redis.FaultCenter().RemoveFaultCenterInfo(models.BuildFaultCenterInfoCacheKey(r.TenantId, r.ID))
 	alert.ConsumerWork.Stop(r.ID)
 
 	return nil, nil
@@ -83,20 +83,20 @@ func (f faultCenterService) List(req interface{}) (data interface{}, err interfa
 
 	faultCenters := data.([]models.FaultCenter)
 	for index, fc := range data.([]models.FaultCenter) {
-		events, err := f.ctx.Redis.Event().GetAllEventsForFaultCenter(fc.GetFaultCenterKey())
+		events, err := f.ctx.Redis.Alert().GetAllEvents(models.BuildAlertEventCacheKey(fc.TenantId, fc.ID))
 		if err != nil {
 			return nil, err
 		}
 
 		for _, event := range events {
 			switch event.Status {
-			case 0:
+			case models.StatePreAlert:
 				faultCenters[index].CurrentPreAlertNumber++
-			case 1:
+			case models.StateAlerting:
 				faultCenters[index].CurrentAlertNumber++
-			case 2:
+			case models.StateSilenced:
 				faultCenters[index].CurrentMuteNumber++
-			case 3:
+			case models.StatePendingRecovery:
 				faultCenters[index].CurrentRecoverNumber++
 			}
 		}

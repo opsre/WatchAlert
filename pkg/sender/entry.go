@@ -30,8 +30,6 @@ type (
 		Email models.Email
 		// 消息
 		Content string
-		// 事件
-		Event interface{}
 		// 电话号码
 		PhoneNumber []string
 		// 签名

@@ -18,9 +18,9 @@ type (
 
 	// SilenceCacheInterface 定义了告警静默缓存的操作接口
 	SilenceCacheInterface interface {
-		PushMuteToFaultCenter(mute models.AlertSilences)
-		RemoveMuteFromFaultCenter(tenantId, faultCenterId, id string)
-		GetMutesForFaultCenter(tenantId, faultCenterId string) ([]string, error)
+		PushAlertMute(mute models.AlertSilences)
+		RemoveAlertMute(tenantId, faultCenterId, id string)
+		GetAlertMutes(tenantId, faultCenterId string) ([]string, error)
 		WithIdGetMuteFromCache(tenantId, faultCenterId, id string) (*models.AlertSilences, error)
 	}
 )
@@ -32,29 +32,29 @@ func newSilenceCacheInterface(r *redis.Client) SilenceCacheInterface {
 	}
 }
 
-// PushMuteToFaultCenter 将静默规则推送到故障中心的缓存中
-func (sc *SilenceCache) PushMuteToFaultCenter(mute models.AlertSilences) {
+// PushAlertMute 将静默规则推送到故障中心的缓存中
+func (sc *SilenceCache) PushAlertMute(mute models.AlertSilences) {
 	sc.Lock()
 	defer sc.Unlock()
 
-	key := models.BuildCacheMuteKey(mute.TenantId, mute.FaultCenterId)
+	key := models.BuildAlertMuteCacheKey(mute.TenantId, mute.FaultCenterId)
 	sc.setRedisHash(key, mute.Id, tools.JsonMarshal(mute))
 }
 
-// RemoveMuteFromFaultCenter 从故障中心的缓存中移除静默规则
-func (sc *SilenceCache) RemoveMuteFromFaultCenter(tenantId, faultCenterId, id string) {
+// RemoveAlertMute 从故障中心的缓存中移除静默规则
+func (sc *SilenceCache) RemoveAlertMute(tenantId, faultCenterId, id string) {
 	sc.Lock()
 	defer sc.Unlock()
 
-	key := models.BuildCacheMuteKey(tenantId, faultCenterId)
+	key := models.BuildAlertMuteCacheKey(tenantId, faultCenterId)
 	sc.deleteRedisHash(key, id)
 }
 
-func (sc *SilenceCache) GetMutesForFaultCenter(tenantId, faultCenterId string) ([]string, error) {
+func (sc *SilenceCache) GetAlertMutes(tenantId, faultCenterId string) ([]string, error) {
 	sc.RLock()
 	defer sc.RUnlock()
 
-	key := models.BuildCacheMuteKey(tenantId, faultCenterId)
+	key := models.BuildAlertMuteCacheKey(tenantId, faultCenterId)
 	mapping, err := sc.getRedisAllHashMap(key)
 	if err != nil {
 		return nil, err
@@ -68,7 +68,7 @@ func (sc *SilenceCache) GetMutesForFaultCenter(tenantId, faultCenterId string) (
 
 // WithIdGetMuteFromCache 从缓存中获取静默规则
 func (sc *SilenceCache) WithIdGetMuteFromCache(tenantId, faultCenterId, id string) (*models.AlertSilences, error) {
-	key := models.BuildCacheMuteKey(tenantId, faultCenterId)
+	key := models.BuildAlertMuteCacheKey(tenantId, faultCenterId)
 	cache, err := sc.getRedisHash(key, id)
 	if err != nil {
 		return nil, err
@@ -83,21 +83,21 @@ func (sc *SilenceCache) WithIdGetMuteFromCache(tenantId, faultCenterId, id strin
 }
 
 // setRedisHash 设置 Redis 哈希表中的值
-func (sc *SilenceCache) setRedisHash(key, field string, value interface{}) {
-	client.Redis.HSet(key, field, value)
+func (sc *SilenceCache) setRedisHash(key models.AlertMuteCacheKey, field string, value interface{}) {
+	client.Redis.HSet(string(key), field, value)
 }
 
 // deleteRedisHash 删除 Redis 哈希表中的值
-func (sc *SilenceCache) deleteRedisHash(key, field string) {
-	client.Redis.HDel(key, field)
+func (sc *SilenceCache) deleteRedisHash(key models.AlertMuteCacheKey, field string) {
+	client.Redis.HDel(string(key), field)
 }
 
 // getRedisHash 获取 Redis 哈希表中的值
-func (sc *SilenceCache) getRedisHash(key, field string) ([]byte, error) {
-	return sc.rc.HGet(key, field).Bytes()
+func (sc *SilenceCache) getRedisHash(key models.AlertMuteCacheKey, field string) ([]byte, error) {
+	return sc.rc.HGet(string(key), field).Bytes()
 }
 
 // getRedisAllMap 获取 Redis 哈希表Map
-func (sc *SilenceCache) getRedisAllHashMap(key string) (map[string]string, error) {
-	return sc.rc.HGetAll(key).Result()
+func (sc *SilenceCache) getRedisAllHashMap(key models.AlertMuteCacheKey) (map[string]string, error) {
+	return sc.rc.HGetAll(string(key)).Result()
 }

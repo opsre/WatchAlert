@@ -2,22 +2,17 @@ package consumer
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/zeromicro/go-zero/core/logc"
 	"golang.org/x/sync/errgroup"
 	"runtime/debug"
 	"sort"
-	"strings"
 	"sync"
 	"time"
 	"watchAlert/alert/mute"
 	"watchAlert/alert/process"
 	"watchAlert/internal/models"
 	"watchAlert/pkg/ctx"
-	"watchAlert/pkg/sender"
-	"watchAlert/pkg/templates"
-	"watchAlert/pkg/tools"
 )
 
 type (
@@ -192,9 +187,9 @@ func (c *Consume) executeTask(faultCenter models.FaultCenter, taskChan chan stru
 	// 处理静默规则
 	c.processSilenceRule(faultCenter)
 	// 获取故障中心的所有告警事件
-	data, err := c.ctx.Redis.Redis().HGetAll(faultCenter.GetFaultCenterKey()).Result()
+	data, err := c.ctx.Redis.Alert().GetAllEvents(models.BuildAlertEventCacheKey(faultCenter.TenantId, faultCenter.ID))
 	if err != nil {
-		logc.Error(c.ctx.Ctx, fmt.Sprintf("从 Redis 中获取事件信息错误, faultCenterKey: %s, err: %s", faultCenter.GetFaultCenterKey(), err.Error()))
+		logc.Error(c.ctx.Ctx, fmt.Sprintf("从 Redis 中获取事件信息错误, faultCenterKey: %s, err: %s", models.BuildAlertEventCacheKey(faultCenter.TenantId, faultCenter.ID), err.Error()))
 		return
 	}
 
@@ -205,21 +200,20 @@ func (c *Consume) executeTask(faultCenter models.FaultCenter, taskChan chan stru
 	c.alarmGrouping(faultCenter, &alertGroups, filterEvents)
 	// 发送事件
 	c.sendAlerts(faultCenter, &alertGroups)
+	// 处理告警升级
+	err = alarmUpgrade(c.ctx, faultCenter, data)
+	if err != nil {
+		logc.Error(c.ctx.Ctx, fmt.Sprintf("process alarm upgeade fail, err: %s", err.Error()))
+	}
 }
 
 // filterAlertEvents 过滤告警事件
-func (c *Consume) filterAlertEvents(faultCenter models.FaultCenter, alerts map[string]string) []*models.AlertCurEvent {
+func (c *Consume) filterAlertEvents(faultCenter models.FaultCenter, alerts map[string]*models.AlertCurEvent) []*models.AlertCurEvent {
 	var newEvents []*models.AlertCurEvent
 
-	for _, alert := range alerts {
-		var event *models.AlertCurEvent
-		if err := json.Unmarshal([]byte(alert), &event); err != nil {
-			logc.Error(c.ctx.Ctx, fmt.Sprintf("Failed to unmarshal alert: %v", err))
-			continue
-		}
-
+	for _, event := range alerts {
 		// 过滤掉 预告警, 待恢复 状态的事件
-		if event.Status == 0 || event.Status == 3 {
+		if event.Status == models.StatePreAlert || event.Status == models.StatePendingRecovery {
 			continue
 		}
 
@@ -284,22 +278,6 @@ func (c *Consume) alarmGrouping(faultCenter models.FaultCenter, alertGroups *Ale
 	}
 }
 
-// alarmAggregation 告警聚合
-func (c *Consume) alarmAggregation(faultCenter models.FaultCenter, alertGroups map[string][]*models.AlertCurEvent) map[string][]*models.AlertCurEvent {
-	curTime := time.Now().Unix()
-	newAlertGroups := alertGroups
-	switch faultCenter.GetAlarmAggregationType() {
-	case "Rule":
-		for severity, events := range alertGroups {
-			newAlertGroups[severity] = c.withRuleGroupByAlerts(curTime, events)
-		}
-	default:
-		return alertGroups
-	}
-
-	return newAlertGroups
-}
-
 // sendAlerts 发送告警
 func (c *Consume) sendAlerts(faultCenter models.FaultCenter, aggEvents *AlertGroups) {
 	c.RLock()
@@ -315,8 +293,8 @@ func (c *Consume) sendAlerts(faultCenter models.FaultCenter, aggEvents *AlertGro
 // processAlertGroup 处理告警组
 func (c *Consume) processAlertGroup(faultCenter models.FaultCenter, noticeId string, alerts []*models.AlertCurEvent) {
 	g := new(errgroup.Group)
-	g.Go(func() error { return c.handleSubscribe(faultCenter, alerts) })
-	g.Go(func() error { return c.handleAlert(faultCenter, noticeId, alerts) })
+	g.Go(func() error { return c.handleSubscribe(alerts) })
+	g.Go(func() error { return process.HandleAlert(c.ctx, faultCenter, noticeId, alerts) })
 
 	if err := g.Wait(); err != nil {
 		logc.Error(c.ctx.Ctx, fmt.Sprintf("Alert group processing failed: %v", err))
@@ -324,12 +302,11 @@ func (c *Consume) processAlertGroup(faultCenter models.FaultCenter, noticeId str
 }
 
 // handleSubscribe 处理订阅逻辑
-func (c *Consume) handleSubscribe(faultCenter models.FaultCenter, alerts []*models.AlertCurEvent) error {
+func (c *Consume) handleSubscribe(alerts []*models.AlertCurEvent) error {
 	g := new(errgroup.Group)
 	for _, event := range alerts {
 		event := event
 		g.Go(func() error {
-			event.FaultCenter = faultCenter
 			if err := processSubscribe(c.ctx, event); err != nil {
 				return fmt.Errorf("failed to process subscribe: %v", err)
 			}
@@ -341,148 +318,9 @@ func (c *Consume) handleSubscribe(faultCenter models.FaultCenter, alerts []*mode
 	return g.Wait()
 }
 
-// handleAlert 处理告警逻辑
-func (c *Consume) handleAlert(faultCenter models.FaultCenter, noticeId string, alerts []*models.AlertCurEvent) error {
-	curTime := time.Now().Unix()
-	g := new(errgroup.Group)
-
-	// 获取通知对象详细信息
-	noticeData, err := c.getNoticeData(faultCenter.TenantId, noticeId)
-	if err != nil {
-		logc.Error(c.ctx.Ctx, fmt.Sprintf("Failed to get notice data: %v", err))
-		return err
-	}
-
-	// 按告警等级分组
-	severityGroups := make(map[string][]*models.AlertCurEvent)
-	for _, alert := range alerts {
-		severityGroups[alert.Severity] = append(severityGroups[alert.Severity], alert)
-	}
-
-	// 告警聚合
-	aggregationEvents := c.alarmAggregation(faultCenter, severityGroups)
-	for severity, events := range aggregationEvents {
-		g.Go(func() error {
-			if events == nil {
-				return nil
-			}
-
-			// 获取当前事件等级对应的 Hook 和 Sign
-			Hook, Sign := c.getNoticeHookUrlAndSign(noticeData, severity)
-
-			for _, event := range events {
-				if !event.IsRecovered {
-					event.LastSendTime = curTime
-					c.ctx.Redis.Event().PushEventToFaultCenter(event)
-				}
-
-				phoneNumber := func() []string {
-					if len(event.DutyUserPhoneNumber) > 0 {
-						return event.DutyUserPhoneNumber
-					}
-					if len(noticeData.PhoneNumber) > 0 {
-						return noticeData.PhoneNumber
-					}
-					return []string{}
-				}()
-
-				event.DutyUser = process.GetDutyUser(c.ctx, noticeData)
-				event.DutyUserPhoneNumber = process.GetDutyUserPhoneNumber(c.ctx, noticeData)
-				event.FaultCenter = faultCenter
-				content := c.generateAlertContent(event, noticeData)
-				return sender.Sender(c.ctx, sender.SendParams{
-					TenantId:    event.TenantId,
-					RuleName:    event.RuleName,
-					Severity:    event.Severity,
-					NoticeType:  noticeData.NoticeType,
-					NoticeId:    noticeId,
-					NoticeName:  noticeData.Name,
-					IsRecovered: event.IsRecovered,
-					Hook:        Hook,
-					Email:       c.getNoticeEmail(noticeData, severity),
-					Content:     content,
-					Event:       nil,
-					PhoneNumber: phoneNumber,
-					Sign:        Sign,
-				})
-			}
-			return nil
-		})
-	}
-
-	return g.Wait()
-}
-
-// getNoticeHookUrlAndSign 获取事件等级对应的 Hook 和 Sign
-func (c *Consume) getNoticeHookUrlAndSign(notice models.AlertNotice, severity string) (string, string) {
-	if notice.Routes != nil {
-		for _, hook := range notice.Routes {
-			if hook.Severity == severity {
-				return hook.Hook, hook.Sign
-			}
-		}
-	}
-	return notice.DefaultHook, notice.DefaultSign
-}
-
-// getNoticeEmail 获取事件等级对应的 Email
-func (c *Consume) getNoticeEmail(notice models.AlertNotice, severity string) models.Email {
-	if notice.Routes != nil {
-		for _, route := range notice.Routes {
-			if route.Severity == severity {
-				return models.Email{
-					Subject: notice.Email.Subject,
-					To:      route.To,
-					CC:      route.CC,
-				}
-			}
-		}
-	}
-	return notice.Email
-}
-
-// generateAlertContent 生成告警内容
-func (c *Consume) generateAlertContent(alert *models.AlertCurEvent, noticeData models.AlertNotice) string {
-	if noticeData.NoticeType == "CustomHook" {
-		return tools.JsonMarshal(alert)
-	}
-	return templates.NewTemplate(c.ctx, *alert, noticeData).CardContentMsg
-}
-
-// withRuleGroupByAlerts 聚合告警
-func (c *Consume) withRuleGroupByAlerts(timeInt int64, alerts []*models.AlertCurEvent) []*models.AlertCurEvent {
-	if len(alerts) <= 1 {
-		return alerts
-	}
-
-	var aggregatedAlert *models.AlertCurEvent
-	for i := range alerts {
-		alert := alerts[i]
-		if !strings.Contains(alert.Annotations, "聚合") {
-			alert.Annotations += fmt.Sprintf("\n聚合 %d 条告警\n", len(alerts))
-		}
-		aggregatedAlert = alert
-
-		if !alert.IsRecovered {
-			alert.LastSendTime = timeInt
-			c.ctx.Redis.Event().PushEventToFaultCenter(alert)
-		}
-	}
-
-	return []*models.AlertCurEvent{aggregatedAlert}
-}
-
 // removeAlertFromCache 从缓存中删除告警
 func (c *Consume) removeAlertFromCache(alert *models.AlertCurEvent) {
-	c.ctx.Redis.Event().RemoveEventFromFaultCenter(alert.TenantId, alert.FaultCenterId, alert.Fingerprint)
-}
-
-// getNoticeData 获取 Notice 数据
-func (c *Consume) getNoticeData(tenantId, noticeId string) (models.AlertNotice, error) {
-	return c.ctx.DB.Notice().Get(models.NoticeQuery{
-		TenantId: tenantId,
-		Uuid:     noticeId,
-	})
+	c.ctx.Redis.Alert().RemoveAlertEvent(alert.TenantId, alert.FaultCenterId, alert.Fingerprint)
 }
 
 // RestartAllConsumers 重启消费进程
@@ -501,7 +339,7 @@ func (c *Consume) processSilenceRule(faultCenter models.FaultCenter) {
 	currentTime := time.Now().Unix()
 	silenceCtx := c.ctx.Redis.Silence()
 	// 获取静默列表中所有的id
-	silenceIds, err := silenceCtx.GetMutesForFaultCenter(faultCenter.TenantId, faultCenter.ID)
+	silenceIds, err := silenceCtx.GetAlertMutes(faultCenter.TenantId, faultCenter.ID)
 	if err != nil {
 		logc.Errorf(ctx.Ctx, err.Error())
 		return
@@ -535,6 +373,6 @@ func (c *Consume) processSilenceRule(faultCenter models.FaultCenter) {
 			}
 		}
 
-		silenceCtx.PushMuteToFaultCenter(*muteRule)
+		silenceCtx.PushAlertMute(*muteRule)
 	}
 }
