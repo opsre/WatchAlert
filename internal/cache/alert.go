@@ -43,18 +43,12 @@ func newAlertCacheInterface(r *redis.Client) AlertCacheInterface {
 
 // PushAlertEvent 将事件推送到故障中心的缓存中
 func (a *AlertCache) PushAlertEvent(event *models.AlertCurEvent) {
-	a.Lock()
-	defer a.Unlock()
-
 	key := models.BuildAlertEventCacheKey(event.TenantId, event.FaultCenterId)
 	a.setEventCacheHash(key, event.Fingerprint, tools.JsonMarshal(event))
 }
 
 // RemoveAlertEvent 从故障中心的缓存中移除事件
 func (a *AlertCache) RemoveAlertEvent(tenantId, faultCenterId, fingerprint string) {
-	a.Lock()
-	defer a.Unlock()
-
 	key := models.BuildAlertEventCacheKey(tenantId, faultCenterId)
 	a.deleteEventCacheHash(key, fingerprint)
 }

@@ -19,13 +19,13 @@ func (t *ProductProbing) buildEvent(rule models.ProbingRule) models.ProbingEvent
 	}
 }
 
-func SaveProbingEndpointEvent(event models.ProbingEvent) {
-	firingKey := models.BuildProbingEventCacheKey(event.TenantId, event.Fingerprint)
-	cache := ctx.DO().Redis.Probing()
-	resFiring, _ := cache.GetProbingEventCache(firingKey)
+func SaveProbingEndpointEvent(ctx *ctx.Context, event models.ProbingEvent) {
+	firingKey := models.BuildProbingEventCacheKey(event.TenantId, event.RuleId)
+	cache := ctx.Redis.Probing()
 	event.FirstTriggerTime = cache.GetProbingEventFirstTime(firingKey)
 	event.LastEvalTime = cache.GetProbingEventLastEvalTime(firingKey)
-	event.LastSendTime = resFiring.LastSendTime
+	event.LastSendTime = cache.GetProbingEventLastSendTime(firingKey)
+
 	cache.SetProbingEventCache(event, 0)
 }
 

@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 	"watchAlert/internal/models"
+	"watchAlert/pkg/tools"
 )
 
 type (
@@ -34,11 +35,8 @@ func newProbingCacheInterface(r *redis.Client) ProbingCacheInterface {
 
 // SetProbingEventCache 设置探测事件缓存
 func (p *ProbingCache) SetProbingEventCache(event models.ProbingEvent, expiration time.Duration) {
-	p.Lock()
-	defer p.Unlock()
-
-	eventJSON, _ := json.Marshal(event)
-	p.setProbingCache(models.BuildProbingEventCacheKey(event.TenantId, event.RuleId), string(eventJSON), expiration)
+	eventJSON := tools.JsonMarshal(event)
+	p.setProbingCache(models.BuildProbingEventCacheKey(event.TenantId, event.RuleId), eventJSON, expiration)
 }
 
 // GetProbingEventCache 获取探测事件缓存

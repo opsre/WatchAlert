@@ -163,7 +163,7 @@ func (t *ProductProbing) Evaluation(event models.ProbingEvent, option models.Eva
 				t.cleanFrequency(t.FailFrequency, event.RuleId)
 			}()
 
-			SaveProbingEndpointEvent(event)
+			SaveProbingEndpointEvent(t.ctx, event)
 		}
 	} else {
 		// 控制成功频次

@@ -2,6 +2,7 @@ package probing
 
 import (
 	"context"
+	"fmt"
 	"github.com/zeromicro/go-zero/core/logc"
 	"time"
 	"watchAlert/alert/process"
@@ -30,21 +31,7 @@ func (m *ConsumeProbing) Add(r models.ProbingRule) {
 
 	c, cancel := context.WithCancel(context.Background())
 	m.consumerPool[r.RuleId] = cancel
-
-	ticker := time.Tick(time.Second)
-	go func(ctx context.Context, r models.ProbingRule) {
-		for {
-			select {
-			case <-ticker:
-				result, err := m.ctx.Redis.Probing().GetProbingEventCache(models.BuildProbingEventCacheKey(r.TenantId, r.RuleId))
-				if err == nil {
-					m.handleAlert(result)
-				}
-			case <-ctx.Done():
-				return
-			}
-		}
-	}(c, r)
+	go m.Watch(c, r)
 }
 
 func (m *ConsumeProbing) Stop(id string) {
@@ -56,43 +43,73 @@ func (m *ConsumeProbing) Stop(id string) {
 	}
 }
 
+func (m *ConsumeProbing) Watch(ctx context.Context, r models.ProbingRule) {
+	taskChan := make(chan struct{}, 1)
+	timer := time.NewTicker(time.Second * time.Duration(1))
+	defer func() {
+		timer.Stop()
+	}()
+
+	for {
+		select {
+		case <-timer.C:
+			taskChan <- struct{}{}
+			m.executeTask(taskChan, r)
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+func (m *ConsumeProbing) executeTask(taskChan chan struct{}, r models.ProbingRule) {
+	defer func() {
+		<-taskChan
+	}()
+
+	var now = time.Now().Unix()
+	event, err := m.ctx.Redis.Probing().GetProbingEventCache(models.BuildProbingEventCacheKey(r.TenantId, r.RuleId))
+	if err != nil {
+		logc.Error(context.Background(), fmt.Sprintf("获取拨测事件失败, %s", err.Error()))
+		return
+	}
+
+	if !m.filterEvent(event) {
+		return
+	}
+
+	newEvent := event
+	newEvent.LastSendTime = now
+	m.ctx.Redis.Probing().SetProbingEventCache(newEvent, 0)
+	m.sendAlert(newEvent)
+}
+
+func (m *ConsumeProbing) filterEvent(alert models.ProbingEvent) bool {
+	if !alert.IsRecovered {
+		if alert.LastSendTime == 0 || alert.LastEvalTime >= alert.LastSendTime+alert.RepeatNoticeInterval*60 {
+			return true
+		}
+	} else {
+		m.removeAlertFromCache(alert)
+		return true
+	}
+
+	return false
+}
+
 // 推送告警
-func (m *ConsumeProbing) handleAlert(alert models.ProbingEvent) {
-	if alert.RuleId == "" {
-		return
-	}
-
-	if !m.filterEvent(alert) {
-		return
-	}
-
+func (m *ConsumeProbing) sendAlert(alert models.ProbingEvent) {
 	r := models.NoticeQuery{
 		TenantId: alert.TenantId,
 		Uuid:     alert.NoticeId,
 	}
-	noticeData, _ := ctx.DB.Notice().Get(r)
-	alert.DutyUser = process.GetDutyUser(m.ctx, noticeData)
-
-	m.sendAlert(alert, noticeData)
-}
-
-func (m *ConsumeProbing) filterEvent(alert models.ProbingEvent) bool {
-	var pass bool
-	if !alert.IsRecovered {
-		if alert.LastSendTime == 0 || alert.LastEvalTime >= alert.LastSendTime+alert.RepeatNoticeInterval*60 {
-			alert.LastSendTime = time.Now().Unix()
-			m.ctx.Redis.Probing().SetProbingEventCache(alert, 0)
-			return true
-		}
-	} else {
-		removeAlertFromCache(alert)
-		return true
+	noticeData, err := m.ctx.DB.Notice().Get(r)
+	if err != nil {
+		logc.Error(m.ctx.Ctx, "获取通知对象失败, ", err.Error())
+		return
 	}
-	return pass
-}
 
-func (m *ConsumeProbing) sendAlert(alert models.ProbingEvent, noticeData models.AlertNotice) {
-	err := sender.Sender(m.ctx, sender.SendParams{
+	alert.DutyUser = process.GetDutyUser(m.ctx, noticeData)
+	err = sender.Sender(m.ctx, sender.SendParams{
 		RuleName:    alert.RuleName,
 		TenantId:    alert.TenantId,
 		NoticeType:  noticeData.NoticeType,
@@ -119,8 +136,8 @@ func (m *ConsumeProbing) getContent(alert models.ProbingEvent, noticeData models
 }
 
 // 删除缓存
-func removeAlertFromCache(alert models.ProbingEvent) {
-	ctx.DO().Redis.Redis().Del(string(models.BuildProbingEventCacheKey(alert.TenantId, alert.RuleId)))
+func (m *ConsumeProbing) removeAlertFromCache(alert models.ProbingEvent) {
+	m.ctx.Redis.Redis().Del(string(models.BuildProbingEventCacheKey(alert.TenantId, alert.RuleId)))
 }
 
 func buildEvent(event models.ProbingEvent) models.AlertCurEvent {
