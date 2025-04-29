@@ -79,23 +79,35 @@ func IsSilence(mute MuteParams) bool {
 			continue
 		}
 
-		for _, label := range muteRule.Labels {
-			if evalCondition(mute.Metrics, label) {
-				return true
-			}
+		if evalCondition(mute.Metrics, muteRule.Labels) {
+			return true
 		}
 	}
 
 	return false
 }
 
-func evalCondition(metrics map[string]interface{}, c models.SilenceLabel) bool {
-	switch c.Operator {
-	case "==", "=":
-		return metrics[c.Key] == c.Value
-	case "!=":
-		return metrics[c.Key] != c.Value
-	default:
-		return false
+func evalCondition(metrics map[string]interface{}, muteLabels []models.SilenceLabel) bool {
+	for _, muteLabel := range muteLabels {
+		val, exists := metrics[muteLabel.Key]
+		if !exists {
+			return false
+		}
+
+		var matched bool
+		switch muteLabel.Operator {
+		case "==", "=":
+			matched = val == muteLabel.Value
+		case "!=":
+			matched = val != muteLabel.Value
+		default:
+			matched = false
+		}
+
+		if !matched {
+			return false // 只要有一个不匹配，就不静默
+		}
 	}
+
+	return true
 }

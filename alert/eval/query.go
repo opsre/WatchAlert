@@ -87,15 +87,22 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 				ExpectedValue: value,
 			}
 
-			event := process.BuildEvent(rule)
+			event := process.BuildEvent(rule, func() map[string]interface{} {
+				metric := *v.GetMetric()
+				metric["severity"] = ruleExpr.Severity
+				metric["fingerprint"] = fingerprint
+				for ek, ev := range externalLabels {
+					metric[ek] = ev
+				}
+				for ek, ev := range rule.ExternalLabels {
+					metric[ek] = ev
+				}
+				metric["rule_name"] = rule.RuleName
+				return metric
+			})
 			event.DatasourceId = datasourceId
 			event.Fingerprint = fingerprint
-			event.Metric = *v.GetMetric()
 			event.Severity = ruleExpr.Severity
-			event.Metric["severity"] = ruleExpr.Severity
-			for ek, ev := range externalLabels {
-				event.Metric[ek] = ev
-			}
 			event.Annotations = tools.ParserVariables(rule.PrometheusConfig.Annotations, event.Metric)
 			event.SearchQL = rule.PrometheusConfig.PromQL
 
@@ -333,15 +340,24 @@ func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.Ale
 
 	var curFingerprints []string
 	for _, v := range queryRes {
+		fingerprint := v.GetFingerprint()
 		event := func() *models.AlertCurEvent {
-			event := process.BuildEvent(rule)
+			event := process.BuildEvent(rule, func() map[string]interface{} {
+				metric := v.GetMetric()
+				metric["value"] = count
+				metric["severity"] = rule.Severity
+				metric["fingerprint"] = fingerprint
+				for ek, ev := range externalLabels {
+					metric[ek] = ev
+				}
+				for ek, ev := range rule.ExternalLabels {
+					metric[ek] = ev
+				}
+				metric["rule_name"] = rule.RuleName
+				return metric
+			})
 			event.DatasourceId = datasourceId
-			event.Fingerprint = v.GetFingerprint()
-			event.Metric = v.GetMetric()
-			event.Metric["value"] = count
-			for ek, ev := range externalLabels {
-				event.Metric[ek] = ev
-			}
+			event.Fingerprint = fingerprint
 			event.Annotations = fmt.Sprintf("共计日志 %d 条\n%s", count, tools.FormatJson(v.GetAnnotations()[0].(string)))
 
 			switch datasourceType {
@@ -409,13 +425,22 @@ func traces(ctx *ctx.Context, datasourceId, datasourceType string, rule models.A
 
 	var curFingerprints []string
 	for _, v := range queryRes {
-		event := process.BuildEvent(rule)
+		fingerprint := v.GetFingerprint()
+		event := process.BuildEvent(rule, func() map[string]interface{} {
+			metric := v.GetMetric()
+			metric["severity"] = rule.Severity
+			metric["fingerprint"] = fingerprint
+			for ek, ev := range externalLabels {
+				metric[ek] = ev
+			}
+			for ek, ev := range rule.ExternalLabels {
+				metric[ek] = ev
+			}
+			metric["rule_name"] = rule.RuleName
+			return metric
+		})
 		event.DatasourceId = datasourceId
-		event.Fingerprint = v.GetFingerprint()
-		event.Metric = v.GetMetric()
-		for ek, ev := range externalLabels {
-			event.Metric[ek] = ev
-		}
+		event.Fingerprint = fingerprint
 		event.SearchQL = rule.JaegerConfig.Tags
 		event.Annotations = fmt.Sprintf("服务: %s 链路中存在异常状态码接口, TraceId: %s", rule.JaegerConfig.Service, v.TraceId)
 
@@ -458,13 +483,20 @@ func cloudWatch(ctx *ctx.Context, datasourceId string, rule models.AlertRule) []
 			return []string{}
 		}
 
-		event := process.BuildEvent(rule)
+		event := process.BuildEvent(rule, func() map[string]interface{} {
+			metric := query.GetMetrics()
+			metric["severity"] = rule.Severity
+			for ek, ev := range externalLabels {
+				metric[ek] = ev
+			}
+			for ek, ev := range rule.ExternalLabels {
+				metric[ek] = ev
+			}
+			metric["rule_name"] = rule.RuleName
+			return metric
+		})
 		event.DatasourceId = datasourceId
 		event.Fingerprint = query.GetFingerprint()
-		event.Metric = query.GetMetrics()
-		for ek, ev := range externalLabels {
-			event.Metric[ek] = ev
-		}
 		event.Annotations = fmt.Sprintf("%s %s %s %s %d", query.Namespace, query.MetricName, query.Statistic, rule.CloudWatchConfig.Expr, rule.CloudWatchConfig.Threshold)
 
 		options := models.EvalCondition{
@@ -515,13 +547,22 @@ func kubernetesEvent(ctx *ctx.Context, datasourceId string, rule models.AlertRul
 		// 同一个资源可能有多条不同的事件信息
 		eventMapping[item.InvolvedObject.Name] = append(eventMapping[item.InvolvedObject.Name], "\n"+strings.ReplaceAll(item.Message, "\"", "'"))
 		k8sItem := process.KubernetesAlertEvent(ctx, item)
-		event := process.BuildEvent(rule)
+		fingerprint := k8sItem.GetFingerprint()
+		event := process.BuildEvent(rule, func() map[string]interface{} {
+			metric := k8sItem.GetMetrics()
+			metric["severity"] = rule.Severity
+			metric["fingerprint"] = fingerprint
+			for ek, ev := range externalLabels {
+				metric[ek] = ev
+			}
+			for ek, ev := range rule.ExternalLabels {
+				metric[ek] = ev
+			}
+			metric["rule_name"] = rule.RuleName
+			return metric
+		})
 		event.DatasourceId = datasourceId
-		event.Fingerprint = k8sItem.GetFingerprint()
-		event.Metric = k8sItem.GetMetrics()
-		for ek, ev := range externalLabels {
-			event.Metric[ek] = ev
-		}
+		event.Fingerprint = fingerprint
 		event.SearchQL = rule.KubernetesConfig.Resource
 		event.Annotations = fmt.Sprintf("- 环境: %s\n- 命名空间: %s\n- 资源类型: %s\n- 资源名称: %s\n- 事件类型: %s\n- 事件详情: %s\n",
 			datasourceObj.Name, item.Namespace, item.InvolvedObject.Kind,

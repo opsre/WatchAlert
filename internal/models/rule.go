@@ -2,18 +2,19 @@ package models
 
 type AlertRule struct {
 	//gorm.Model
-	TenantId             string        `json:"tenantId"`
-	RuleId               string        `json:"ruleId" gorm:"ruleId"`
-	RuleGroupId          string        `json:"ruleGroupId"`
-	DatasourceType       string        `json:"datasourceType"`
-	DatasourceIdList     []string      `json:"datasourceId" gorm:"datasourceId;serializer:json"`
-	RuleName             string        `json:"ruleName"`
-	EvalInterval         int64         `json:"evalInterval"`
-	EvalTimeType         string        `json:"evalTimeType"` // second, millisecond
-	RepeatNoticeInterval int64         `json:"repeatNoticeInterval"`
-	Description          string        `json:"description"`
-	EffectiveTime        EffectiveTime `json:"effectiveTime" gorm:"effectiveTime;serializer:json"`
-	Severity             string        `json:"severity"`
+	TenantId             string            `json:"tenantId"`
+	RuleId               string            `json:"ruleId" gorm:"ruleId"`
+	RuleGroupId          string            `json:"ruleGroupId"`
+	ExternalLabels       map[string]string `json:"externalLabels" gorm:"externalLabels;serializer:json"`
+	DatasourceType       string            `json:"datasourceType"`
+	DatasourceIdList     []string          `json:"datasourceId" gorm:"datasourceId;serializer:json"`
+	RuleName             string            `json:"ruleName"`
+	EvalInterval         int64             `json:"evalInterval"`
+	EvalTimeType         string            `json:"evalTimeType"` // second, millisecond
+	RepeatNoticeInterval int64             `json:"repeatNoticeInterval"`
+	Description          string            `json:"description"`
+	EffectiveTime        EffectiveTime     `json:"effectiveTime" gorm:"effectiveTime;serializer:json"`
+	Severity             string            `json:"severity"`
 
 	// Prometheus
 	PrometheusConfig PrometheusConfig `json:"prometheusConfig" gorm:"prometheusConfig;serializer:json"`

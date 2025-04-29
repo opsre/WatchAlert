@@ -9,12 +9,13 @@ import (
 	"watchAlert/pkg/tools"
 )
 
-func BuildEvent(rule models.AlertRule) models.AlertCurEvent {
+func BuildEvent(rule models.AlertRule, metric func() map[string]interface{}) models.AlertCurEvent {
 	return models.AlertCurEvent{
 		TenantId:             rule.TenantId,
 		DatasourceType:       rule.DatasourceType,
 		RuleId:               rule.RuleId,
 		RuleName:             rule.RuleName,
+		Metric:               metric(),
 		EvalInterval:         rule.EvalInterval,
 		ForDuration:          rule.PrometheusConfig.ForDuration,
 		IsRecovered:          false,
