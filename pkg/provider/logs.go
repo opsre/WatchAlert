@@ -123,6 +123,13 @@ func commonKeyValuePairs(maps []map[string]interface{}) map[string]interface{} {
 			// 提取出key和value
 			m := strings.SplitAfterN(keyValue, ":", 2)
 			m[0] = strings.ReplaceAll(m[0], ":", "")
+			if m[0] == "value" || m[0] == "recover_value" {
+				continue
+			}
+
+			if len(m[0]) <= 0 || len(m[1]) <= 0 {
+				continue
+			}
 			common[m[0]] = m[1]
 		}
 	}

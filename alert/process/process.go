@@ -154,6 +154,7 @@ func RecordAlertHisEvent(ctx *ctx.Context, alert models.AlertCurEvent) error {
 		RuleName:         alert.RuleName,
 		Severity:         alert.Severity,
 		Metric:           alert.Metric,
+		Log:              alert.Log,
 		EvalInterval:     alert.EvalInterval,
 		Annotations:      alert.Annotations,
 		IsRecovered:      true,

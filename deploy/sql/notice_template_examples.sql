@@ -600,4 +600,41 @@ green
 
 {{- define "Footer" -}}
 🧑‍💻 WatchAlert - 运维团队
-{{- end }}',0,'','','WeChat');
+{{- end }}',0,'','','WeChat'),
+    ('nt-crscirlvi7nhbb2tpf01','日志通知模版','日志类告警通知模版','{{- define "Title" -}}
+{{- if not .IsRecovered -}}
+【报警中】- WatchAlert 业务系统 🔥
+{{- else -}}
+【已恢复】- WatchAlert 业务系统 ✨
+{{- end -}}
+{{- end }}
+
+{{- define "TitleColor" -}}
+{{- if not .IsRecovered -}}
+red
+{{- else -}}
+green
+{{- end -}}
+{{- end }}
+
+{{ define "Event" -}}
+{{- if not .IsRecovered -}}
+**🤖 报警类型:** ${rule_name}</br>
+**📌 报警等级:** ${severity}</br>
+**🕘 开始时间:** ${first_trigger_time_format}</br>
+**👤 值班人员:** ${duty_user}</br>
+**📝 服务名称:** ${log.app}</br>
+**📝 TraceId:** ${log.trace_id}</br>
+**📝 日志内容:** ${log.message}</br>
+{{- else -}}
+**🤖 报警类型:** ${rule_name}</br>
+**📌 报警等级:** ${severity}</br>
+**🕘 开始时间:** ${first_trigger_time_format}</br>
+**🕘 恢复时间:** ${recover_time_format}</br>
+**👤 值班人员:** ${duty_user}</br>
+{{- end -}}
+{{ end }}
+
+{{- define "Footer" -}}
+🧑‍💻 WatchAlert - 运维团队
+{{- end }}',0,'','','FeiShu');

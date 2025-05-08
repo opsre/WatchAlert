@@ -158,7 +158,10 @@ func (t *AlertRule) Recover(tenantId, ruleId string, eventCacheKey models.AlertE
 	fs := t.ctx.Redis.PendingRecover().List(tenantId, ruleId)
 	if len(recoverFingerprints) == 0 && len(fs) != 0 {
 		for fingerprint := range fs {
-			event := events[fingerprint]
+			event, ok := events[fingerprint]
+			if !ok {
+				continue
+			}
 			event.TransitionStatus(models.StateAlerting)
 			t.ctx.Redis.Alert().PushAlertEvent(event)
 			t.ctx.Redis.PendingRecover().Delete(tenantId, ruleId, fingerprint)
@@ -167,9 +170,13 @@ func (t *AlertRule) Recover(tenantId, ruleId string, eventCacheKey models.AlertE
 
 	curTime := time.Now().Unix()
 	for _, fingerprint := range recoverFingerprints {
-		event := events[fingerprint]
+		event, ok := events[fingerprint]
+		if !ok {
+			continue
+		}
+
 		if event.IsRecovered == true && event.Status == models.StateRecovered {
-			return
+			continue
 		}
 
 		// 判断是否在等待时间范围内

@@ -9,6 +9,7 @@ type AlertHisEvent struct {
 	RuleName         string                 `json:"rule_name"`
 	Severity         string                 `json:"severity"`
 	Metric           map[string]interface{} `json:"metric" gorm:"metric;serializer:json"`
+	Log              map[string]interface{} `json:"log" gorm:"log;serializer:json"`
 	EvalInterval     int64                  `json:"eval_interval"`
 	Annotations      string                 `json:"annotations"`
 	IsRecovered      bool                   `json:"is_recovered" gorm:"-"`
