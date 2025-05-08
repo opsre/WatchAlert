@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/zeromicro/go-zero/core/logc"
@@ -81,23 +82,58 @@ func (l LokiProvider) Query(options LogQueryOptions) ([]Logs, int, error) {
 		count      int // count 用于统计日志条数
 		data       []Logs
 		streamList = []map[string]interface{}{}
-		msg        []interface{}
+		msgs       []map[string]interface{}
 	)
 	for _, v := range resultData.Data.Result {
 		streamList = append(streamList, v.Stream)
 		count += len(v.Values)
+		/*
+				"values": [
+			          [
+			            "1746671236062002147",
+			            //"{\"level\":\"INFO\",\"time\":\"2025-05-08T02:27:16.061Z\",\"pid\":1,\"hostname\":\"hedwig-5f8fcc9c68-wgplm\",\"req\":{\"id\":2925131,\"method\":\"GET\",\"url\":\"/api/health/check\",\"query\":{},\"params\":{\"0\":\"api/health/check\"},\"headers\":{\"host\":\"10.42.0.179:8080\",\"user-agent\":\"kube-probe/1.20\",
+					  ],
+				]
+		*/
+
+		if len(v.Values) == 0 {
+			continue
+		}
+
 		for _, m := range v.Values {
-			if len(m.([]interface{})) < 2 {
+			firstValue, ok := m.([]interface{})
+			if !ok || len(firstValue) < 2 {
+				logc.Error(context.Background(), "Loki - Values[0] 类型错误或长度不足")
 				continue
 			}
-			msg = append(msg, m.([]interface{})[1])
+
+			rawLog := firstValue[1]
+			var jsonData []byte
+
+			switch val := rawLog.(type) {
+			case []byte:
+				jsonData = val
+			case string:
+				jsonData = []byte(val)
+			default:
+				logc.Error(context.Background(), "Loki - Values[0][1] 类型不是 []byte 或 string")
+				continue
+			}
+
+			var msg map[string]interface{}
+			err := json.Unmarshal(jsonData, &msg)
+			if err != nil {
+				logc.Error(context.Background(), fmt.Sprintf("解析 Loki 日志数据错误, %v", string(jsonData)))
+				continue
+			}
+			msgs = append(msgs, msg)
 		}
 	}
 
 	data = append(data, Logs{
 		ProviderName: LokiDsProviderName,
 		Metric:       commonKeyValuePairs(streamList),
-		Message:      msg,
+		Message:      msgs,
 	})
 
 	return data, count, nil

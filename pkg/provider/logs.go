@@ -80,7 +80,7 @@ func (e Elasticsearch) GetIndexName() string {
 type Logs struct {
 	ProviderName string
 	Metric       map[string]interface{}
-	Message      []interface{}
+	Message      []map[string]interface{}
 }
 
 func (l Logs) GetFingerprint() string {
@@ -95,7 +95,7 @@ func (l Logs) GetMetric() map[string]interface{} {
 	return l.Metric
 }
 
-func (l Logs) GetAnnotations() []interface{} {
+func (l Logs) GetAnnotations() []map[string]interface{} {
 	return l.Message
 }
 

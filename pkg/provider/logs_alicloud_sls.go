@@ -8,7 +8,6 @@ import (
 
 	"github.com/alibabacloud-go/darabonba-openapi/v2/client"
 	"watchAlert/internal/models"
-	"watchAlert/pkg/tools"
 )
 
 type AliCloudSlsDsProvider struct {
@@ -53,26 +52,14 @@ func (a AliCloudSlsDsProvider) Query(query LogQueryOptions) ([]Logs, int, error)
 		return nil, 0, err
 	}
 
-	var (
-		msgList []interface{}
-		metric  = map[string]interface{}{}
-	)
-	for _, body := range res.Body {
-		msg := tools.FormatJson(tools.JsonMarshal(body))
-		msgList = append(msgList, msg)
-
-		metric["_container_name_"] = body["__tag__:_container_name_"]
-		metric["_namespace_"] = body["__tag__:_namespace_"]
-	}
-
 	var data []Logs
 	data = append(data, Logs{
 		ProviderName: AliCloudSLSDsProviderName,
-		Metric:       metric,
-		Message:      msgList,
+		Metric:       commonKeyValuePairs(res.Body),
+		Message:      res.Body,
 	})
 
-	return data, len(msgList), nil
+	return data, len(res.Body), nil
 }
 
 func (a AliCloudSlsDsProvider) Check() (bool, error) {

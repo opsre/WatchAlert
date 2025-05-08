@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"github.com/olivere/elastic/v7"
 	"watchAlert/internal/models"
-	utilsHttp "watchAlert/pkg/tools"
+	"watchAlert/pkg/tools"
 )
 
 type ElasticSearchDsProvider struct {
@@ -110,25 +110,20 @@ func (e ElasticSearchDsProvider) Query(options LogQueryOptions) ([]Logs, int, er
 	}
 
 	var (
-		data      []Logs
-		msg       []interface{}
-		kvMapList []map[string]interface{}
+		data []Logs
+		msgs []map[string]interface{}
 	)
 	for _, v := range response {
-		kvMapList = append(kvMapList, v.Source)
-	}
-
-	for _, m := range kvMapList {
-		msg = append(msg, m["message"])
+		msgs = append(msgs, v.Source)
 	}
 
 	data = append(data, Logs{
 		ProviderName: ElasticSearchDsProviderName,
-		Metric:       commonKeyValuePairs(kvMapList),
-		Message:      msg,
+		Metric:       commonKeyValuePairs(msgs),
+		Message:      msgs,
 	})
 
-	return data, len(msg), nil
+	return data, len(response), nil
 }
 
 func (e ElasticSearchDsProvider) Check() (bool, error) {
@@ -140,7 +135,7 @@ func (e ElasticSearchDsProvider) Check() (bool, error) {
 		header["Authorization"] = basicAuth
 		url = fmt.Sprintf("%s/_cat/health", e.url)
 	}
-	res, err := utilsHttp.Get(header, url, 10)
+	res, err := tools.Get(header, url, 10)
 	if err != nil {
 		return false, err
 	}

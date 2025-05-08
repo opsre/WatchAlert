@@ -358,7 +358,7 @@ func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.Ale
 			})
 			event.DatasourceId = datasourceId
 			event.Fingerprint = fingerprint
-			event.Annotations = fmt.Sprintf("共计日志 %d 条\n%s", count, tools.FormatJson(v.GetAnnotations()[0].(string)))
+			event.Log = v.GetAnnotations()[0]
 
 			switch datasourceType {
 			case provider.LokiDsProviderName:

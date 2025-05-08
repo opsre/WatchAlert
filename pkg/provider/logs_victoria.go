@@ -73,36 +73,33 @@ func (v VictoriaLogsProvider) Query(options LogQueryOptions) ([]Logs, int, error
 		return nil, 0, fmt.Errorf(errMsg)
 	}
 
-	var entries []map[string]interface{}
+	var (
+		msgs  = []map[string]interface{}{}
+		count int
+	)
 	scanner := bufio.NewScanner(bytes.NewReader(respBody))
 	for scanner.Scan() {
 		line := scanner.Bytes()
 		if len(line) == 0 {
 			continue
 		}
-		var entry map[string]interface{}
-		if err := json.Unmarshal(line, &entry); err != nil {
-			return nil, 0, fmt.Errorf("解析行失败: %v，内容: %s", err, string(line))
+		var msg map[string]interface{}
+		if err := json.Unmarshal(line, &msg); err != nil {
+			logc.Error(context.Background(), fmt.Sprintf("VictoriaLogs - 解析行失败: %v，内容: %s", err, string(line)))
+			continue
 		}
-		entries = append(entries, entry)
+		msgs = append(msgs, msg)
+		count++
 	}
 
-	var (
-		logs []Logs
-		msg  []any
-	)
-
-	for _, data := range entries {
-		msg = append(msg, data["_msg"])
-	}
-
+	var logs []Logs
 	logs = append(logs, Logs{
 		ProviderName: VictoriaLogsDsProviderName,
-		Metric:       v.getMetricLabels(entries),
-		Message:      msg,
+		Metric:       v.getMetricLabels(msgs),
+		Message:      msgs,
 	})
 
-	return logs, len(entries), nil
+	return logs, count, nil
 }
 
 func (v VictoriaLogsProvider) getMetricLabels(entries []map[string]interface{}) map[string]interface{} {
