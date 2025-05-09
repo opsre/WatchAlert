@@ -90,49 +90,6 @@ green
             {
               "tag": "div",
               "text": {
-                "content": "**🤖 报警类型：**\n${rule_name}",
-                "tag": "lark_md"
-              }
-            }
-          ]
-        }
-      ],
-      "elements": null
-    },
-    {
-      "tag": "column_set",
-      "flexMode": "none",
-      "background_style": "default",
-      "text": {
-        "content": "",
-        "tag": ""
-      },
-      "actions": null,
-      "columns": [
-        {
-          "tag": "column",
-          "width": "weighted",
-          "weight": 1,
-          "vertical_align": "top",
-          "elements": [
-            {
-              "tag": "div",
-              "text": {
-                "content": "**📌 报警等级：**\n${severity}",
-                "tag": "lark_md"
-              }
-            }
-          ]
-        },
-        {
-          "tag": "column",
-          "width": "weighted",
-          "weight": 1,
-          "vertical_align": "top",
-          "elements": [
-            {
-              "tag": "div",
-              "text": {
                 "content": "**🕘 开始时间：**\n${first_trigger_time_format}",
                 "tag": "lark_md"
               }
@@ -161,7 +118,38 @@ green
             {
               "tag": "div",
               "text": {
-                "content": "**👤 值班人员：**\n${duty_user}",
+                "content": "**🖥 报警主机：**\n${metric.instance}",
+                "tag": "lark_md"
+              }
+            }
+          ]
+        }
+      ],
+      "elements": null
+    },
+    {
+      "tag": "hr"
+    },
+    {
+      "tag": "column_set",
+      "flexMode": "none",
+      "background_style": "default",
+      "text": {
+        "content": "",
+        "tag": ""
+      },
+      "actions": null,
+      "columns": [
+        {
+          "tag": "column",
+          "width": "weighted",
+          "weight": 1,
+          "vertical_align": "top",
+          "elements": [
+            {
+              "tag": "div",
+              "text": {
+                "content": "**⛩️ 故障中心：**\n${faultCenter.name}",
                 "tag": "lark_md"
               }
             }
@@ -176,7 +164,7 @@ green
             {
               "tag": "div",
               "text": {
-                "content": "**🖥 报警主机：**\n${metric.instance}",
+                "content": "**👤 值班人员：**\n${duty_user}",
                 "tag": "lark_md"
               }
             }
@@ -184,6 +172,21 @@ green
         }
       ],
       "elements": null
+    },
+    {
+      "tag": "column_set",
+      "flexMode": "none",
+      "background_style": "default",
+      "text": {
+        "content": "",
+        "tag": ""
+      },
+      "actions": null,
+      "columns": [],
+      "elements": null
+    },
+    {
+      "tag": "hr"
     },
     {
       "tag": "column_set",
@@ -246,7 +249,7 @@ green
   "header": {
     "template": "red",
     "title": {
-      "content": "【报警中】- WatchAlert 业务系统 🔥",
+      "content": "【 ${severity} 报警中】- ${rule_name} 🔥",
       "tag": "plain_text"
     }
   },
@@ -299,49 +302,6 @@ green
             {
               "tag": "div",
               "text": {
-                "content": "**🤖 报警类型：**\n${rule_name}",
-                "tag": "lark_md"
-              }
-            }
-          ]
-        }
-      ],
-      "elements": null
-    },
-    {
-      "tag": "column_set",
-      "flexMode": "none",
-      "background_style": "default",
-      "text": {
-        "content": "",
-        "tag": ""
-      },
-      "actions": null,
-      "columns": [
-        {
-          "tag": "column",
-          "width": "weighted",
-          "weight": 1,
-          "vertical_align": "top",
-          "elements": [
-            {
-              "tag": "div",
-              "text": {
-                "content": "**📌 报警等级：**\n${severity}",
-                "tag": "lark_md"
-              }
-            }
-          ]
-        },
-        {
-          "tag": "column",
-          "width": "weighted",
-          "weight": 1,
-          "vertical_align": "top",
-          "elements": [
-            {
-              "tag": "div",
-              "text": {
                 "content": "**🕘 开始时间：**\n${first_trigger_time_format}",
                 "tag": "lark_md"
               }
@@ -370,7 +330,7 @@ green
             {
               "tag": "div",
               "text": {
-                "content": "**🕘 恢复时间：**\n${recover_time_format}",
+                "content": "**🖥 报警主机：**\n${metric.instance}",
                 "tag": "lark_md"
               }
             }
@@ -385,7 +345,7 @@ green
             {
               "tag": "div",
               "text": {
-                "content": "**🖥 报警主机：**\n${metric.instance}",
+                "content": "**🕘 恢复时间：**\n${recover_time_format}",
                 "tag": "lark_md"
               }
             }
@@ -393,6 +353,9 @@ green
         }
       ],
       "elements": null
+    },
+    {
+      "tag": "hr"
     },
     {
       "tag": "column_set",
@@ -413,6 +376,21 @@ green
             {
               "tag": "div",
               "text": {
+                "content": "**⛩️ 故障中心：**\n${faultCenter.name}",
+                "tag": "lark_md"
+              }
+            }
+          ]
+        },
+        {
+          "tag": "column",
+          "width": "weighted",
+          "weight": 1,
+          "vertical_align": "top",
+          "elements": [
+            {
+              "tag": "div",
+              "text": {
                 "content": "**👤 值班人员：**\n${duty_user}",
                 "tag": "lark_md"
               }
@@ -420,6 +398,18 @@ green
           ]
         }
       ],
+      "elements": null
+    },
+    {
+      "tag": "hr",
+      "flexMode": "",
+      "background_style": "",
+      "text": {
+        "content": "",
+        "tag": ""
+      },
+      "actions": null,
+      "columns": null,
       "elements": null
     },
     {
@@ -483,7 +473,7 @@ green
   "header": {
     "template": "green",
     "title": {
-      "content": "【已恢复】- WatchAlert 业务系统 ✨",
+      "content": "【 ${severity} 已恢复】- ${rule_name} ✨",
       "tag": "plain_text"
     }
   },
