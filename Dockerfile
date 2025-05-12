@@ -10,7 +10,7 @@ COPY . /root
 
 RUN sed -i "s/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g" /etc/apk/repositories \
     && apk upgrade && apk add --no-cache --virtual .build-deps \
-    ca-certificates upx
+    ca-certificates upx tzdata
 
 RUN CGO_ENABLED=0 go build --ldflags="-X main.Version=${VERSION}" -o w8t . \
     && chmod +x w8t
