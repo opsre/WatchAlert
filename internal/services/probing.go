@@ -22,6 +22,7 @@ type (
 		List(req interface{}) (interface{}, interface{})
 		Search(req interface{}) (interface{}, interface{})
 		Once(req interface{}) (interface{}, interface{})
+		GetHistory(req interface{}) (interface{}, interface{})
 	}
 )
 
@@ -172,4 +173,14 @@ func (m probingService) Once(req interface{}) (interface{}, interface{}) {
 		})
 	}
 	return nil, nil
+}
+
+func (m probingService) GetHistory(req interface{}) (interface{}, interface{}) {
+	r := req.(*models.ReqProbingHistory)
+	data, err := m.ctx.DB.Probing().GetRecord(*r)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
 }

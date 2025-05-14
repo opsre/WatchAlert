@@ -3,6 +3,7 @@ package probing
 import (
 	"context"
 	"fmt"
+	"github.com/go-redis/redis"
 	"github.com/zeromicro/go-zero/core/logc"
 	"time"
 	"watchAlert/alert/process"
@@ -69,6 +70,9 @@ func (m *ConsumeProbing) executeTask(taskChan chan struct{}, r models.ProbingRul
 	var now = time.Now().Unix()
 	event, err := m.ctx.Redis.Probing().GetProbingEventCache(models.BuildProbingEventCacheKey(r.TenantId, r.RuleId))
 	if err != nil {
+		if err == redis.Nil {
+			return
+		}
 		logc.Error(context.Background(), fmt.Sprintf("获取拨测事件失败, %s", err.Error()))
 		return
 	}

@@ -76,6 +76,15 @@ func (t *ProductProbing) worker(rule models.ProbingRule) {
 		logc.Errorf(t.ctx.Ctx, err.Error())
 		return
 	}
+	err = t.ctx.DB.Probing().AddRecord(models.ProbingHistory{
+		Timestamp: time.Now().Unix(),
+		RuleId:    rule.RuleId,
+		Value:     eValue,
+	})
+	if err != nil {
+		logc.Errorf(t.ctx.Ctx, err.Error())
+		return
+	}
 
 	event := t.buildEvent(rule)
 	event.Fingerprint = eValue.GetFingerprint()

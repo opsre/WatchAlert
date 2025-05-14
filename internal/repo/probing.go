@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/zeromicro/go-zero/core/logc"
 	"gorm.io/gorm"
+	"time"
 	"watchAlert/internal/models"
 )
 
@@ -18,6 +19,8 @@ type (
 		Delete(d models.ProbingRuleQuery) error
 		List(d models.ProbingRuleQuery) ([]models.ProbingRule, error)
 		Search(d models.ProbingRuleQuery) (models.ProbingRule, error)
+		AddRecord(history models.ProbingHistory) error
+		GetRecord(query models.ReqProbingHistory) ([]models.ProbingHistory, error)
 	}
 )
 
@@ -115,5 +118,38 @@ func (p ProbingRepo) Search(d models.ProbingRuleQuery) (models.ProbingRule, erro
 		}
 		return data, err
 	}
+	return data, nil
+}
+
+func (p ProbingRepo) AddRecord(history models.ProbingHistory) error {
+	err := p.g.Create(models.ProbingHistory{}, history)
+	if err != nil {
+		logc.Errorf(context.Background(), err.Error())
+		return err
+	}
+	return nil
+}
+
+func (p ProbingRepo) GetRecord(query models.ReqProbingHistory) ([]models.ProbingHistory, error) {
+	var (
+		data []models.ProbingHistory
+		db   = p.db.Model(&models.ProbingHistory{})
+	)
+	db.Where("rule_id = ? ", query.RuleId)
+	// 计算起始时间戳（秒）
+	now := time.Now().Unix()
+	startTime := now - query.DateRange
+
+	db.Where("rule_id = ?", query.RuleId).
+		Where("timestamp BETWEEN ? AND ?", startTime, now)
+
+	err := db.Find(&data).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return data, nil
+		}
+		return data, err
+	}
+
 	return data, nil
 }

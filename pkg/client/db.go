@@ -59,6 +59,7 @@ func InitDB() *gorm.DB {
 		&models.ProbingRule{},
 		&models.FaultCenter{},
 		&models.AiContentRecord{},
+		&models.ProbingHistory{},
 	)
 	if err != nil {
 		logc.Error(context.Background(), err.Error())

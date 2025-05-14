@@ -164,3 +164,18 @@ type ProbingValueCacheKey string
 func BuildProbingValueCacheKey(tenantId, ruleId string) ProbingValueCacheKey {
 	return ProbingValueCacheKey(fmt.Sprintf("w8t:%s:probing:%s.value", tenantId, ruleId))
 }
+
+type ReqProbingHistory struct {
+	RuleId    string `json:"ruleId" form:"ruleId"`
+	DateRange int64  `json:"dateRange" form:"dateRange"`
+}
+
+type ProbingHistory struct {
+	Timestamp int64          `json:"timestamp"`
+	RuleId    string         `json:"ruleId"`
+	Value     map[string]any `json:"value" gorm:"value;serializer:json"`
+}
+
+func (p *ProbingHistory) TableName() string {
+	return "w8t_probing_history"
+}
