@@ -21,6 +21,7 @@ type (
 		Search(d models.ProbingRuleQuery) (models.ProbingRule, error)
 		AddRecord(history models.ProbingHistory) error
 		GetRecord(query models.ReqProbingHistory) ([]models.ProbingHistory, error)
+		DeleteRecord() error
 	}
 )
 
@@ -152,4 +153,24 @@ func (p ProbingRepo) GetRecord(query models.ReqProbingHistory) ([]models.Probing
 	}
 
 	return data, nil
+}
+
+func (p ProbingRepo) DeleteRecord() error {
+	var saveDays int64 = 3600 * 24
+
+	now := time.Now().Unix()
+	startTime := now - saveDays
+
+	del := Delete{
+		Table: &models.ProbingHistory{},
+		Where: map[string]interface{}{
+			"timestamp < ?": startTime,
+		},
+	}
+	err := p.g.Delete(del)
+	if err != nil {
+		logc.Errorf(context.Background(), err.Error())
+		return err
+	}
+	return nil
 }

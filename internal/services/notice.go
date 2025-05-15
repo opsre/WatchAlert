@@ -23,6 +23,7 @@ type InterNoticeService interface {
 	Search(req interface{}) (interface{}, interface{})
 	ListRecord(req interface{}) (interface{}, interface{})
 	GetRecordMetric(req interface{}) (interface{}, interface{})
+	DeleteRecord(req interface{}) (interface{}, interface{})
 }
 
 func newInterAlertNoticeService(ctx *ctx.Context) InterNoticeService {
@@ -109,6 +110,15 @@ func (n noticeService) ListRecord(req interface{}) (interface{}, interface{}) {
 	}
 
 	return data, nil
+}
+
+func (n noticeService) DeleteRecord(req interface{}) (interface{}, interface{}) {
+	err := n.ctx.DB.Notice().DeleteRecord()
+	if err != nil {
+		return nil, err
+	}
+
+	return nil, nil
 }
 
 type ResponseRecordMetric struct {

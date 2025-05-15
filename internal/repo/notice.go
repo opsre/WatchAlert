@@ -1,8 +1,11 @@
 package repo
 
 import (
+	"context"
 	"fmt"
+	"github.com/zeromicro/go-zero/core/logc"
 	"gorm.io/gorm"
+	"time"
 	"watchAlert/internal/models"
 )
 
@@ -22,6 +25,7 @@ type (
 		AddRecord(r models.NoticeRecord) error
 		ListRecord(r models.NoticeQuery) (models.ResponseNoticeRecords, error)
 		CountRecord(r models.CountRecord) (int64, error)
+		DeleteRecord() error
 	}
 )
 
@@ -204,4 +208,24 @@ func (nr NoticeRepo) CountRecord(r models.CountRecord) (int64, error) {
 	}
 
 	return count, nil
+}
+
+func (nr NoticeRepo) DeleteRecord() error {
+	var saveDays int64 = 3600 * 24 * 7
+
+	now := time.Now().Unix()
+	startTime := now - saveDays
+
+	del := Delete{
+		Table: &models.NoticeRecord{},
+		Where: map[string]interface{}{
+			"create_at < ?": startTime,
+		},
+	}
+	err := nr.g.Delete(del)
+	if err != nil {
+		logc.Errorf(context.Background(), err.Error())
+		return err
+	}
+	return nil
 }
