@@ -128,7 +128,7 @@ func (alert *AlertCurEvent) validateTransition(newState AlertStatus) error {
 		StateAlerting:        {StatePendingRecovery, StateSilenced},
 		StatePendingRecovery: {StateRecovered, StateAlerting},
 		StateRecovered:       {StatePreAlert},
-		StateSilenced:        {StatePreAlert, StateAlerting},
+		StateSilenced:        {StatePreAlert, StateAlerting, StatePendingRecovery, StateRecovered},
 	}
 
 	// 检查转换是否允许

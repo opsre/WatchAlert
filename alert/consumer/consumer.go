@@ -218,6 +218,10 @@ func (c *Consume) filterAlertEvents(faultCenter models.FaultCenter, alerts map[s
 		}
 
 		if c.isMutedEvent(event, faultCenter) {
+			// 当告警处于静默状态时触发了恢复告警，直接移除即可 不需要发送消息。
+			if event.Status == models.StateRecovered {
+				c.ctx.Redis.Alert().RemoveAlertEvent(event.TenantId, event.FaultCenterId, event.Fingerprint)
+			}
 			continue
 		}
 
