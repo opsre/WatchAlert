@@ -153,6 +153,11 @@ func (c *Consume) Stop(faultCenterId string) {
 	}
 }
 
+func (c *Consume) Restart(faultCenter models.FaultCenter) {
+	c.Stop(faultCenter.ID)
+	c.Submit(faultCenter)
+}
+
 // Watch 启动 Consumer Watch 进程
 func (c *Consume) Watch(ctx context.Context, faultCenter models.FaultCenter) {
 	taskChan := make(chan struct{}, 1)
@@ -163,6 +168,7 @@ func (c *Consume) Watch(ctx context.Context, faultCenter models.FaultCenter) {
 			// 获取调用栈信息
 			stack := debug.Stack()
 			logc.Error(c.ctx.Ctx, fmt.Sprintf("Recovered from consumer watch goroutine panic: %s, FaultCenterName: %s, Id: %s\n%s", r, faultCenter.Name, faultCenter.ID, stack))
+			c.Restart(faultCenter)
 		}
 	}()
 

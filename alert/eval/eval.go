@@ -60,6 +60,11 @@ func (t *AlertRule) Stop(ruleId string) {
 	}
 }
 
+func (t *AlertRule) Restart(rule models.AlertRule) {
+	t.Stop(rule.RuleId)
+	t.Submit(rule)
+}
+
 func (t *AlertRule) Eval(ctx context.Context, rule models.AlertRule) {
 	timer := time.NewTicker(t.getEvalTimeDuration(rule.EvalTimeType, rule.EvalInterval))
 	defer func() {
@@ -68,6 +73,7 @@ func (t *AlertRule) Eval(ctx context.Context, rule models.AlertRule) {
 			// 获取调用栈信息
 			stack := debug.Stack()
 			logc.Error(t.ctx.Ctx, fmt.Sprintf("Recovered from rule eval goroutine panic: %s, RuleName: %s, RuleId: %s\n%s", r, rule.RuleName, rule.RuleId, stack))
+			t.Restart(rule)
 		}
 	}()
 
