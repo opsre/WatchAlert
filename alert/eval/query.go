@@ -3,6 +3,7 @@ package eval
 import (
 	"fmt"
 	"github.com/zeromicro/go-zero/core/logc"
+	v1 "k8s.io/api/core/v1"
 	"sort"
 	"strings"
 	"time"
@@ -537,15 +538,31 @@ func kubernetesEvent(ctx *ctx.Context, datasourceId string, rule models.AlertRul
 
 	externalLabels = cli.(provider.KubernetesClient).GetExternalLabels()
 
-	if len(k8sEvent.Items) < rule.KubernetesConfig.Value {
+	if len(k8sEvent.Items) == 0 {
 		return []string{}
 	}
 
-	var eventMapping = make(map[string][]string)
-	var curFingerprints []string
+	// 分组：key = resourceName + eventReason
+	groupedEvents := make(map[string][]v1.Event)
+
+	// 过滤并分组事件
 	for _, item := range process.FilterKubeEvent(k8sEvent, rule.KubernetesConfig.Filter).Items {
-		// 同一个资源可能有多条不同的事件信息
-		eventMapping[item.InvolvedObject.Name] = append(eventMapping[item.InvolvedObject.Name], "\n"+strings.ReplaceAll(item.Message, "\"", "'"))
+		key := fmt.Sprintf("%s/%s", item.InvolvedObject.Name, item.Reason)
+		groupedEvents[key] = append(groupedEvents[key], item)
+	}
+
+	var curFingerprints []string
+
+	for _, items := range groupedEvents {
+		// 不满足阈值，跳过
+		if len(items) < rule.KubernetesConfig.Value {
+			continue
+		}
+
+		// 取第一个作为代表生成告警
+		item := items[0]
+
+		// 构造告警内容
 		k8sItem := process.KubernetesAlertEvent(ctx, item)
 		fingerprint := k8sItem.GetFingerprint()
 		event := process.BuildEvent(rule, func() map[string]interface{} {
@@ -559,14 +576,27 @@ func kubernetesEvent(ctx *ctx.Context, datasourceId string, rule models.AlertRul
 				metric[ek] = ev
 			}
 			metric["rule_name"] = rule.RuleName
+			metric["value"] = len(items)
 			return metric
 		})
 		event.DatasourceId = datasourceId
 		event.Fingerprint = fingerprint
 		event.SearchQL = rule.KubernetesConfig.Resource
-		event.Annotations = fmt.Sprintf("- 环境: %s\n- 命名空间: %s\n- 资源类型: %s\n- 资源名称: %s\n- 事件类型: %s\n- 事件详情: %s\n",
-			datasourceObj.Name, item.Namespace, item.InvolvedObject.Kind,
-			item.InvolvedObject.Name, item.Reason, eventMapping[item.InvolvedObject.Name],
+
+		// 拼接注释信息
+		var msgList []string
+		for _, e := range items {
+			msg := strings.ReplaceAll(e.Message, "\"", "'")
+			msgList = append(msgList, msg)
+		}
+		event.Annotations = fmt.Sprintf(
+			"- 数据源: %s\n- 命名空间: %s\n- 资源类型: %s\n- 资源名称: %s\n- 事件类型: %s\n- 事件详情:\n%s",
+			datasourceObj.Name,
+			item.Namespace,
+			item.InvolvedObject.Kind,
+			item.InvolvedObject.Name,
+			item.Reason,
+			strings.Join(msgList, "\n"),
 		)
 
 		curFingerprints = append(curFingerprints, event.Fingerprint)

@@ -70,7 +70,7 @@ func (a KubernetesClient) GetWarningEvent(reason string, scope int) (*corev1.Eve
 
 		for _, event := range list.Items {
 			// 检查事件的 Reason 和事件发生时间
-			eventTime := event.LastTimestamp.Time
+			eventTime := event.EventTime
 			if event.Reason == reason && eventTime.After(cutoffTime) {
 				warningEvents.Items = append(warningEvents.Items, event)
 			}
