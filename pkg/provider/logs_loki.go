@@ -79,13 +79,11 @@ func (l LokiProvider) Query(options LogQueryOptions) ([]Logs, int, error) {
 	}
 
 	var (
-		count      int // count 用于统计日志条数
-		data       []Logs
-		streamList = []map[string]interface{}{}
-		msgs       []map[string]interface{}
+		count int // count 用于统计日志条数
+		data  []Logs
+		msgs  []map[string]interface{}
 	)
 	for _, v := range resultData.Data.Result {
-		streamList = append(streamList, v.Stream)
 		count += len(v.Values)
 		/*
 				"values": [
@@ -132,7 +130,6 @@ func (l LokiProvider) Query(options LogQueryOptions) ([]Logs, int, error) {
 
 	data = append(data, Logs{
 		ProviderName: LokiDsProviderName,
-		Metric:       commonKeyValuePairs(streamList),
 		Message:      msgs,
 	})
 

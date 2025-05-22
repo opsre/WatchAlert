@@ -119,7 +119,6 @@ func (e ElasticSearchDsProvider) Query(options LogQueryOptions) ([]Logs, int, er
 
 	data = append(data, Logs{
 		ProviderName: ElasticSearchDsProviderName,
-		Metric:       commonKeyValuePairs(msgs),
 		Message:      msgs,
 	})
 

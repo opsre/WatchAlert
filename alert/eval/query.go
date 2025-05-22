@@ -297,7 +297,6 @@ func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.Ale
 			QueryValue:    float64(count),
 			ExpectedValue: value,
 		}
-
 	case provider.VictoriaLogsDsProviderName:
 		cli, err := pools.GetClient(datasourceId)
 		if err != nil {
@@ -339,52 +338,55 @@ func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.Ale
 		return []string{}
 	}
 
+	// 仅在满足条件时处理第一条告警 ，避免日志数量多导致频繁报警。
+	log := queryRes[0]
+
+	// 唯一指纹基于 RuleId
+	fingerprint := log.GenerateFingerprint(rule.RuleId)
 	var curFingerprints []string
-	for _, v := range queryRes {
-		fingerprint := v.GetFingerprint()
-		event := func() *models.AlertCurEvent {
-			event := process.BuildEvent(rule, func() map[string]interface{} {
-				metric := v.GetMetric()
-				metric["value"] = count
-				metric["severity"] = rule.Severity
-				metric["fingerprint"] = fingerprint
-				for ek, ev := range externalLabels {
-					metric[ek] = ev
-				}
-				for ek, ev := range rule.ExternalLabels {
-					metric[ek] = ev
-				}
-				metric["rule_name"] = rule.RuleName
-				return metric
-			})
-			event.DatasourceId = datasourceId
-			event.Fingerprint = fingerprint
-			event.Log = v.GetAnnotations()[0]
-
-			switch datasourceType {
-			case provider.LokiDsProviderName:
-				event.SearchQL = rule.LokiConfig.LogQL
-			case provider.AliCloudSLSDsProviderName:
-				event.SearchQL = rule.AliCloudSLSConfig.LogQL
-			case provider.ElasticSearchDsProviderName:
-				if rule.ElasticSearchConfig.RawJson != "" {
-					event.SearchQL = rule.ElasticSearchConfig.RawJson
-				} else {
-					event.SearchQL = tools.JsonMarshal(rule.ElasticSearchConfig.Filter)
-				}
-			case provider.VictoriaLogsDsProviderName:
-				event.SearchQL = rule.VictoriaLogsConfig.LogQL
+	event := func() *models.AlertCurEvent {
+		event := process.BuildEvent(rule, func() map[string]interface{} {
+			metric := map[string]interface{}{
+				"value":       count,
+				"severity":    rule.Severity,
+				"fingerprint": fingerprint,
+				"rule_name":   rule.RuleName,
 			}
+			for ek, ev := range externalLabels {
+				metric[ek] = ev
+			}
+			for ek, ev := range rule.ExternalLabels {
+				metric[ek] = ev
+			}
+			return metric
+		})
+		event.DatasourceId = datasourceId
+		event.Fingerprint = fingerprint
+		event.Log = log.GetAnnotations()
 
-			curFingerprints = append(curFingerprints, event.Fingerprint)
-
-			return &event
+		switch datasourceType {
+		case provider.LokiDsProviderName:
+			event.SearchQL = rule.LokiConfig.LogQL
+		case provider.AliCloudSLSDsProviderName:
+			event.SearchQL = rule.AliCloudSLSConfig.LogQL
+		case provider.ElasticSearchDsProviderName:
+			if rule.ElasticSearchConfig.RawJson != "" {
+				event.SearchQL = rule.ElasticSearchConfig.RawJson
+			} else {
+				event.SearchQL = tools.JsonMarshal(rule.ElasticSearchConfig.Filter)
+			}
+		case provider.VictoriaLogsDsProviderName:
+			event.SearchQL = rule.VictoriaLogsConfig.LogQL
 		}
 
-		// 评估告警条件
-		if process.EvalCondition(evalOptions) {
-			process.PushEventToFaultCenter(ctx, event())
-		}
+		curFingerprints = append(curFingerprints, event.Fingerprint)
+
+		return &event
+	}
+
+	// 评估告警条件
+	if process.EvalCondition(evalOptions) {
+		process.PushEventToFaultCenter(ctx, event())
 	}
 
 	return curFingerprints

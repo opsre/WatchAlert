@@ -79,60 +79,32 @@ func (e Elasticsearch) GetIndexName() string {
 
 type Logs struct {
 	ProviderName string
-	Metric       map[string]interface{}
 	Message      []map[string]interface{}
 }
 
-func (l Logs) GetFingerprint() string {
+func (l Logs) GenerateFingerprint(ruleId string) string {
 	h := md5.New()
-	streamString := tools.JsonMarshal(l.Metric)
+	streamString := tools.JsonMarshal(map[string]string{
+		"ruleId": ruleId,
+	})
 	h.Write([]byte(streamString))
 	fingerprint := hex.EncodeToString(h.Sum(nil))
 	return fingerprint
 }
 
-func (l Logs) GetMetric() map[string]interface{} {
-	return l.Metric
-}
-
-func (l Logs) GetAnnotations() []map[string]interface{} {
-	return l.Message
-}
-
-func commonKeyValuePairs(maps []map[string]interface{}) map[string]interface{} {
-	// 初始化一个map，用于记录每个key-value对的出现次数
-	counts := make(map[string]int)
-
-	// 获取map的数量
-	mapCount := len(maps)
-
-	// 遍历每个map并记录每个key-value对的出现次数
-	for _, m := range maps {
-		for k, v := range m {
-			keyValue := fmt.Sprintf("%s:%v", k, v)
-			counts[keyValue]++
+func (l Logs) GetAnnotations() map[string]interface{} {
+	msg := map[string]interface{}{}
+	for k, v := range l.Message[0] {
+		if v == nil {
+			continue
+		}
+		msg[k] = v
+		content := v.(string)
+		length := len(content)
+		// 如果字符串超过1000个，则取前后各500个
+		if length > 1000 {
+			msg[k] = fmt.Sprintf("%s... 内容过长省略其中 ...%s", content[:500], content[length-500:])
 		}
 	}
-
-	// 初始化结果map
-	common := make(map[string]interface{})
-
-	// 过滤只出现在所有map中的key-value对
-	for keyValue, count := range counts {
-		if count == mapCount {
-			// 提取出key和value
-			m := strings.SplitAfterN(keyValue, ":", 2)
-			m[0] = strings.ReplaceAll(m[0], ":", "")
-			if m[0] == "value" || m[0] == "recover_value" {
-				continue
-			}
-
-			if len(m[0]) <= 0 || len(m[1]) <= 0 {
-				continue
-			}
-			common[m[0]] = m[1]
-		}
-	}
-
-	return common
+	return msg
 }

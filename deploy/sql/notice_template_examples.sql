@@ -25,7 +25,7 @@ green
 **🕘 开始时间:** ${first_trigger_time_format}
 **👤 值班人员:** ${duty_user}
 **📝 报警事件:** ${annotations}
-[查看事件](http://localhost:3000/events?query=${rule_name})
+[查看事件](http://localhost:3000/faultCenter/detail/${faultCenterId}?tab=1&query=${rule_name})
 {{- else -}}
 **🤖 报警类型:** ${rule_name}
 **🫧 报警指纹:** ${fingerprint}
@@ -35,7 +35,7 @@ green
 **🕘 恢复时间:** ${recover_time_format}
 **👤 值班人员:** ${duty_user}
 **📝 报警事件:** ${annotations}
-[查看事件](http://localhost:3000/events?query=${rule_name})
+[查看事件](http://localhost:3000/faultCenter/detail/${faultCenterId}?tab=1&query=${rule_name})
 {{- end -}}
 {{ end }}
 
@@ -491,7 +491,7 @@ green
 <strong>🕘 开始时间:</strong> ${first_trigger_time_format}<br>
 <strong>👤 值班人员:</strong> ${duty_user}<br>
 <strong>📝 报警事件:</strong> ${annotations}<br>
-[查看事件](http://localhost:3000/events?query=${rule_name})
+[查看事件](http://localhost:3000/faultCenter/detail/${faultCenterId}?tab=1&query=${rule_name})
 {{- else -}}
 <p>==========<strong>恢复通知</strong>==========</p>
 <strong>🤖 报警类型:</strong> ${rule_name}<br>
@@ -504,7 +504,7 @@ green
 <strong>🕘 恢复时间:</strong> ${recover_time_format}<br>
 <strong>👤 值班人员:</strong> ${duty_user}<br>
 <strong>📝 报警事件:</strong> ${annotations}<br>
-[查看事件](http://localhost:3000/events?query=${rule_name})
+[查看事件](http://localhost:3000/faultCenter/detail/${faultCenterId}?tab=1&query=${rule_name})
 {{- end -}}
 {{ end }}',0,'','','Email'),
 	 ('nt-crscirlvi7nhfu2tpf00','钉钉通知模版','发送钉钉的普通消息模版','{{- define "Title" -}}
@@ -532,7 +532,7 @@ green
 **🕘 开始时间:** ${first_trigger_time_format}</br>
 **👤 值班人员:** ${duty_user}</br>
 **📝 报警事件:** ${annotations}</br>
-[查看事件](http://localhost:3000/events?query=${rule_name})
+[查看事件](http://localhost:3000/faultCenter/detail/${faultCenterId}?tab=1&query=${rule_name})
 {{- else -}}
 **🤖 报警类型:** ${rule_name}</br>
 **🫧 报警指纹:** ${fingerprint}</br>
@@ -542,7 +542,7 @@ green
 **🕘 恢复时间:** ${recover_time_format}</br>
 **👤 值班人员:** ${duty_user}</br>
 **📝 报警事件:** ${annotations}</br>
-[查看事件](http://localhost:3000/events?query=${rule_name})
+[查看事件](http://localhost:3000/faultCenter/detail/${faultCenterId}?tab=1&query=${rule_name})
 {{- end -}}
 {{ end }}
 
@@ -574,7 +574,7 @@ green
 >**🕘 开始时间:** ${first_trigger_time_format}
 >**👤 值班人员:** ${duty_user}
 >**📝 报警事件:** ${annotations}
-[查看事件](http://localhost:3000/events?query=${rule_name})
+[查看事件](http://localhost:3000/faultCenter/detail/${faultCenterId}?tab=1&query=${rule_name})
 {{- else -}}
 >**🤖 报警类型:** ${rule_name}
 >**🫧 报警指纹:** ${fingerprint}
@@ -584,7 +584,7 @@ green
 >**🕘 恢复时间:** ${recover_time_format}
 >**👤 值班人员:** ${duty_user}
 >**📝 报警事件:** ${annotations}
-[查看事件](http://localhost:3000/events?query=${rule_name})
+[查看事件](http://localhost:3000/faultCenter/detail/${faultCenterId}?tab=1&query=${rule_name})
 {{- end -}}
 {{ end }}
 

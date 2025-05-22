@@ -95,19 +95,10 @@ func (v VictoriaLogsProvider) Query(options LogQueryOptions) ([]Logs, int, error
 	var logs []Logs
 	logs = append(logs, Logs{
 		ProviderName: VictoriaLogsDsProviderName,
-		Metric:       v.getMetricLabels(msgs),
 		Message:      msgs,
 	})
 
 	return logs, count, nil
-}
-
-func (v VictoriaLogsProvider) getMetricLabels(entries []map[string]interface{}) map[string]interface{} {
-	metric := commonKeyValuePairs(entries)
-	delete(metric, "_stream")
-	delete(metric, "_stream_id")
-	delete(metric, "log.file.path")
-	return metric
 }
 
 func (v VictoriaLogsProvider) Check() (bool, error) {

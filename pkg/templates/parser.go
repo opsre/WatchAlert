@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/zeromicro/go-zero/core/logc"
-	"strconv"
 	"text/template"
 	"time"
 	"watchAlert/internal/global"
@@ -61,12 +60,6 @@ func parserEvent(alert models.AlertCurEvent) map[string]interface{} {
 	err := json.Unmarshal([]byte(eventJson), &data)
 	if err != nil {
 		logc.Error(context.Background(), "parserEvent Unmarshal failed: ", err)
-	}
-
-	if alert.DatasourceType == "AliCloudSLS" || alert.DatasourceType == "Loki" || alert.DatasourceType == "ElasticSearch" || alert.DatasourceType == "VictoriaLogs" {
-		// 需要转义, 日志中可能会出现特殊符号
-		alarmInfo := strconv.Quote(data["annotations"].(string))
-		data["annotations"] = alarmInfo[1 : len(alarmInfo)-1]
 	}
 
 	return data
