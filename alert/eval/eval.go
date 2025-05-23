@@ -140,79 +140,99 @@ func (t *AlertRule) getEvalTimeDuration(evalTimeType string, evalInterval int64)
 }
 
 func (t *AlertRule) Recover(tenantId, ruleId string, eventCacheKey models.AlertEventCacheKey, faultCenterInfoKey models.FaultCenterInfoCacheKey, curFingerprints []string) {
-	// 获取所有的故障中心的告警事件
+	// 获取所有的故障中心告警事件
 	events, err := t.ctx.Redis.Alert().GetAllEvents(eventCacheKey)
 	if err != nil {
+		logc.Errorf(t.ctx.Ctx, "Failed to get all events: %v", err)
 		return
 	}
 
-	// 只获取所属当前规则的告警指纹
-	fingerprints := make([]string, 0)
+	// 提取当前规则相关的指纹
+	var fingerprints []string
 	for fingerprint, event := range events {
 		if strings.Contains(event.RuleId, ruleId) {
 			fingerprints = append(fingerprints, fingerprint)
 		}
 	}
 
-	// 获取已恢复告警的keys
+	// 计算需要恢复的指纹列表
 	recoverFingerprints := tools.GetSliceDifference(fingerprints, curFingerprints)
-	if recoverFingerprints == nil {
+	if len(recoverFingerprints) == 0 {
+		t.handlePendingRecovery(tenantId, ruleId, events)
 		return
 	}
 
-	// 从待恢复状态转换成告警状态
-	fs := t.ctx.Redis.PendingRecover().List(tenantId, ruleId)
-	if len(recoverFingerprints) == 0 && len(fs) != 0 {
-		for fingerprint := range fs {
-			event, ok := events[fingerprint]
-			if !ok {
-				continue
-			}
-			event.TransitionStatus(models.StateAlerting)
-			t.ctx.Redis.Alert().PushAlertEvent(event)
-			t.ctx.Redis.PendingRecover().Delete(tenantId, ruleId, fingerprint)
-		}
-	}
-
+	// 处理恢复逻辑
 	curTime := time.Now().Unix()
+	recoverWaitTime := t.getRecoverWaitTime(faultCenterInfoKey)
+
 	for _, fingerprint := range recoverFingerprints {
 		event, ok := events[fingerprint]
 		if !ok {
 			continue
 		}
 
-		if event.IsRecovered == true && event.Status == models.StateRecovered {
-			continue
-		}
-
-		// 判断是否在等待时间范围内
+		// 获取待恢复状态的时间戳
 		wTime, err := t.ctx.Redis.PendingRecover().Get(tenantId, ruleId, fingerprint)
-		if err != nil && err == redis.Nil {
-			// 如果没有，则记录当前时间
+		if err == redis.Nil {
+			// 如果不存在，则记录当前时间
 			t.ctx.Redis.PendingRecover().Set(tenantId, ruleId, fingerprint, curTime)
 			continue
+		} else if err != nil {
+			logc.Errorf(t.ctx.Ctx, "Failed to get pending recovery time for fingerprint %s: %v", fingerprint, err)
+			continue
 		}
 
-		rt := time.Unix(wTime, 0).Add(time.Minute * time.Duration(t.getRecoverWaitTime(faultCenterInfoKey))).Unix()
-		if rt > curTime {
-			// 调整为待恢复状态
-			event.TransitionStatus(models.StatePendingRecovery)
-		} else {
+		// 判断是否在等待时间内
+		recoverThreshold := wTime + int64(recoverWaitTime)*60
+		if recoverThreshold >= curTime {
+			// 进入待恢复状态
+			if err := event.TransitionStatus(models.StatePendingRecovery); err != nil {
+				logc.Errorf(t.ctx.Ctx, "Failed to transition to pending recovery state for fingerprint %s: %v", fingerprint, err)
+				continue
+			}
+		} else if curTime >= recoverThreshold && event.Status == models.StatePendingRecovery { // 当前时间超过预期等待时间，并且状态是 PendingRecovery 时才执行恢复逻辑
 			// 已恢复状态
-			event.TransitionStatus(models.StateRecovered)
+			if err := event.TransitionStatus(models.StateRecovered); err != nil {
+				logc.Errorf(t.ctx.Ctx, "Failed to transition to recovered state for fingerprint %s: %v", fingerprint, err)
+				continue
+			}
 			t.ctx.Redis.PendingRecover().Delete(tenantId, ruleId, fingerprint)
 		}
 
+		// 更新告警事件
 		t.ctx.Redis.Alert().PushAlertEvent(event)
 	}
 }
 
+// 处理待恢复状态的事件
+func (t *AlertRule) handlePendingRecovery(tenantId, ruleId string, events map[string]*models.AlertCurEvent) {
+	fs := t.ctx.Redis.PendingRecover().List(tenantId, ruleId)
+	for fingerprint := range fs {
+		event, ok := events[fingerprint]
+		if !ok {
+			t.ctx.Redis.PendingRecover().Delete(tenantId, ruleId, fingerprint)
+			continue
+		}
+
+		// 转换为告警状态
+		if err := event.TransitionStatus(models.StateAlerting); err != nil {
+			logc.Errorf(t.ctx.Ctx, "Failed to transition to alerting state for fingerprint %s: %v", fingerprint, err)
+			continue
+		}
+
+		// 更新告警事件并删除待恢复状态
+		t.ctx.Redis.Alert().PushAlertEvent(event)
+		t.ctx.Redis.PendingRecover().Delete(tenantId, ruleId, fingerprint)
+	}
+}
+
+// 获取恢复等待时间
 func (t *AlertRule) getRecoverWaitTime(faultCenterInfoKey models.FaultCenterInfoCacheKey) int64 {
 	faultCenter := t.ctx.Redis.FaultCenter().GetFaultCenterInfo(faultCenterInfoKey)
 	if faultCenter.RecoverWaitTime == 0 {
 		return 1
 	}
-
 	return faultCenter.RecoverWaitTime
 }
 

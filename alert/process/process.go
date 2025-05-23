@@ -97,7 +97,6 @@ func GcRecoverWaitCache(ctx *ctx.Context, rule models.AlertRule, curKeys []strin
 	recoverWaitKeys := getRecoverWaitList(ctx, rule)
 	// 删除正常告警的key
 	fks := tools.GetSliceSame(curKeys, recoverWaitKeys)
-
 	for _, key := range fks {
 		ctx.Redis.PendingRecover().Delete(rule.TenantId, rule.RuleId, key)
 	}

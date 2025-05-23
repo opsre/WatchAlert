@@ -1,11 +1,8 @@
 package models
 
 import (
-	"context"
 	"fmt"
 	"time"
-
-	"github.com/zeromicro/go-zero/core/logc"
 )
 
 // AlertStatus 定义状态类型
@@ -99,12 +96,8 @@ func (alert *AlertCurEvent) TransitionStatus(newStatus AlertStatus) error {
 
 	// 检查当前状态是否允许转换到新状态
 	if err := alert.validateTransition(newStatus); err != nil {
-		logc.Error(context.Background(), "状态转换失败: "+err.Error())
 		return err
 	}
-
-	// 记录状态转换前的状态
-	oldStatus := alert.Status
 
 	// 执行状态转换时的附加操作
 	if err := alert.handleStateTransition(newStatus); err != nil {
@@ -114,7 +107,6 @@ func (alert *AlertCurEvent) TransitionStatus(newStatus AlertStatus) error {
 	// 更新状态
 	alert.Status = newStatus
 
-	logc.Info(context.Background(), fmt.Sprintf("告警 [%s] 状态从 %s 转换为 %s", alert.Fingerprint, oldStatus, newStatus))
 	return nil
 }
 
@@ -126,7 +118,7 @@ func (alert *AlertCurEvent) validateTransition(newState AlertStatus) error {
 	allowedTransitions := map[AlertStatus][]AlertStatus{
 		StatePreAlert:        {StateAlerting, StateSilenced},
 		StateAlerting:        {StatePendingRecovery, StateSilenced},
-		StatePendingRecovery: {StateRecovered, StateAlerting},
+		StatePendingRecovery: {StateAlerting, StateRecovered},
 		StateRecovered:       {StatePreAlert},
 		StateSilenced:        {StatePreAlert, StateAlerting, StatePendingRecovery, StateRecovered},
 	}
@@ -161,6 +153,10 @@ func (alert *AlertCurEvent) handleStateTransition(newState AlertStatus) error {
 		alert.LastEvalTime = now
 	case StateAlerting:
 	case StateRecovered:
+		if alert.IsRecovered == true && alert.Status == StateRecovered {
+			return nil
+		}
+
 		alert.LastSendTime = 0
 		alert.RecoverTime = now
 		alert.IsRecovered = true

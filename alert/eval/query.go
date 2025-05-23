@@ -27,14 +27,15 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 		// 按指纹分组存储事件，每个指纹只保留最高优先级的事件
 		highestPriorityEvents = make(map[string]models.AlertCurEvent)
 	)
+
+	cli, err := pools.GetClient(datasourceId)
+	if err != nil {
+		logc.Errorf(ctx.Ctx, err.Error())
+		return nil
+	}
+
 	switch datasourceType {
 	case provider.PrometheusDsProvider:
-		cli, err := pools.GetClient(datasourceId)
-		if err != nil {
-			logc.Errorf(ctx.Ctx, err.Error())
-			return nil
-		}
-
 		resQuery, err = cli.(provider.PrometheusProvider).Query(rule.PrometheusConfig.PromQL)
 		if err != nil {
 			logc.Error(ctx.Ctx, err.Error())
@@ -43,12 +44,6 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 
 		externalLabels = cli.(provider.PrometheusProvider).GetExternalLabels()
 	case provider.VictoriaMetricsDsProvider:
-		cli, err := pools.GetClient(datasourceId)
-		if err != nil {
-			logc.Errorf(ctx.Ctx, err.Error())
-			return nil
-		}
-
 		resQuery, err = cli.(provider.VictoriaMetricsProvider).Query(rule.PrometheusConfig.PromQL)
 		if err != nil {
 			logc.Error(ctx.Ctx, err.Error())
@@ -114,14 +109,17 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 					event.Status = models.StatePreAlert
 					highestPriorityEvents[fingerprint] = event
 					curFingerprints = append(curFingerprints, fingerprint)
+					if _, e := event.Metric["recover_value"]; e {
+						delete(event.Metric, "recover_value")
+					}
 				}
 				// 找到符合条件的规则后，跳过该指标的其他规则
 				break
 			} else if _, exist := fingerPrintMap[fingerprint]; exist {
 				// 如果是 预告警 状态的事件，触发了恢复逻辑，但它并非是真正触发告警而恢复，所以只需要删除历史事件即可，无需继续处理恢复逻辑。
-				if ctx.Redis.Alert().GetEventStatus(event.TenantId, event.FaultCenterId, fingerprint) == models.StatePreAlert {
-					logc.Alert(ctx.Ctx, fmt.Sprintf("移除预告警恢复事件, Rule: %s, Fingerprint: %s", rule.RuleName, fingerprint))
-					ctx.Redis.Alert().RemoveAlertEvent(event.TenantId, event.FaultCenterId, fingerprint)
+				if ctx.Redis.Alert().GetEventStatus(event.TenantId, event.FaultCenterId, event.Fingerprint) == models.StatePreAlert {
+					logc.Alert(ctx.Ctx, fmt.Sprintf("移除预告警恢复事件, Rule: %s, Fingerprint: %s", event.RuleName, event.Fingerprint))
+					ctx.Redis.Alert().RemoveAlertEvent(event.TenantId, event.FaultCenterId, event.Fingerprint)
 					continue
 				}
 
