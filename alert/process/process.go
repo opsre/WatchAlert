@@ -9,13 +9,13 @@ import (
 	"watchAlert/pkg/tools"
 )
 
-func BuildEvent(rule models.AlertRule, metric func() map[string]interface{}) models.AlertCurEvent {
+func BuildEvent(rule models.AlertRule, labels func() map[string]interface{}) models.AlertCurEvent {
 	return models.AlertCurEvent{
 		TenantId:             rule.TenantId,
 		DatasourceType:       rule.DatasourceType,
 		RuleId:               rule.RuleId,
 		RuleName:             rule.RuleName,
-		Metric:               metric(),
+		Labels:               labels(),
 		EvalInterval:         rule.EvalInterval,
 		ForDuration:          rule.PrometheusConfig.ForDuration,
 		IsRecovered:          false,
@@ -87,7 +87,7 @@ func IsSilencedEvent(event *models.AlertCurEvent) bool {
 		EffectiveTime: event.EffectiveTime,
 		IsRecovered:   event.IsRecovered,
 		TenantId:      event.TenantId,
-		Metrics:       event.Metric,
+		Labels:        event.Labels,
 		FaultCenterId: event.FaultCenterId,
 	})
 }
@@ -152,8 +152,7 @@ func RecordAlertHisEvent(ctx *ctx.Context, alert models.AlertCurEvent) error {
 		RuleId:           alert.RuleId,
 		RuleName:         alert.RuleName,
 		Severity:         alert.Severity,
-		Metric:           alert.Metric,
-		Log:              alert.Log,
+		Labels:           alert.Labels,
 		EvalInterval:     alert.EvalInterval,
 		Annotations:      alert.Annotations,
 		IsRecovered:      true,

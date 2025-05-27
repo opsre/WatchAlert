@@ -125,7 +125,7 @@ func (e eventService) ListCurrentEvent(req interface{}) (interface{}, interface{
 				dsTypeDataList = append(dsTypeDataList, v)
 				continue
 			}
-			if strings.Contains(tools.JsonMarshal(v.Metric), r.Query) {
+			if strings.Contains(tools.JsonMarshal(v.Labels), r.Query) {
 				dsTypeDataList = append(dsTypeDataList, v)
 				continue
 			}

@@ -149,7 +149,7 @@ func buildEvent(event models.ProbingEvent) models.AlertCurEvent {
 		TenantId:               event.TenantId,
 		RuleId:                 event.RuleId,
 		Fingerprint:            event.Fingerprint,
-		Metric:                 event.Metric,
+		Labels:                 event.Labels,
 		Annotations:            event.Annotations,
 		IsRecovered:            event.IsRecovered,
 		FirstTriggerTime:       event.FirstTriggerTime,

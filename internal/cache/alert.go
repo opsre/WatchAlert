@@ -152,7 +152,13 @@ func (a *AlertCache) GetLastFiringValue(tenantId, faultCenterId, fingerprint str
 	if err != nil {
 		return 0
 	}
-	return event.Metric["value"].(float64)
+
+	v, ok := event.Labels["value"]
+	if !ok {
+		return 0
+	}
+
+	return v.(float64)
 }
 
 // GetLastUpgradeState 获取最新升级策略信息

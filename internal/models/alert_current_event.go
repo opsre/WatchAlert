@@ -25,8 +25,7 @@ type AlertCurEvent struct {
 	DatasourceId           string                 `json:"datasource_id" gorm:"datasource_id"`
 	Fingerprint            string                 `json:"fingerprint"`
 	Severity               string                 `json:"severity"`
-	Metric                 map[string]interface{} `json:"metric" gorm:"metric;serializer:json"`
-	Log                    map[string]interface{} `json:"log" gorm:"log;serializer:json"`
+	Labels                 map[string]interface{} `json:"labels" gorm:"labels;serializer:json"`
 	SearchQL               string                 `json:"searchQL" gorm:"-"`
 	EvalInterval           int64                  `json:"eval_interval"`
 	ForDuration            int64                  `json:"for_duration"`

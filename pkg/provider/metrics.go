@@ -28,6 +28,10 @@ func (m Metrics) GetFingerprint() string {
 		return strconv.FormatUint(tools.HashNew(), 10)
 	}
 
+	delete(m.Metric, "value")
+	delete(m.Metric, "recover_value")
+	delete(m.Metric, "fingerprint")
+
 	var result uint64
 	for labelName, labelValue := range m.Metric {
 		sum := tools.HashNew()
@@ -39,11 +43,10 @@ func (m Metrics) GetFingerprint() string {
 	return strconv.FormatUint(result, 10)
 }
 
-func (m Metrics) GetMetric() *map[string]interface{} {
-	m.Metric["value"] = m.Value
-	return &m.Metric
+func (m Metrics) GetMetric() map[string]interface{} {
+	return m.Metric
 }
 
-func (m Metrics) GetValue() *float64 {
-	return &m.Value
+func (m Metrics) GetValue() float64 {
+	return m.Value
 }

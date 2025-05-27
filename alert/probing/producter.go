@@ -88,17 +88,17 @@ func (t *ProductProbing) worker(rule models.ProbingRule) {
 
 	event := t.buildEvent(rule)
 	event.Fingerprint = eValue.GetFingerprint()
-	event.Metric = eValue.GetLabels()
+	event.Labels = eValue.GetLabels()
 	var isValue float64
 	if rule.RuleType != provider.TCPEndpointProvider {
-		event.Metric["value"] = eValue[ruleConfig.Strategy.Field].(float64)
+		event.Labels["value"] = eValue[ruleConfig.Strategy.Field].(float64)
 	} else {
 		if eValue["IsSuccessful"] == true {
 			isValue = 1
 		}
-		event.Metric["value"] = isValue
+		event.Labels["value"] = isValue
 	}
-	event.Annotations = tools.ParserVariables(rule.Annotations, event.Metric)
+	event.Annotations = tools.ParserVariables(rule.Annotations, event.Labels)
 
 	var option models.EvalCondition
 	switch rule.RuleType {

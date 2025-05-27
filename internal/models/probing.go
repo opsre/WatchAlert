@@ -129,7 +129,7 @@ type ProbingEvent struct {
 	RuleName               string                 `json:"ruleName"`
 	RuleType               string                 `json:"ruleType"`
 	Fingerprint            string                 `json:"fingerprint"`
-	Metric                 map[string]interface{} `json:"metric" gorm:"metric;serializer:json"`
+	Labels                 map[string]interface{} `json:"labels" gorm:"labels;serializer:json"`
 	ProbingEndpointConfig  ProbingEndpointConfig  `json:"probingEndpointConfig" gorm:"probingEndpointConfig;serializer:json"`
 	NoticeId               string                 `json:"noticeId"`
 	IsRecovered            bool                   `json:"isRecovered" gorm:"-"`

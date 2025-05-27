@@ -29,15 +29,13 @@ type (
 
 	// AlertRule 告警规则
 	AlertRule struct {
-		ctx         *ctx.Context
-		watchCtxMap map[string]context.CancelFunc
+		ctx *ctx.Context
 	}
 )
 
 func NewAlertRuleEval(ctx *ctx.Context) AlertRuleEval {
 	return &AlertRule{
-		ctx:         ctx,
-		watchCtxMap: make(map[string]context.CancelFunc),
+		ctx: ctx,
 	}
 }
 
@@ -46,7 +44,7 @@ func (t *AlertRule) Submit(rule models.AlertRule) {
 	defer t.ctx.Mux.Unlock()
 
 	c, cancel := context.WithCancel(context.Background())
-	t.watchCtxMap[rule.RuleId] = cancel
+	t.ctx.ContextMap[rule.RuleId] = cancel
 	go t.Eval(c, rule)
 }
 
@@ -54,9 +52,9 @@ func (t *AlertRule) Stop(ruleId string) {
 	t.ctx.Mux.Lock()
 	defer t.ctx.Mux.Unlock()
 
-	if cancel, exists := t.watchCtxMap[ruleId]; exists {
+	if cancel, exists := t.ctx.ContextMap[ruleId]; exists {
 		cancel()
-		delete(t.watchCtxMap, ruleId)
+		delete(t.ctx.ContextMap, ruleId)
 	}
 }
 
@@ -160,6 +158,20 @@ func (t *AlertRule) Recover(tenantId, ruleId string, eventCacheKey models.AlertE
 	if len(recoverFingerprints) == 0 {
 		t.handlePendingRecovery(tenantId, ruleId, events)
 		return
+	}
+
+	// 从待恢复状态转换成告警状态
+	fs := t.ctx.Redis.PendingRecover().List(tenantId, ruleId)
+	if len(recoverFingerprints) == 0 && len(fs) != 0 {
+		for fingerprint := range fs {
+			event, ok := events[fingerprint]
+			if !ok {
+				continue
+			}
+			event.TransitionStatus(models.StateAlerting)
+			t.ctx.Redis.Alert().PushAlertEvent(event)
+			t.ctx.Redis.PendingRecover().Delete(tenantId, ruleId, fingerprint)
+		}
 	}
 
 	// 处理恢复逻辑

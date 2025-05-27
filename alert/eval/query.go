@@ -67,8 +67,6 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 	rules := sortRulesByPriority(rule.PrometheusConfig.Rules)
 
 	for _, v := range resQuery {
-		fingerprint := v.GetFingerprint()
-
 		// 遍历按优先级排序后的规则
 		for _, ruleExpr := range rules {
 			operator, value, err := tools.ProcessRuleExpr(ruleExpr.Expr)
@@ -83,25 +81,28 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 				ExpectedValue: value,
 			}
 
+			fingerprint := v.GetFingerprint()
 			event := process.BuildEvent(rule, func() map[string]interface{} {
-				metric := *v.GetMetric()
-				metric["severity"] = ruleExpr.Severity
+				metric := v.GetMetric()
+				metric["rule_name"] = rule.RuleName
 				metric["fingerprint"] = fingerprint
+				metric["severity"] = ruleExpr.Severity
+				metric["value"] = v.Value
 				for ek, ev := range externalLabels {
 					metric[ek] = ev
 				}
 				for ek, ev := range rule.ExternalLabels {
 					metric[ek] = ev
 				}
-				metric["rule_name"] = rule.RuleName
 				return metric
 			})
 			event.DatasourceId = datasourceId
 			event.Fingerprint = fingerprint
 			event.Severity = ruleExpr.Severity
-			event.Annotations = tools.ParserVariables(rule.PrometheusConfig.Annotations, event.Metric)
 			event.SearchQL = rule.PrometheusConfig.PromQL
+			event.Annotations = tools.ParserVariables(rule.PrometheusConfig.Annotations, tools.ConvertEventToMap(event))
 
+			// 告警评估
 			if process.EvalCondition(option) {
 				// 如果条件满足，检查是否已经有更高优先级的事件
 				if _, exists := highestPriorityEvents[fingerprint]; !exists {
@@ -109,8 +110,8 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 					event.Status = models.StatePreAlert
 					highestPriorityEvents[fingerprint] = event
 					curFingerprints = append(curFingerprints, fingerprint)
-					if _, e := event.Metric["recover_value"]; e {
-						delete(event.Metric, "recover_value")
+					if _, e := event.Labels["recover_value"]; e {
+						delete(event.Labels, "recover_value")
 					}
 				}
 				// 找到符合条件的规则后，跳过该指标的其他规则
@@ -124,14 +125,14 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 				}
 
 				// 获取过恢复值则直接跳过
-				if _, existRecoverValue := event.Metric["recover_value"]; existRecoverValue {
+				if _, existRecoverValue := event.Labels["recover_value"]; existRecoverValue {
 					continue
 				}
 
 				// 获取上一次告警值
-				event.Metric["value"] = ctx.Redis.Alert().GetLastFiringValue(event.TenantId, event.FaultCenterId, event.Fingerprint)
+				event.Labels["value"] = ctx.Redis.Alert().GetLastFiringValue(event.TenantId, event.FaultCenterId, event.Fingerprint)
 				// 获取当前恢复值
-				event.Metric["recover_value"] = v.GetValue()
+				event.Labels["recover_value"] = v.GetValue()
 				process.PushEventToFaultCenter(ctx, &event)
 			}
 		}
@@ -344,23 +345,25 @@ func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.Ale
 	var curFingerprints []string
 	event := func() *models.AlertCurEvent {
 		event := process.BuildEvent(rule, func() map[string]interface{} {
-			metric := map[string]interface{}{
+			labels := map[string]interface{}{
 				"value":       count,
 				"severity":    rule.Severity,
 				"fingerprint": fingerprint,
 				"rule_name":   rule.RuleName,
 			}
 			for ek, ev := range externalLabels {
-				metric[ek] = ev
+				labels[ek] = ev
 			}
 			for ek, ev := range rule.ExternalLabels {
-				metric[ek] = ev
+				labels[ek] = ev
 			}
-			return metric
+			for logKey, logValue := range log.GetAnnotations() {
+				labels[logKey] = logValue
+			}
+			return labels
 		})
 		event.DatasourceId = datasourceId
 		event.Fingerprint = fingerprint
-		event.Log = log.GetAnnotations()
 
 		switch datasourceType {
 		case provider.LokiDsProviderName:
@@ -429,21 +432,23 @@ func traces(ctx *ctx.Context, datasourceId, datasourceType string, rule models.A
 		fingerprint := v.GetFingerprint()
 		event := process.BuildEvent(rule, func() map[string]interface{} {
 			metric := v.GetMetric()
+			metric["rule_name"] = rule.RuleName
 			metric["severity"] = rule.Severity
 			metric["fingerprint"] = fingerprint
+			metric["service"] = rule.JaegerConfig.Service
+			metric["traceId"] = v.TraceId
 			for ek, ev := range externalLabels {
 				metric[ek] = ev
 			}
 			for ek, ev := range rule.ExternalLabels {
 				metric[ek] = ev
 			}
-			metric["rule_name"] = rule.RuleName
 			return metric
 		})
 		event.DatasourceId = datasourceId
 		event.Fingerprint = fingerprint
 		event.SearchQL = rule.JaegerConfig.Tags
-		event.Annotations = fmt.Sprintf("服务: %s 链路中存在异常状态码接口, TraceId: %s", rule.JaegerConfig.Service, v.TraceId)
+		event.Annotations = fmt.Sprintf("服务: %s 链路中存在异常, TraceId: %s", rule.JaegerConfig.Service, v.TraceId)
 
 		curFingerprints = append(curFingerprints, event.Fingerprint)
 		process.PushEventToFaultCenter(ctx, &event)
@@ -567,16 +572,16 @@ func kubernetesEvent(ctx *ctx.Context, datasourceId string, rule models.AlertRul
 		fingerprint := k8sItem.GetFingerprint()
 		event := process.BuildEvent(rule, func() map[string]interface{} {
 			metric := k8sItem.GetMetrics()
+			metric["rule_name"] = rule.RuleName
 			metric["severity"] = rule.Severity
 			metric["fingerprint"] = fingerprint
+			metric["value"] = len(items)
 			for ek, ev := range externalLabels {
 				metric[ek] = ev
 			}
 			for ek, ev := range rule.ExternalLabels {
 				metric[ek] = ev
 			}
-			metric["rule_name"] = rule.RuleName
-			metric["value"] = len(items)
 			return metric
 		})
 		event.DatasourceId = datasourceId

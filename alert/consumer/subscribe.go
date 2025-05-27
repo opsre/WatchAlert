@@ -41,7 +41,7 @@ func processSubscribe(ctx *ctx.Context, alert *models.AlertCurEvent) error {
 		if len(subscribe.SFilter) > 0 {
 			allMatched := true
 			for _, f := range subscribe.SFilter {
-				if !strings.Contains(tools.JsonMarshal(alert.Metric), f) && !strings.Contains(alert.Annotations, f) {
+				if !strings.Contains(tools.JsonMarshal(alert.Labels), f) && !strings.Contains(alert.Annotations, f) {
 					allMatched = false
 					break
 				}

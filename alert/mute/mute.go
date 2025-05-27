@@ -13,7 +13,7 @@ type MuteParams struct {
 	RecoverNotify *bool
 	IsRecovered   bool
 	TenantId      string
-	Metrics       map[string]interface{}
+	Labels        map[string]interface{}
 	FaultCenterId string
 }
 
@@ -79,7 +79,7 @@ func IsSilence(mute MuteParams) bool {
 			continue
 		}
 
-		if evalCondition(mute.Metrics, muteRule.Labels) {
+		if evalCondition(mute.Labels, muteRule.Labels) {
 			return true
 		}
 	}

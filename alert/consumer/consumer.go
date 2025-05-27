@@ -91,10 +91,10 @@ func (ag *AlertGroups) AddAlert(stateId string, alert *models.AlertCurEvent, fau
 // getNoticeId 从告警路由中获取该事件匹配的通知对象
 func (ag *AlertGroups) getNoticeId(alert *models.AlertCurEvent, faultCenter models.FaultCenter) []string {
 	if len(faultCenter.NoticeRoutes) > 0 {
-		metrics := alert.Metric
+		labels := alert.Labels
 
 		for _, route := range faultCenter.NoticeRoutes {
-			if metrics[route.Key] == route.Value {
+			if labels[route.Key] == route.Value {
 				return route.NoticeIds
 			}
 		}
@@ -139,7 +139,7 @@ func (c *Consume) Submit(faultCenter models.FaultCenter) {
 	defer c.ctx.Mux.Unlock()
 
 	withCtx, cancel := context.WithCancel(context.Background())
-	c.ctx.ConsumerContextMap[faultCenter.ID] = cancel
+	c.ctx.ContextMap[faultCenter.ID] = cancel
 	go c.Watch(withCtx, faultCenter)
 }
 
@@ -147,9 +147,9 @@ func (c *Consume) Stop(faultCenterId string) {
 	c.ctx.Mux.Lock()
 	defer c.ctx.Mux.Unlock()
 
-	if cancel, exists := c.ctx.ConsumerContextMap[faultCenterId]; exists {
+	if cancel, exists := c.ctx.ContextMap[faultCenterId]; exists {
 		cancel()
-		delete(c.ctx.ConsumerContextMap, faultCenterId)
+		delete(c.ctx.ContextMap, faultCenterId)
 	}
 }
 
@@ -245,7 +245,7 @@ func (c *Consume) isMutedEvent(event *models.AlertCurEvent, faultCenter models.F
 		EffectiveTime: event.EffectiveTime,
 		IsRecovered:   event.IsRecovered,
 		TenantId:      event.TenantId,
-		Metrics:       event.Metric,
+		Labels:        event.Labels,
 		FaultCenterId: event.FaultCenterId,
 		RecoverNotify: faultCenter.RecoverNotify,
 	})
