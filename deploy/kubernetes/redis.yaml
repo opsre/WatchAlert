@@ -15,18 +15,35 @@ spec:
     spec:
       containers:
         - name: w8t-redis
+          command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
           image: redis:latest
           ports:
             - containerPort: 6379
           volumeMounts:
             - name: redis-data
               mountPath: /data
+            - name: redis-config
+              mountPath: /usr/local/etc/redis/redis.conf
+              subPath: redis.conf
       volumes:
         - name: redis-data
           hostPath:
             path: /data/w8t/redis
             type: DirectoryOrCreate
-
+        - name: redis-config
+          configMap:
+            name: redis-config
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-config
+  namespace: default
+data:
+  redis.conf: |
+    # Redis configuration
+    appendonly yes
+    ignore-warnings ARM64-COW-BUG
 ---
 apiVersion: v1
 kind: Service
