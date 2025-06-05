@@ -42,11 +42,11 @@ type Result struct {
 	Values []interface{}          `json:"values"`
 }
 
-func (l LokiProvider) Query(options LogQueryOptions) ([]Logs, int, error) {
+func (l LokiProvider) Query(options LogQueryOptions) (Logs, int, error) {
 	curTime := time.Now()
 
 	if options.Loki.Query == "" {
-		return nil, 0, nil
+		return Logs{}, 0, nil
 	}
 
 	if options.Loki.Direction == "" {
@@ -70,18 +70,17 @@ func (l LokiProvider) Query(options LogQueryOptions) ([]Logs, int, error) {
 	requestURL := l.url + args
 	res, err := tools.Get(nil, requestURL, 10)
 	if err != nil {
-		return nil, 0, err
+		return Logs{}, 0, err
 	}
 
 	var resultData result
 	if err := tools.ParseReaderBody(res.Body, &resultData); err != nil {
-		return nil, 0, errors.New(fmt.Sprintf("json.Unmarshal failed, %s", err.Error()))
+		return Logs{}, 0, errors.New(fmt.Sprintf("json.Unmarshal failed, %s", err.Error()))
 	}
 
 	var (
-		count int // count 用于统计日志条数
-		data  []Logs
-		msgs  []map[string]interface{}
+		count   int // count 用于统计日志条数
+		message []map[string]interface{}
 	)
 	for _, v := range resultData.Data.Result {
 		count += len(v.Values)
@@ -124,16 +123,14 @@ func (l LokiProvider) Query(options LogQueryOptions) ([]Logs, int, error) {
 				logc.Error(context.Background(), fmt.Sprintf("解析 Loki 日志数据错误, %v", string(jsonData)))
 				continue
 			}
-			msgs = append(msgs, msg)
+			message = append(message, msg)
 		}
 	}
 
-	data = append(data, Logs{
+	return Logs{
 		ProviderName: LokiDsProviderName,
-		Message:      msgs,
-	})
-
-	return data, count, nil
+		Message:      message,
+	}, count, nil
 }
 
 func (l LokiProvider) Check() (bool, error) {

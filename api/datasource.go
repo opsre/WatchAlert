@@ -233,6 +233,17 @@ func (dc DatasourceController) SearchViewLogsContent(ctx *gin.Context) {
 					RawJson:   QueryStr,
 				},
 			}
+		case provider.ClickHouseDsProviderName:
+			client, err = provider.NewClickHouseClient(ctx, datasource)
+			if err != nil {
+				return nil, err
+			}
+
+			options = provider.LogQueryOptions{
+				ClickHouse: provider.ClickHouse{
+					Query: QueryStr,
+				},
+			}
 		}
 
 		query, _, err := client.Query(options)

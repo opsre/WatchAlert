@@ -1,17 +1,18 @@
-package provider
+package test
 
 import (
 	"fmt"
 	"testing"
+	"watchAlert/pkg/provider"
 	"watchAlert/pkg/tools"
 )
 
 func TestNewEndpointSSLer(t *testing.T) {
-	buildOption := EndpointOption{
+	buildOption := provider.EndpointOption{
 		Endpoint: "www.baidu.com",
 		Timeout:  10,
 	}
-	pilot, err := NewEndpointSSLer().Pilot(buildOption)
+	pilot, err := provider.NewEndpointSSLer().Pilot(buildOption)
 	if err != nil {
 		fmt.Println(err.Error())
 		return

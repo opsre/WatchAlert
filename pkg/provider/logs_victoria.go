@@ -41,7 +41,7 @@ func NewVictoriaLogsClient(ctx context.Context, datasource models.AlertDataSourc
 	}, nil
 }
 
-func (v VictoriaLogsProvider) Query(options LogQueryOptions) ([]Logs, int, error) {
+func (v VictoriaLogsProvider) Query(options LogQueryOptions) (Logs, int, error) {
 	curTime := time.Now()
 
 	if options.StartAt == "" || options.StartAt == nil {
@@ -62,7 +62,7 @@ func (v VictoriaLogsProvider) Query(options LogQueryOptions) ([]Logs, int, error
 
 	if err != nil {
 		logc.Error(ctx.Ctx, fmt.Sprintf("查询VictoriaLogs失败: %s", err.Error()))
-		return nil, 0, err
+		return Logs{}, 0, err
 	}
 
 	respBody, _ := io.ReadAll(res.Body)
@@ -70,12 +70,12 @@ func (v VictoriaLogsProvider) Query(options LogQueryOptions) ([]Logs, int, error
 	if res.StatusCode != 200 {
 		errMsg := fmt.Sprintf("查询VictoriaLogs失败: %s", string(respBody))
 		logc.Error(v.Ctx, errMsg)
-		return nil, 0, fmt.Errorf(errMsg)
+		return Logs{}, 0, fmt.Errorf(errMsg)
 	}
 
 	var (
-		msgs  = []map[string]interface{}{}
-		count int
+		message []map[string]interface{}
+		count   int
 	)
 	scanner := bufio.NewScanner(bytes.NewReader(respBody))
 	for scanner.Scan() {
@@ -88,17 +88,14 @@ func (v VictoriaLogsProvider) Query(options LogQueryOptions) ([]Logs, int, error
 			logc.Error(context.Background(), fmt.Sprintf("VictoriaLogs - 解析行失败: %v，内容: %s", err, string(line)))
 			continue
 		}
-		msgs = append(msgs, msg)
+		message = append(message, msg)
 		count++
 	}
 
-	var logs []Logs
-	logs = append(logs, Logs{
+	return Logs{
 		ProviderName: VictoriaLogsDsProviderName,
-		Message:      msgs,
-	})
-
-	return logs, count, nil
+		Message:      message,
+	}, count, nil
 }
 
 func (v VictoriaLogsProvider) Check() (bool, error) {

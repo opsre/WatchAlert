@@ -27,6 +27,8 @@ type AlertRule struct {
 
 	VictoriaLogsConfig VictoriaLogsConfig `json:"victoriaLogsConfig" gorm:"victoriaConfig;serializer:json"`
 
+	ClickHouseConfig ClickHouseConfig `json:"clickhouseConfig" gorm:"clickhouseConfig;serializer:json"`
+
 	// Jaeger
 	JaegerConfig JaegerConfig `json:"jaegerConfig" gorm:"JaegerConfig;serializer:json"`
 
@@ -121,6 +123,10 @@ type VictoriaLogsConfig struct {
 	LogQL    string `json:"logQL"`
 	LogScope int    `json:"logScope"`
 	Limit    int    `json:"limit"`
+}
+
+type ClickHouseConfig struct {
+	LogQL string `json:"logQL"`
 }
 
 type CloudWatchConfig struct {

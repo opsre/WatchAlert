@@ -179,22 +179,27 @@ func getPriorityValue(severity string) int {
 // Logs 包含 AliSLS、Loki、ElasticSearch 数据源
 func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.AlertRule) []string {
 	var (
-		queryRes       []provider.Logs
-		count          int
-		evalOptions    models.EvalCondition
+		// 日志信息
+		log provider.Logs
+		// 日志总数
+		count int
+		// 评估
+		evalOptions models.EvalCondition
+		// 额外的标签
 		externalLabels map[string]interface{}
+		// 当前时间
+		curAt = time.Now()
 	)
 
 	pools := ctx.Redis.ProviderPools()
+	cli, err := pools.GetClient(datasourceId)
+	if err != nil {
+		logc.Errorf(ctx.Ctx, err.Error())
+		return []string{}
+	}
+
 	switch datasourceType {
 	case provider.LokiDsProviderName:
-		cli, err := pools.GetClient(datasourceId)
-		if err != nil {
-			logc.Errorf(ctx.Ctx, err.Error())
-			return []string{}
-		}
-
-		curAt := time.Now()
 		startsAt := tools.ParserDuration(curAt, rule.LokiConfig.LogScope, "m")
 		queryOptions := provider.LogQueryOptions{
 			Loki: provider.Loki{
@@ -203,7 +208,7 @@ func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.Ale
 			StartAt: startsAt.Unix(),
 			EndAt:   curAt.Unix(),
 		}
-		queryRes, count, err = cli.(provider.LokiProvider).Query(queryOptions)
+		log, count, err = cli.(provider.LokiProvider).Query(queryOptions)
 		if err != nil {
 			logc.Error(ctx.Ctx, err.Error())
 			return []string{}
@@ -222,13 +227,6 @@ func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.Ale
 			ExpectedValue: value,
 		}
 	case provider.AliCloudSLSDsProviderName:
-		cli, err := pools.GetClient(datasourceId)
-		if err != nil {
-			logc.Errorf(ctx.Ctx, err.Error())
-			return []string{}
-		}
-
-		curAt := time.Now()
 		startsAt := tools.ParserDuration(curAt, rule.AliCloudSLSConfig.LogScope, "m")
 		queryOptions := provider.LogQueryOptions{
 			AliCloudSLS: provider.AliCloudSLS{
@@ -239,7 +237,7 @@ func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.Ale
 			StartAt: int32(startsAt.Unix()),
 			EndAt:   int32(curAt.Unix()),
 		}
-		queryRes, count, err = cli.(provider.AliCloudSlsDsProvider).Query(queryOptions)
+		log, count, err = cli.(provider.AliCloudSlsDsProvider).Query(queryOptions)
 		if err != nil {
 			logc.Error(ctx.Ctx, err.Error())
 			return []string{}
@@ -258,14 +256,6 @@ func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.Ale
 			ExpectedValue: value,
 		}
 	case provider.ElasticSearchDsProviderName:
-		cli, err := pools.GetClient(datasourceId)
-		if err != nil {
-			logc.Errorf(ctx.Ctx, err.Error())
-			return []string{}
-		}
-
-		curAt := time.Now()
-		startsAt := tools.ParserDuration(curAt, int(rule.ElasticSearchConfig.Scope), "m")
 		queryOptions := provider.LogQueryOptions{
 			ElasticSearch: provider.Elasticsearch{
 				Index:                rule.ElasticSearchConfig.Index,
@@ -275,10 +265,8 @@ func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.Ale
 				QueryWildcard:        rule.ElasticSearchConfig.QueryWildcard,
 				RawJson:              rule.ElasticSearchConfig.RawJson,
 			},
-			StartAt: tools.FormatTimeToUTC(startsAt.Unix()),
-			EndAt:   tools.FormatTimeToUTC(curAt.Unix()),
 		}
-		queryRes, count, err = cli.(provider.ElasticSearchDsProvider).Query(queryOptions)
+		log, count, err = cli.(provider.ElasticSearchDsProvider).Query(queryOptions)
 		if err != nil {
 			logc.Error(ctx.Ctx, err.Error())
 			return []string{}
@@ -297,13 +285,6 @@ func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.Ale
 			ExpectedValue: value,
 		}
 	case provider.VictoriaLogsDsProviderName:
-		cli, err := pools.GetClient(datasourceId)
-		if err != nil {
-			logc.Errorf(ctx.Ctx, err.Error())
-			return []string{}
-		}
-
-		curAt := time.Now()
 		startsAt := tools.ParserDuration(curAt, rule.VictoriaLogsConfig.LogScope, "m")
 		queryOptions := provider.LogQueryOptions{
 			VictoriaLogs: provider.VictoriaLogs{
@@ -313,7 +294,7 @@ func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.Ale
 			StartAt: int32(startsAt.Unix()),
 			EndAt:   int32(curAt.Unix()),
 		}
-		queryRes, count, err = cli.(provider.VictoriaLogsProvider).Query(queryOptions)
+		log, count, err = cli.(provider.VictoriaLogsProvider).Query(queryOptions)
 		if err != nil {
 			logc.Error(ctx.Ctx, err.Error())
 			return []string{}
@@ -331,14 +312,35 @@ func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.Ale
 			QueryValue:    float64(count),
 			ExpectedValue: value,
 		}
+	case provider.ClickHouseDsProviderName:
+		queryOptions := provider.LogQueryOptions{
+			ClickHouse: provider.ClickHouse{
+				Query: rule.ClickHouseConfig.LogQL,
+			},
+		}
+		log, count, err = cli.(provider.ClickHouseProvider).Query(queryOptions)
+		if err != nil {
+			logc.Error(ctx.Ctx, err.Error())
+			return []string{}
+		}
+
+		externalLabels = cli.(provider.ClickHouseProvider).GetExternalLabels()
+		operator, value, err := tools.ProcessRuleExpr(rule.LogEvalCondition)
+		if err != nil {
+			logc.Errorf(ctx.Ctx, err.Error())
+			return []string{}
+		}
+
+		evalOptions = models.EvalCondition{
+			Operator:      operator,
+			QueryValue:    float64(count),
+			ExpectedValue: value,
+		}
 	}
 
 	if count <= 0 {
 		return []string{}
 	}
-
-	// 仅在满足条件时处理第一条告警 ，避免日志数量多导致频繁报警。
-	log := queryRes[0]
 
 	// 唯一指纹基于 RuleId
 	fingerprint := log.GenerateFingerprint(rule.RuleId)

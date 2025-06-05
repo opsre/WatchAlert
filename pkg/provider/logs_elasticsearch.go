@@ -42,14 +42,14 @@ type esQueryResponse struct {
 	Source map[string]interface{} `json:"_source"`
 }
 
-func (e ElasticSearchDsProvider) Query(options LogQueryOptions) ([]Logs, int, error) {
+func (e ElasticSearchDsProvider) Query(options LogQueryOptions) (Logs, int, error) {
 	indexName := options.ElasticSearch.GetIndexName()
 	var query elastic.Query
 
 	switch options.ElasticSearch.QueryType {
 	case models.EsQueryTypeRawJson:
 		if options.ElasticSearch.RawJson == "" {
-			return nil, 0, errors.New("RawJson 为空")
+			return Logs{}, 0, errors.New("RawJson 为空")
 		}
 		query = elastic.NewRawStringQuery(options.ElasticSearch.RawJson)
 	case models.EsQueryTypeField:
@@ -66,7 +66,7 @@ func (e ElasticSearchDsProvider) Query(options LogQueryOptions) ([]Logs, int, er
 					// 模糊匹配
 					q = elastic.NewWildcardQuery(filter.Field, fmt.Sprintf("*%v*", filter.Value))
 				default:
-					return nil, 0, errors.New("undefined QueryWildcard")
+					return Logs{}, 0, errors.New("undefined QueryWildcard")
 				}
 				subQueries = append(subQueries, q)
 			}
@@ -81,13 +81,13 @@ func (e ElasticSearchDsProvider) Query(options LogQueryOptions) ([]Logs, int, er
 				// 表示"非"关系，所有子查询都不能匹配
 				conditionQuery = conditionQuery.MustNot(subQueries...)
 			default:
-				return nil, 0, errors.New("undefined QueryFilterCondition")
+				return Logs{}, 0, errors.New("undefined QueryFilterCondition")
 			}
 		}
 		conditionQuery.Must(elastic.NewRangeQuery("@timestamp").Gte(options.StartAt.(string)).Lte(options.EndAt.(string)))
 		query = conditionQuery
 	default:
-		return nil, 0, fmt.Errorf("undefined QueryType, type: %s", options.ElasticSearch.QueryType)
+		return Logs{}, 0, fmt.Errorf("undefined QueryType, type: %s", options.ElasticSearch.QueryType)
 	}
 
 	res, err := e.cli.Search().
@@ -96,33 +96,29 @@ func (e ElasticSearchDsProvider) Query(options LogQueryOptions) ([]Logs, int, er
 		Pretty(true).
 		Do(context.Background())
 	if err != nil {
-		return nil, 0, err
+		return Logs{}, 0, err
 	}
 
 	var response []esQueryResponse
 	marshalHits, err := json.Marshal(res.Hits.Hits)
 	if err != nil {
-		return nil, 0, err
+		return Logs{}, 0, err
 	}
 	err = json.Unmarshal(marshalHits, &response)
 	if err != nil {
-		return nil, 0, err
+		return Logs{}, 0, err
 	}
 
-	var (
-		data []Logs
-		msgs []map[string]interface{}
-	)
+	var message []map[string]interface{}
+
 	for _, v := range response {
-		msgs = append(msgs, v.Source)
+		message = append(message, v.Source)
 	}
 
-	data = append(data, Logs{
+	return Logs{
 		ProviderName: ElasticSearchDsProviderName,
-		Message:      msgs,
-	})
-
-	return data, len(response), nil
+		Message:      message,
+	}, len(response), nil
 }
 
 func (e ElasticSearchDsProvider) Check() (bool, error) {

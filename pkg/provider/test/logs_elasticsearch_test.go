@@ -1,4 +1,4 @@
-package provider
+package test
 
 import (
 	"context"
@@ -7,20 +7,21 @@ import (
 	"github.com/sirupsen/logrus"
 	"testing"
 	"watchAlert/internal/models"
+	"watchAlert/pkg/provider"
 )
 
 func TestNewElasticSearchClient(t *testing.T) {
-	client, err := NewElasticSearchClient(context.Background(), models.AlertDataSource{})
+	client, err := provider.NewElasticSearchClient(context.Background(), models.AlertDataSource{})
 	if err != nil {
 		logrus.Errorf("client -> %s", err.Error())
 		return
 	}
 
-	client.Query(LogQueryOptions{})
+	client.Query(provider.LogQueryOptions{})
 }
 
 func TestElasticsearch_GetIndexName(t *testing.T) {
-	var ess = []Elasticsearch{
+	var ess = []provider.Elasticsearch{
 		{
 			Index: "test.2000.10.23",
 		},
@@ -46,7 +47,7 @@ func TestElasticsearch_GetIndexName(t *testing.T) {
 }
 
 func TestElasticSearch_Query(t *testing.T) {
-	client, err := NewElasticSearchClient(context.Background(), models.AlertDataSource{
+	client, err := provider.NewElasticSearchClient(context.Background(), models.AlertDataSource{
 		HTTP: models.HTTP{
 			URL: "http://192.168.1.190:9200",
 		},
@@ -56,7 +57,7 @@ func TestElasticSearch_Query(t *testing.T) {
 		return
 	}
 
-	query, _, err := client.Query(LogQueryOptions{ElasticSearch: Elasticsearch{
+	query, _, err := client.Query(provider.LogQueryOptions{ElasticSearch: provider.Elasticsearch{
 		Index:     "test-2024-05.20",
 		QueryType: "RawJson",
 		RawJson:   `{"match_all":{}}`,
@@ -65,7 +66,7 @@ func TestElasticSearch_Query(t *testing.T) {
 		fmt.Println(err.Error())
 		return
 	}
-	json, _ := json.Marshal(query[0].Message)
+	json, _ := json.Marshal(query.Message)
 	fmt.Println("query->", string(json))
 
 }

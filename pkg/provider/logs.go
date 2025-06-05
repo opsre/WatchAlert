@@ -15,10 +15,11 @@ const (
 	AliCloudSLSDsProviderName   string = "AliCloudSLS"
 	ElasticSearchDsProviderName string = "ElasticSearch"
 	VictoriaLogsDsProviderName  string = "VictoriaLogs"
+	ClickHouseDsProviderName    string = "ClickHouse"
 )
 
 type LogsFactoryProvider interface {
-	Query(options LogQueryOptions) ([]Logs, int, error)
+	Query(options LogQueryOptions) (Logs, int, error)
 	Check() (bool, error)
 	GetExternalLabels() map[string]interface{}
 }
@@ -28,6 +29,7 @@ type LogQueryOptions struct {
 	Loki          Loki
 	ElasticSearch Elasticsearch
 	VictoriaLogs  VictoriaLogs
+	ClickHouse    ClickHouse
 	StartAt       interface{} // 查询的开始时间。
 	EndAt         interface{} // 查询的结束时间。
 }
@@ -63,6 +65,11 @@ type Elasticsearch struct {
 type VictoriaLogs struct {
 	Query string `json:"query"` // 查询语句
 	Limit int    // 要返回的最大条目数
+}
+
+type ClickHouse struct {
+	// 查询语句
+	Query string
 }
 
 func (e Elasticsearch) GetIndexName() string {

@@ -101,7 +101,7 @@ func (t *AlertRule) Eval(ctx context.Context, rule models.AlertRule) {
 				switch rule.DatasourceType {
 				case "Prometheus", "VictoriaMetrics":
 					fingerprints = metrics(t.ctx, dsId, instance.Type, rule)
-				case "AliCloudSLS", "Loki", "ElasticSearch", "VictoriaLogs":
+				case "AliCloudSLS", "Loki", "ElasticSearch", "VictoriaLogs", "ClickHouse":
 					fingerprints = logs(t.ctx, dsId, instance.Type, rule)
 				case "Jaeger":
 					fingerprints = traces(t.ctx, dsId, instance.Type, rule)
@@ -161,13 +161,17 @@ func (t *AlertRule) Recover(tenantId, ruleId string, eventCacheKey models.AlertE
 	}
 
 	// 从待恢复状态转换成告警状态
-	fs := t.ctx.Redis.PendingRecover().List(tenantId, ruleId)
-	if len(recoverFingerprints) == 0 && len(fs) != 0 {
-		for fingerprint := range fs {
+	pendingFingerprints := t.ctx.Redis.PendingRecover().List(tenantId, ruleId)
+	if len(pendingFingerprints) != 0 {
+		for _, fingerprint := range curFingerprints {
+			if _, exists := pendingFingerprints[fingerprint]; !exists {
+				continue
+			}
 			event, ok := events[fingerprint]
 			if !ok {
 				continue
 			}
+
 			event.TransitionStatus(models.StateAlerting)
 			t.ctx.Redis.Alert().PushAlertEvent(event)
 			t.ctx.Redis.PendingRecover().Delete(tenantId, ruleId, fingerprint)

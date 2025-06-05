@@ -15,6 +15,7 @@ type AlertDataSource struct {
 	Auth             Auth                   `json:"Auth" gorm:"auth;serializer:json"`
 	DsAliCloudConfig DsAliCloudConfig       `json:"dsAliCloudConfig" gorm:"dsAliCloudConfig;serializer:json"`
 	AWSCloudWatch    AWSCloudWatch          `json:"awsCloudwatch" gorm:"awsCloudwatch;serializer:json"`
+	ClickHouseConfig DsClickHouseConfig     `json:"clickhouseConfig" gorm:"clickhouseConfig;serializer:json"`
 	Description      string                 `json:"description"`
 	KubeConfig       string                 `json:"kubeConfig"`
 	Enabled          *bool                  `json:"enabled" `
@@ -35,6 +36,11 @@ type DatasourceQuery struct {
 	Id       string `json:"id" form:"id"`
 	Type     string `json:"type" form:"type"`
 	Query    string `json:"query" form:"query"`
+}
+
+type DsClickHouseConfig struct {
+	Addr    string
+	Timeout int64
 }
 
 type DsAliCloudConfig struct {

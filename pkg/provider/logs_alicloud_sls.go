@@ -31,7 +31,7 @@ func NewAliCloudSlsClient(source models.AlertDataSource) (LogsFactoryProvider, e
 	}, nil
 }
 
-func (a AliCloudSlsDsProvider) Query(query LogQueryOptions) ([]Logs, int, error) {
+func (a AliCloudSlsDsProvider) Query(query LogQueryOptions) (Logs, int, error) {
 	var err error
 	getLogsRequest := &sls20201230.GetLogsRequest{
 		To:    tea.Int32(query.EndAt.(int32)),
@@ -48,16 +48,13 @@ func (a AliCloudSlsDsProvider) Query(query LogQueryOptions) ([]Logs, int, error)
 
 	res, err := a.client.GetLogsWithOptions(tea.String(query.AliCloudSLS.Project), tea.String(query.AliCloudSLS.LogStore), getLogsRequest, headers, runtime)
 	if err != nil {
-		return nil, 0, err
+		return Logs{}, 0, err
 	}
 
-	var data []Logs
-	data = append(data, Logs{
+	return Logs{
 		ProviderName: AliCloudSLSDsProviderName,
 		Message:      res.Body,
-	})
-
-	return data, len(res.Body), nil
+	}, len(res.Body), nil
 }
 
 func (a AliCloudSlsDsProvider) Check() (bool, error) {

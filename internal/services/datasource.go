@@ -134,6 +134,8 @@ func (ds datasourceService) WithAddClientToProviderPools(datasource models.Alert
 		cli, err = provider.NewKubernetesClient(ds.ctx.Ctx, datasource.KubeConfig, datasource.Labels)
 	case "CloudWatch":
 		cli, err = provider.NewAWSCredentialCfg(datasource.AWSCloudWatch.Region, datasource.AWSCloudWatch.AccessKey, datasource.AWSCloudWatch.SecretKey, datasource.Labels)
+	case "ClickHouse":
+		cli, err = provider.NewClickHouseClient(ctx.Ctx, datasource)
 	}
 
 	if err != nil {

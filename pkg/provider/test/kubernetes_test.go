@@ -1,14 +1,15 @@
-package provider
+package test
 
 import (
 	"context"
 	"fmt"
 	"github.com/sirupsen/logrus"
 	"testing"
+	"watchAlert/pkg/provider"
 )
 
 func TestKubernetesClient(t *testing.T) {
-	cli, err := NewKubernetesClient(context.Background(), "", nil)
+	cli, err := provider.NewKubernetesClient(context.Background(), "", nil)
 	if err != nil {
 		logrus.Errorf(err.Error())
 		return
