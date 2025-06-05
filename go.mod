@@ -2,8 +2,6 @@ module watchAlert
 
 go 1.23.0
 
-toolchain go1.23.9
-
 require (
 	github.com/alibabacloud-go/darabonba-openapi/v2 v2.0.10
 	github.com/alibabacloud-go/dyvmsapi-intl-20211015/v2 v2.2.0
