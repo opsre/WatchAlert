@@ -155,7 +155,6 @@ func RecordAlertHisEvent(ctx *ctx.Context, alert models.AlertCurEvent) error {
 		Labels:           alert.Labels,
 		EvalInterval:     alert.EvalInterval,
 		Annotations:      alert.Annotations,
-		IsRecovered:      true,
 		FirstTriggerTime: alert.FirstTriggerTime,
 		LastEvalTime:     alert.LastEvalTime,
 		LastSendTime:     alert.LastSendTime,
