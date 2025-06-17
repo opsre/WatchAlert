@@ -100,18 +100,62 @@ func (l Logs) GenerateFingerprint(ruleId string) string {
 }
 
 func (l Logs) GetAnnotations() map[string]interface{} {
-	msg := map[string]interface{}{}
+	msg := make(map[string]interface{})
+	if len(l.Message) == 0 {
+		return msg
+	}
+
 	for k, v := range l.Message[0] {
 		if v == nil {
 			continue
 		}
-		msg[k] = v
-		content := v.(string)
-		length := len(content)
-		// 如果字符串超过1000个，则取前后各500个
-		if length > 1000 {
-			msg[k] = fmt.Sprintf("%s... 内容过长省略其中 ...%s", content[:500], content[length-500:])
+
+		switch value := v.(type) {
+		case string:
+			// 如果是字符串类型，处理长度限制
+			content := value
+			length := len(content)
+			if length > 1000 {
+				msg[k] = fmt.Sprintf("%s... 内容过长省略其中 ...%s", content[:500], content[length-500:])
+			} else {
+				msg[k] = content
+			}
+		case map[string]interface{}:
+			// 如果是嵌套的 map，递归调用处理
+			msg[k] = processNestedMap(value)
+		default:
+			// 对于其他类型，直接保留原值
+			msg[k] = value
 		}
 	}
 	return msg
+}
+
+// 辅助函数：递归处理嵌套的 map[string]interface{}
+func processNestedMap(nestedMap map[string]interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
+	for k, v := range nestedMap {
+		if v == nil {
+			continue
+		}
+
+		switch value := v.(type) {
+		case string:
+			// 如果是字符串类型，处理长度限制
+			content := value
+			length := len(content)
+			if length > 1000 {
+				result[k] = fmt.Sprintf("%s... 内容过长省略其中 ...%s", content[:500], content[length-500:])
+			} else {
+				result[k] = content
+			}
+		case map[string]interface{}:
+			// 如果是嵌套的 map，继续递归处理
+			result[k] = processNestedMap(value)
+		default:
+			// 对于其他类型，直接保留原值
+			result[k] = value
+		}
+	}
+	return result
 }

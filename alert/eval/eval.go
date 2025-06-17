@@ -96,6 +96,11 @@ func (t *AlertRule) Eval(ctx context.Context, rule models.AlertRule) {
 					continue
 				}
 
+				if !*instance.Enabled {
+					logc.Error(t.ctx.Ctx, fmt.Sprintf("datasource is not enable, id: %s", instance.Id))
+					continue
+				}
+
 				var fingerprints []string
 
 				switch rule.DatasourceType {
