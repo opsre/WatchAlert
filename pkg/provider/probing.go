@@ -24,7 +24,7 @@ func (e EndpointValue) GetLabels() map[string]interface{} {
 }
 
 func (e EndpointValue) GetFingerprint() string {
-	return tools.Md5Hash([]byte(tools.JsonMarshal(e.GetLabels())))
+	return tools.Md5Hash([]byte(e["address"].(string)))
 }
 
 type EndpointOption struct {
