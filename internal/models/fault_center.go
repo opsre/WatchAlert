@@ -23,7 +23,7 @@ type FaultCenter struct {
 	RecoverNotify         *bool             `json:"recoverNotify"`
 	AggregationType       string            `json:"aggregationType"`
 	CreateAt              int64             `json:"createAt"`
-	RecoverWaitTime       int64             `json:"recoverWaitTime"`
+	RecoverWaitTime       int64             `json:"recoverWaitTime"` // 告警恢复等待时间，单位（秒）
 	CurrentPreAlertNumber int64             `json:"currentPreAlertNumber" gorm:"-"`
 	CurrentAlertNumber    int64             `json:"currentAlertNumber" gorm:"-"`
 	CurrentMuteNumber     int64             `json:"currentMuteNumber" gorm:"-"`

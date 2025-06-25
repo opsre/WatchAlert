@@ -191,8 +191,6 @@ func (t *AlertRule) Recover(tenantId, ruleId string, eventCacheKey models.AlertE
 
 	// 处理恢复逻辑
 	curTime := time.Now().Unix()
-	recoverWaitTime := t.getRecoverWaitTime(faultCenterInfoKey)
-
 	for _, fingerprint := range recoverFingerprints {
 		event, ok := events[fingerprint]
 		if !ok {
@@ -211,7 +209,7 @@ func (t *AlertRule) Recover(tenantId, ruleId string, eventCacheKey models.AlertE
 		}
 
 		// 判断是否在等待时间内
-		recoverThreshold := wTime + int64(recoverWaitTime)*60
+		recoverThreshold := wTime + t.getRecoverWaitTime(faultCenterInfoKey)
 		if recoverThreshold >= curTime {
 			// 进入待恢复状态
 			if err := event.TransitionStatus(models.StatePendingRecovery); err != nil {

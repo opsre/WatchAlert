@@ -70,6 +70,7 @@ type AlertCurEventQuery struct {
 	Scope          int64  `json:"scope" form:"scope"`
 	Severity       string `json:"severity" form:"severity"`
 	FaultCenterId  string `json:"faultCenterId" form:"faultCenterId"`
+	Status         string `json:"status" form:"status"`
 	Page
 }
 

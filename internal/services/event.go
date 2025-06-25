@@ -144,6 +144,17 @@ func (e eventService) ListCurrentEvent(req interface{}) (interface{}, interface{
 		dataList = data
 	}
 
+	if r.Status != "" {
+		var data []models.AlertCurEvent
+		for _, v := range dataList {
+			if string(v.Status) == r.Status {
+				data = append(data, v)
+				continue
+			}
+		}
+		dataList = data
+	}
+
 	return models.CurEventResponse{
 		List: pageSlice(dataList, int(r.Page.Index), int(r.Page.Size)),
 		Page: models.Page{
