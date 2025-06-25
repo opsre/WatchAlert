@@ -6,6 +6,7 @@ import (
 	"github.com/go-redis/redis"
 	"github.com/zeromicro/go-zero/core/logc"
 	"runtime/debug"
+	"slices"
 	"strings"
 	"time"
 	"watchAlert/alert/process"
@@ -155,6 +156,11 @@ func (t *AlertRule) Recover(tenantId, ruleId string, eventCacheKey models.AlertE
 	for fingerprint, event := range events {
 		if strings.Contains(event.RuleId, ruleId) {
 			fingerprints = append(fingerprints, fingerprint)
+		}
+
+		// 移除状态为预告警且当前告警列表中不存在的事件
+		if event.Status == models.StatePreAlert && !slices.Contains(curFingerprints, fingerprint) {
+			t.ctx.Redis.Alert().RemoveAlertEvent(event.TenantId, event.FaultCenterId, event.Fingerprint)
 		}
 	}
 

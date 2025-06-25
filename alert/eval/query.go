@@ -117,13 +117,6 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 				// 找到符合条件的规则后，跳过该指标的其他规则
 				break
 			} else if _, exist := fingerPrintMap[fingerprint]; exist {
-				// 如果是 预告警 状态的事件，触发了恢复逻辑，但它并非是真正触发告警而恢复，所以只需要删除历史事件即可，无需继续处理恢复逻辑。
-				if ctx.Redis.Alert().GetEventStatus(event.TenantId, event.FaultCenterId, event.Fingerprint) == models.StatePreAlert {
-					logc.Alert(ctx.Ctx, fmt.Sprintf("移除预告警恢复事件, Rule: %s, Fingerprint: %s", event.RuleName, event.Fingerprint))
-					ctx.Redis.Alert().RemoveAlertEvent(event.TenantId, event.FaultCenterId, event.Fingerprint)
-					continue
-				}
-
 				// 获取过恢复值则直接跳过
 				if _, existRecoverValue := event.Labels["recover_value"]; existRecoverValue {
 					continue
