@@ -67,7 +67,6 @@ func (m *ConsumeProbing) executeTask(taskChan chan struct{}, r models.ProbingRul
 		<-taskChan
 	}()
 
-	var now = time.Now().Unix()
 	event, err := m.ctx.Redis.Probing().GetProbingEventCache(models.BuildProbingEventCacheKey(r.TenantId, r.RuleId))
 	if err != nil {
 		if err == redis.Nil {
@@ -77,27 +76,34 @@ func (m *ConsumeProbing) executeTask(taskChan chan struct{}, r models.ProbingRul
 		return
 	}
 
-	if !m.filterEvent(event) {
+	if m.filterEvent(event) {
 		return
 	}
 
-	newEvent := event
-	newEvent.LastSendTime = now
-	m.ctx.Redis.Probing().SetProbingEventCache(newEvent, 0)
-	m.sendAlert(newEvent)
+	m.sendAlert(event)
 }
 
-func (m *ConsumeProbing) filterEvent(alert models.ProbingEvent) bool {
-	if !alert.IsRecovered {
-		if alert.LastSendTime == 0 || alert.LastEvalTime >= alert.LastSendTime+alert.RepeatNoticeInterval*60 {
-			return true
+func (m *ConsumeProbing) filterEvent(event models.ProbingEvent) bool {
+	switch event.IsRecovered {
+	case true:
+		err := m.ctx.Redis.Probing().DelProbingEventCache(models.BuildProbingEventCacheKey(event.TenantId, event.RuleId))
+		if err != nil {
+			logc.Error(ctx.Ctx, fmt.Sprintf("[Probe] remove probe event cache fail, err: %s", err.Error()))
 		}
-	} else {
-		m.removeAlertFromCache(alert)
+		return false
+
+	case false:
+		if event.LastSendTime == 0 || event.LastEvalTime >= event.LastSendTime+event.RepeatNoticeInterval*60 {
+			newEvent := event
+			newEvent.LastSendTime = time.Now().Unix()
+			m.ctx.Redis.Probing().SetProbingEventCache(newEvent, 0)
+			return false
+		}
+	default:
 		return true
 	}
 
-	return false
+	return true
 }
 
 // 推送告警
@@ -139,14 +145,10 @@ func (m *ConsumeProbing) getContent(alert models.ProbingEvent, noticeData models
 	}
 }
 
-// 删除缓存
-func (m *ConsumeProbing) removeAlertFromCache(alert models.ProbingEvent) {
-	m.ctx.Redis.Redis().Del(string(models.BuildProbingEventCacheKey(alert.TenantId, alert.RuleId)))
-}
-
 func buildEvent(event models.ProbingEvent) models.AlertCurEvent {
 	return models.AlertCurEvent{
 		TenantId:               event.TenantId,
+		RuleName:               event.RuleName,
 		RuleId:                 event.RuleId,
 		Fingerprint:            event.Fingerprint,
 		Labels:                 event.Labels,

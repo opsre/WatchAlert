@@ -3,6 +3,7 @@ package probing
 import (
 	"context"
 	"fmt"
+	"github.com/go-redis/redis"
 	"github.com/zeromicro/go-zero/core/logc"
 	"golang.org/x/sync/errgroup"
 	"time"
@@ -175,6 +176,17 @@ func (t *ProductProbing) Evaluation(event models.ProbingEvent, option models.Eva
 			SaveProbingEndpointEvent(t.ctx, event)
 		}
 	} else {
+		key := models.BuildProbingEventCacheKey(event.TenantId, event.RuleId)
+		c := ctx.Redis.Probing()
+		neCache, err := c.GetProbingEventCache(key)
+		if err != nil && err == redis.Nil {
+			return
+		}
+
+		if neCache.IsRecovered {
+			return
+		}
+
 		// 控制成功频次
 		t.setFrequency(t.OkFrequency, event.RuleId)
 		if t.getFrequency(t.OkFrequency, event.RuleId) >= 3 {
@@ -182,13 +194,6 @@ func (t *ProductProbing) Evaluation(event models.ProbingEvent, option models.Eva
 				t.cleanFrequency(t.OkFrequency, event.RuleId)
 			}()
 
-			key := models.BuildProbingEventCacheKey(event.TenantId, event.RuleId)
-			c := ctx.Redis.Probing()
-			neCache, err := c.GetProbingEventCache(key)
-			if err != nil {
-				logc.Error(ctx.Ctx, err.Error())
-				return
-			}
 			neCache.FirstTriggerTime = c.GetProbingEventFirstTime(key)
 			neCache.IsRecovered = true
 			neCache.RecoverTime = time.Now().Unix()

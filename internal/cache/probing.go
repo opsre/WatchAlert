@@ -20,6 +20,7 @@ type (
 	ProbingCacheInterface interface {
 		SetProbingEventCache(event models.ProbingEvent, expiration time.Duration)
 		GetProbingEventCache(key models.ProbingEventCacheKey) (models.ProbingEvent, error)
+		DelProbingEventCache(key models.ProbingEventCacheKey) error
 		GetProbingEventFirstTime(key models.ProbingEventCacheKey) int64
 		GetProbingEventLastEvalTime(key models.ProbingEventCacheKey) int64
 		GetProbingEventLastSendTime(key models.ProbingEventCacheKey) int64
@@ -53,6 +54,10 @@ func (p *ProbingCache) GetProbingEventCache(key models.ProbingEventCacheKey) (mo
 	}
 
 	return event, nil
+}
+
+func (p *ProbingCache) DelProbingEventCache(key models.ProbingEventCacheKey) error {
+	return p.delProbingCache(key)
 }
 
 // GetProbingEventFirstTime 获取探测事件的首次触发时间
@@ -92,18 +97,6 @@ func (p *ProbingCache) getProbingCache(key models.ProbingEventCacheKey) (string,
 	return p.rc.Get(string(key)).Result()
 }
 
-func (p *ProbingCache) setProbingCacheHash(key models.ProbingEventCacheKey, field, value string) {
-	p.rc.HSet(string(key), field, value)
-}
-
-func (p *ProbingCache) deleteProbingCacheHash(key models.ProbingEventCacheKey, field string) {
-	p.rc.HDel(string(key), field)
-}
-
-func (p *ProbingCache) getProbingCacheHash(key models.ProbingEventCacheKey, field string) (string, error) {
-	return p.rc.HGet(string(key), field).Result()
-}
-
-func (p *ProbingCache) getProbingCacheHashAll(key models.ProbingEventCacheKey) (map[string]string, error) {
-	return p.rc.HGetAll(string(key)).Result()
+func (p *ProbingCache) delProbingCache(key models.ProbingEventCacheKey) error {
+	return p.rc.Del(string(key)).Err()
 }
