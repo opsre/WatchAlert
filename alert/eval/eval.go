@@ -65,6 +65,7 @@ func (t *AlertRule) Restart(rule models.AlertRule) {
 }
 
 func (t *AlertRule) Eval(ctx context.Context, rule models.AlertRule) {
+	taskChan := make(chan struct{}, 1)
 	timer := time.NewTicker(t.getEvalTimeDuration(rule.EvalTimeType, rule.EvalInterval))
 	defer func() {
 		timer.Stop()
@@ -79,58 +80,68 @@ func (t *AlertRule) Eval(ctx context.Context, rule models.AlertRule) {
 	for {
 		select {
 		case <-timer.C:
-			// 在规则评估前检查是否仍然启用，避免不必要的操作
-			if !t.isRuleEnabled(rule.RuleId) {
-				return
-			}
-
-			var curFingerprints []string
-			for _, dsId := range rule.DatasourceIdList {
-				instance, err := t.ctx.DB.Datasource().GetInstance(dsId)
-				if err != nil {
-					logc.Error(t.ctx.Ctx, err.Error())
-					continue
-				}
-
-				ok, _ := provider.CheckDatasourceHealth(instance)
-				if !ok {
-					continue
-				}
-
-				if !*instance.Enabled {
-					logc.Error(t.ctx.Ctx, fmt.Sprintf("datasource is not enable, id: %s", instance.Id))
-					continue
-				}
-
-				var fingerprints []string
-
-				switch rule.DatasourceType {
-				case "Prometheus", "VictoriaMetrics":
-					fingerprints = metrics(t.ctx, dsId, instance.Type, rule)
-				case "AliCloudSLS", "Loki", "ElasticSearch", "VictoriaLogs", "ClickHouse":
-					fingerprints = logs(t.ctx, dsId, instance.Type, rule)
-				case "Jaeger":
-					fingerprints = traces(t.ctx, dsId, instance.Type, rule)
-				case "CloudWatch":
-					fingerprints = cloudWatch(t.ctx, dsId, rule)
-				case "KubernetesEvent":
-					fingerprints = kubernetesEvent(t.ctx, dsId, rule)
-				default:
-					continue
-				}
-				// 追加当前数据源的指纹到总列表
-				curFingerprints = append(curFingerprints, fingerprints...)
-			}
-			logc.Infof(t.ctx.Ctx, fmt.Sprintf("规则评估 -> %v", tools.JsonMarshal(rule)))
-			t.Recover(rule.TenantId, rule.RuleId, models.BuildAlertEventCacheKey(rule.TenantId, rule.FaultCenterId), models.BuildFaultCenterInfoCacheKey(rule.TenantId, rule.FaultCenterId), curFingerprints)
-			t.GC(t.ctx, rule, curFingerprints)
-
+			// 处理任务信号量
+			taskChan <- struct{}{}
+			t.executeTask(rule, taskChan)
 		case <-ctx.Done():
 			logc.Infof(t.ctx.Ctx, fmt.Sprintf("停止 RuleId: %v, RuleName: %s 的 Watch 协程", rule.RuleId, rule.RuleName))
 			return
 		}
 		timer.Reset(t.getEvalTimeDuration(rule.EvalTimeType, rule.EvalInterval))
 	}
+}
+
+func (t *AlertRule) executeTask(rule models.AlertRule, taskChan chan struct{}) {
+	defer func() {
+		// 释放任务信号量
+		<-taskChan
+	}()
+
+	// 在规则评估前检查是否仍然启用，避免不必要的操作
+	if !t.isRuleEnabled(rule.RuleId) {
+		return
+	}
+
+	var curFingerprints []string
+	for _, dsId := range rule.DatasourceIdList {
+		instance, err := t.ctx.DB.Datasource().GetInstance(dsId)
+		if err != nil {
+			logc.Error(t.ctx.Ctx, err.Error())
+			continue
+		}
+
+		ok, _ := provider.CheckDatasourceHealth(instance)
+		if !ok {
+			continue
+		}
+
+		if !*instance.Enabled {
+			logc.Error(t.ctx.Ctx, fmt.Sprintf("datasource is not enable, id: %s", instance.Id))
+			continue
+		}
+
+		var fingerprints []string
+
+		switch rule.DatasourceType {
+		case "Prometheus", "VictoriaMetrics":
+			fingerprints = metrics(t.ctx, dsId, instance.Type, rule)
+		case "AliCloudSLS", "Loki", "ElasticSearch", "VictoriaLogs", "ClickHouse":
+			fingerprints = logs(t.ctx, dsId, instance.Type, rule)
+		case "Jaeger":
+			fingerprints = traces(t.ctx, dsId, instance.Type, rule)
+		case "CloudWatch":
+			fingerprints = cloudWatch(t.ctx, dsId, rule)
+		case "KubernetesEvent":
+			fingerprints = kubernetesEvent(t.ctx, dsId, rule)
+		default:
+			continue
+		}
+		// 追加当前数据源的指纹到总列表
+		curFingerprints = append(curFingerprints, fingerprints...)
+	}
+	//logc.Infof(t.ctx.Ctx, fmt.Sprintf("规则评估 -> %v", tools.JsonMarshal(rule)))
+	t.Recover(rule.TenantId, rule.RuleId, models.BuildAlertEventCacheKey(rule.TenantId, rule.FaultCenterId), models.BuildFaultCenterInfoCacheKey(rule.TenantId, rule.FaultCenterId), curFingerprints)
+	t.GC(t.ctx, rule, curFingerprints)
 }
 
 // getEvalTimeDuration 获取评估时间
