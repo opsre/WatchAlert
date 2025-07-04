@@ -166,12 +166,13 @@ func (t *AlertRule) Recover(tenantId, ruleId string, eventCacheKey models.AlertE
 	var fingerprints []string
 	for fingerprint, event := range events {
 		if strings.Contains(event.RuleId, ruleId) {
-			fingerprints = append(fingerprints, fingerprint)
-		}
+			// 移除状态为预告警且当前告警列表中不存在的事件
+			if event.Status == models.StatePreAlert && !slices.Contains(curFingerprints, fingerprint) {
+				t.ctx.Redis.Alert().RemoveAlertEvent(event.TenantId, event.FaultCenterId, event.Fingerprint)
+				continue
+			}
 
-		// 移除状态为预告警且当前告警列表中不存在的事件
-		if event.Status == models.StatePreAlert && !slices.Contains(curFingerprints, fingerprint) {
-			t.ctx.Redis.Alert().RemoveAlertEvent(event.TenantId, event.FaultCenterId, event.Fingerprint)
+			fingerprints = append(fingerprints, fingerprint)
 		}
 	}
 
