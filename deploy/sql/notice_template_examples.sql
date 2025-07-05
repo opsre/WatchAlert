@@ -525,24 +525,24 @@ green
 
 {{ define "Event" -}}
 {{- if not .IsRecovered -}}
-**🤖 报警类型:** ${rule_name}</br>
-**🫧 报警指纹:** ${fingerprint}</br>
-**📌 报警等级:** ${severity}</br>
-**🖥 报警主机:** ${labels.instance}</br>
-**🕘 开始时间:** ${first_trigger_time_format}</br>
-**👤 值班人员:** ${duty_user}</br>
-**📝 报警事件:** ${annotations}</br>
-[查看事件](http://localhost:3000/faultCenter/detail/${faultCenterId}?tab=1&query=${rule_name})
+&nbsp;**🔔 报警类型:** ${rule_name}<br>
+**🔐 报警指纹:** ${fingerprint}<br>
+**🚨 报警等级:** ${severity}<br>
+**🖥 报警主机:** ${labels.instance}<br>
+**🕘 开始时间:** ${first_trigger_time_format}<br>
+**🧑‍🔧 值班人员:** ${duty_user}<br>
+**📝 报警事件:** ${annotations}<br>
+**👀 查看事件:** [点击跳转](http://localhost:3000/faultCenter/detail/${faultCenterId}?tab=1&query=${rule_name})<br>
 {{- else -}}
-**🤖 报警类型:** ${rule_name}</br>
-**🫧 报警指纹:** ${fingerprint}</br>
-**📌 报警等级:** ${severity}</br>
-**🖥 报警主机:** ${labels.instance}</br>
-**🕘 开始时间:** ${first_trigger_time_format}</br>
-**🕘 恢复时间:** ${recover_time_format}</br>
-**👤 值班人员:** ${duty_user}</br>
-**📝 报警事件:** ${annotations}</br>
-[查看事件](http://localhost:3000/faultCenter/detail/${faultCenterId}?tab=1&query=${rule_name})
+&nbsp;**🔔 报警类型:** ${rule_name}<br>
+**🔐 报警指纹:** ${fingerprint}<br>
+**🚨 报警等级:** ${severity}<br>
+**🖥 报警主机:** ${labels.instance}<br>
+**🕘 开始时间:** ${first_trigger_time_format}<br>
+**🕘 恢复时间:** ${recover_time_format}<br>
+**🧑‍🔧 值班人员:** ${duty_user}<br>
+**📝 报警事件:** ${annotations}<br>
+**👀 查看事件:** [点击跳转](http://localhost:3000/faultCenter/detail/${faultCenterId}?tab=1&query=${rule_name})<br>
 {{- end -}}
 {{ end }}
 
