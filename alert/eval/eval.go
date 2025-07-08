@@ -158,28 +158,31 @@ func (t *AlertRule) Recover(tenantId, ruleId string, eventCacheKey models.AlertE
 	// 获取所有的故障中心告警事件
 	events, err := t.ctx.Redis.Alert().GetAllEvents(eventCacheKey)
 	if err != nil {
-		logc.Errorf(t.ctx.Ctx, "Failed to get all events: %v", err)
+		logc.Errorf(t.ctx.Ctx, "AlertRule.Recover: Failed to get all events: %v", err)
 		return
 	}
 
-	// 提取当前规则相关的指纹
-	var fingerprints []string
-	for fingerprint, event := range events {
-		if strings.Contains(event.RuleId, ruleId) {
-			// 移除状态为预告警且当前告警列表中不存在的事件
-			if event.Status == models.StatePreAlert && !slices.Contains(curFingerprints, fingerprint) {
-				t.ctx.Redis.Alert().RemoveAlertEvent(event.TenantId, event.FaultCenterId, event.Fingerprint)
-				continue
-			}
+	// 存储当前规则下所有活动的指纹
+	var activeRuleFingerprints []string
 
-			fingerprints = append(fingerprints, fingerprint)
+	// 筛选当前规则相关的指纹，并处理预告警状态
+	for fingerprint, event := range events {
+		if !strings.Contains(event.RuleId, ruleId) {
+			continue
 		}
+
+		// 移除状态为预告警且当前告警列表中不存在的事件
+		if event.Status == models.StatePreAlert && !slices.Contains(curFingerprints, fingerprint) {
+			t.ctx.Redis.Alert().RemoveAlertEvent(event.TenantId, event.FaultCenterId, event.Fingerprint)
+			continue
+		}
+
+		activeRuleFingerprints = append(activeRuleFingerprints, fingerprint)
 	}
 
-	// 计算需要恢复的指纹列表
-	recoverFingerprints := tools.GetSliceDifference(fingerprints, curFingerprints)
+	// 计算需要恢复的指纹列表 (即在 Redis 中存在但在当前活动列表中不存在的指纹)
+	recoverFingerprints := tools.GetSliceDifference(activeRuleFingerprints, curFingerprints)
 	if len(recoverFingerprints) == 0 {
-		t.handlePendingRecovery(tenantId, ruleId, events)
 		return
 	}
 
@@ -195,25 +198,33 @@ func (t *AlertRule) Recover(tenantId, ruleId string, eventCacheKey models.AlertE
 				continue
 			}
 
-			event.TransitionStatus(models.StateAlerting)
-			t.ctx.Redis.Alert().PushAlertEvent(event)
+			newEvent := event
+			newEvent.TransitionStatus(models.StateAlerting)
+			t.ctx.Redis.Alert().PushAlertEvent(newEvent)
 			t.ctx.Redis.PendingRecover().Delete(tenantId, ruleId, fingerprint)
 		}
 	}
 
-	// 处理恢复逻辑
+	// 从待恢复状态转换成已恢复状态
 	curTime := time.Now().Unix()
+	recoverWaitTime := t.getRecoverWaitTime(faultCenterInfoKey)
 	for _, fingerprint := range recoverFingerprints {
 		event, ok := events[fingerprint]
 		if !ok {
 			continue
 		}
 
+		newEvent := event
 		// 获取待恢复状态的时间戳
 		wTime, err := t.ctx.Redis.PendingRecover().Get(tenantId, ruleId, fingerprint)
 		if err == redis.Nil {
-			// 如果不存在，则记录当前时间
+			// 进入待恢复状态, 如果不存在, 则记录当前时间
 			t.ctx.Redis.PendingRecover().Set(tenantId, ruleId, fingerprint, curTime)
+			// 转换状态, 标记为待恢复
+			if err := newEvent.TransitionStatus(models.StatePendingRecovery); err != nil {
+				logc.Errorf(t.ctx.Ctx, "Failed to transition to pending recovery state for fingerprint %s: %v", fingerprint, err)
+			}
+			t.ctx.Redis.Alert().PushAlertEvent(newEvent)
 			continue
 		} else if err != nil {
 			logc.Errorf(t.ctx.Ctx, "Failed to get pending recovery time for fingerprint %s: %v", fingerprint, err)
@@ -221,46 +232,20 @@ func (t *AlertRule) Recover(tenantId, ruleId string, eventCacheKey models.AlertE
 		}
 
 		// 判断是否在等待时间内
-		recoverThreshold := wTime + t.getRecoverWaitTime(faultCenterInfoKey)
-		if recoverThreshold >= curTime {
-			// 进入待恢复状态
-			if err := event.TransitionStatus(models.StatePendingRecovery); err != nil {
-				logc.Errorf(t.ctx.Ctx, "Failed to transition to pending recovery state for fingerprint %s: %v", fingerprint, err)
-				continue
-			}
-		} else if curTime >= recoverThreshold && event.Status == models.StatePendingRecovery { // 当前时间超过预期等待时间，并且状态是 PendingRecovery 时才执行恢复逻辑
+		recoverThreshold := wTime + recoverWaitTime
+		// 当前时间超过预期等待时间，并且状态是 PendingRecovery 时才执行恢复逻辑
+		if curTime >= recoverThreshold && newEvent.Status == models.StatePendingRecovery {
 			// 已恢复状态
-			if err := event.TransitionStatus(models.StateRecovered); err != nil {
+			if err := newEvent.TransitionStatus(models.StateRecovered); err != nil {
 				logc.Errorf(t.ctx.Ctx, "Failed to transition to recovered state for fingerprint %s: %v", fingerprint, err)
 				continue
 			}
-			t.ctx.Redis.PendingRecover().Delete(tenantId, ruleId, fingerprint)
-		}
-
-		// 更新告警事件
-		t.ctx.Redis.Alert().PushAlertEvent(event)
-	}
-}
-
-// 处理待恢复状态的事件
-func (t *AlertRule) handlePendingRecovery(tenantId, ruleId string, events map[string]*models.AlertCurEvent) {
-	fs := t.ctx.Redis.PendingRecover().List(tenantId, ruleId)
-	for fingerprint := range fs {
-		event, ok := events[fingerprint]
-		if !ok {
+			// 更新告警事件
+			t.ctx.Redis.Alert().PushAlertEvent(newEvent)
+			// 恢复后继续处理下一个事件
 			t.ctx.Redis.PendingRecover().Delete(tenantId, ruleId, fingerprint)
 			continue
 		}
-
-		// 转换为告警状态
-		if err := event.TransitionStatus(models.StateAlerting); err != nil {
-			logc.Errorf(t.ctx.Ctx, "Failed to transition to alerting state for fingerprint %s: %v", fingerprint, err)
-			continue
-		}
-
-		// 更新告警事件并删除待恢复状态
-		t.ctx.Redis.Alert().PushAlertEvent(event)
-		t.ctx.Redis.PendingRecover().Delete(tenantId, ruleId, fingerprint)
 	}
 }
 
