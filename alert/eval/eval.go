@@ -182,13 +182,12 @@ func (t *AlertRule) Recover(tenantId, ruleId string, eventCacheKey models.AlertE
 
 	// 计算需要恢复的指纹列表 (即在 Redis 中存在但在当前活动列表中不存在的指纹)
 	recoverFingerprints := tools.GetSliceDifference(activeRuleFingerprints, curFingerprints)
-	if len(recoverFingerprints) == 0 {
-		return
-	}
 
-	// 从待恢复状态转换成告警状态
+	// 获取当前待恢复的告警指纹列表
 	pendingFingerprints := t.ctx.Redis.PendingRecover().List(tenantId, ruleId)
-	if len(pendingFingerprints) != 0 {
+
+	// 从待恢复状态转换成告警状态（即在 Redis 中存在待恢复 且在 curFingerprints 存在告警的事件）
+	if len(recoverFingerprints) == 0 && len(pendingFingerprints) != 0 {
 		for _, fingerprint := range curFingerprints {
 			if _, exists := pendingFingerprints[fingerprint]; !exists {
 				continue
@@ -199,10 +198,11 @@ func (t *AlertRule) Recover(tenantId, ruleId string, eventCacheKey models.AlertE
 			}
 
 			newEvent := event
-			newEvent.TransitionStatus(models.StateAlerting)
+			newEvent.TransitionStatus(models.StatePreAlert)
 			t.ctx.Redis.Alert().PushAlertEvent(newEvent)
 			t.ctx.Redis.PendingRecover().Delete(tenantId, ruleId, fingerprint)
 		}
+		return
 	}
 
 	// 从待恢复状态转换成已恢复状态
