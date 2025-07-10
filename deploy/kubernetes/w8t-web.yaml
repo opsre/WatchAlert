@@ -25,6 +25,9 @@ spec:
             - -c
           args:
             - "sed -i 's@http://$host:9001@http://w8t-service:9001@g' /etc/nginx/conf.d/w8t.conf; nginx -g 'daemon off;'"
+          env:
+            - name: TZ
+              value: Asia/Shanghai
 
 ---
 apiVersion: v1
