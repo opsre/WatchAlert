@@ -25,6 +25,9 @@ spec:
             - name: redis-config
               mountPath: /usr/local/etc/redis/redis.conf
               subPath: redis.conf
+          env:
+            - name: TZ
+              value: Asia/Shanghai
       volumes:
         - name: redis-data
           hostPath:

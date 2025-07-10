@@ -21,6 +21,8 @@ spec:
               value: w8t.123
             - name: MYSQL_DATABASE
               value: watchalert
+            - name: TZ
+              value: Asia/Shanghai
           ports:
             - containerPort: 3306
           volumeMounts:

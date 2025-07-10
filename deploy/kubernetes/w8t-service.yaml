@@ -24,6 +24,9 @@ spec:
           volumeMounts:
             - name: config-volume
               mountPath: /app/config
+          env:
+            - name: TZ
+              value: Asia/Shanghai
       volumes:
         - name: config-volume
           configMap:
