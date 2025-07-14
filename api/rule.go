@@ -37,6 +37,14 @@ func (rc RuleController) API(gin *gin.RouterGroup) {
 		ruleB.GET("ruleList", rc.List)
 		ruleB.GET("ruleSearch", rc.Search)
 	}
+	ruleC := gin.Group("rule")
+	ruleC.Use(
+		middleware.Auth(),
+		middleware.ParseTenant(),
+	)
+	{
+		ruleC.POST("ruleChangeStatus", rc.ChangeStatus)
+	}
 }
 
 func (rc RuleController) Create(ctx *gin.Context) {
@@ -97,5 +105,17 @@ func (rc RuleController) Search(ctx *gin.Context) {
 
 	Service(ctx, func() (interface{}, interface{}) {
 		return services.RuleService.Search(r)
+	})
+}
+
+func (rc RuleController) ChangeStatus(ctx *gin.Context) {
+	r := new(models.RequestRuleChangeStatus)
+	BindJson(ctx, r)
+
+	tid, _ := ctx.Get("TenantID")
+	r.TenantId = tid.(string)
+
+	Service(ctx, func() (interface{}, interface{}) {
+		return services.RuleService.ChangeStatus(r)
 	})
 }

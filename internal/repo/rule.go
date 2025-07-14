@@ -19,6 +19,7 @@ type (
 		Delete(r models.AlertRuleQuery) error
 		GetRuleIsExist(ruleId string) bool
 		GetRuleObject(ruleId string) models.AlertRule
+		ChangeStatus(req models.RequestRuleChangeStatus) error
 	}
 )
 
@@ -177,4 +178,10 @@ func (rr RuleRepo) GetRuleObject(ruleId string) models.AlertRule {
 		First(&data)
 
 	return data
+}
+
+func (rr RuleRepo) ChangeStatus(req models.RequestRuleChangeStatus) error {
+	return rr.DB().Model(&models.AlertRule{}).
+		Where("tenant_id = ? AND rule_group_id = ? AND rule_id = ?", req.TenantId, req.RuleGroupId, req.RuleId).
+		Update("enabled", req.Enabled).Error
 }

@@ -18,6 +18,7 @@ type InterRuleService interface {
 	Delete(req interface{}) (interface{}, interface{})
 	List(req interface{}) (interface{}, interface{})
 	Search(req interface{}) (interface{}, interface{})
+	ChangeStatus(req interface{}) (interface{}, interface{})
 }
 
 func newInterRuleService(ctx *ctx.Context) InterRuleService {
@@ -135,4 +136,28 @@ func (rs ruleService) Search(req interface{}) (interface{}, interface{}) {
 	}
 
 	return data, nil
+}
+
+func (rs ruleService) ChangeStatus(req interface{}) (interface{}, interface{}) {
+	r := req.(*models.RequestRuleChangeStatus)
+	switch *r.GetEnabled() {
+	case true:
+		logc.Infof(rs.ctx.Ctx, fmt.Sprintf("重启 RuleId 为 %s 的 Worker 进程", r.RuleId))
+		var enable = true
+		rule := rs.ctx.DB.Rule().GetRuleObject(r.RuleId)
+		newRule := rule
+		newRule.Enabled = &enable
+		alert.AlertRule.Submit(newRule)
+
+	case false:
+		logc.Infof(rs.ctx.Ctx, fmt.Sprintf("停止 RuleId 为 %s 的 Worker 进程", r.RuleId))
+		alert.AlertRule.Stop(r.RuleId)
+		// 删除缓存
+		fingerprints := rs.ctx.Redis.Alert().GetFingerprintsByRuleId(r.TenantId, r.FaultCenterId, r.RuleId)
+		for _, fingerprint := range fingerprints {
+			rs.ctx.Redis.Alert().RemoveAlertEvent(r.TenantId, r.FaultCenterId, fingerprint)
+		}
+	}
+
+	return nil, rs.ctx.DB.Rule().ChangeStatus(*r)
 }

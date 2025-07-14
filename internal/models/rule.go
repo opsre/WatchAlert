@@ -179,3 +179,19 @@ func (a *AlertRule) GetEnabled() *bool {
 	}
 	return a.Enabled
 }
+
+type RequestRuleChangeStatus struct {
+	TenantId      string `json:"tenantId" form:"tenantId"`
+	RuleId        string `json:"ruleId" form:"ruleId"`
+	RuleGroupId   string `json:"ruleGroupId" form:"ruleGroupId"`
+	FaultCenterId string `json:"faultCenterId" form:"faultCenterId"`
+	Enabled       *bool  `json:"enabled" form:"enabled"`
+}
+
+func (r *RequestRuleChangeStatus) GetEnabled() *bool {
+	if r.Enabled == nil {
+		isOk := false
+		return &isOk
+	}
+	return r.Enabled
+}
