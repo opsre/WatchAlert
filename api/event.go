@@ -27,6 +27,9 @@ func (e AlertEventController) API(gin *gin.RouterGroup) {
 		event.GET("curEvent", e.ListCurrentEvent)
 		event.GET("hisEvent", e.ListHistoryEvent)
 		event.POST("processAlertEvent", e.ProcessAlertEvent)
+		event.POST("addComment", e.AddComment)
+		event.GET("listComments", e.ListComment)
+		event.POST("deleteComment", e.DeleteComment)
 	}
 }
 
@@ -72,5 +75,45 @@ func (e AlertEventController) ListHistoryEvent(ctx *gin.Context) {
 
 	Service(ctx, func() (interface{}, interface{}) {
 		return services.EventService.ListHistoryEvent(r)
+	})
+}
+
+func (e AlertEventController) ListComment(ctx *gin.Context) {
+	r := new(models.RequestListEventComments)
+	BindQuery(ctx, r)
+
+	tid, _ := ctx.Get("TenantID")
+	r.TenantId = tid.(string)
+
+	Service(ctx, func() (interface{}, interface{}) {
+		return services.EventService.ListComments(r)
+	})
+}
+
+func (e AlertEventController) AddComment(ctx *gin.Context) {
+	r := new(models.RequestAddEventComment)
+	BindJson(ctx, r)
+
+	tid, _ := ctx.Get("TenantID")
+	r.TenantId = tid.(string)
+
+	token := ctx.Request.Header.Get("Authorization")
+	r.Username = utils.GetUser(token)
+	r.UserId = utils.GetUserID(token)
+
+	Service(ctx, func() (interface{}, interface{}) {
+		return services.EventService.AddComment(r)
+	})
+}
+
+func (e AlertEventController) DeleteComment(ctx *gin.Context) {
+	r := new(models.RequestDeleteEventComment)
+	BindJson(ctx, r)
+
+	tid, _ := ctx.Get("TenantID")
+	r.TenantId = tid.(string)
+
+	Service(ctx, func() (interface{}, interface{}) {
+		return services.EventService.DeleteComment(r)
 	})
 }

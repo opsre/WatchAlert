@@ -1,6 +1,7 @@
 package services
 
 import (
+	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -17,6 +18,9 @@ type InterEventService interface {
 	ListCurrentEvent(req interface{}) (interface{}, interface{})
 	ListHistoryEvent(req interface{}) (interface{}, interface{})
 	ProcessAlertEvent(req interface{}) (interface{}, interface{})
+	ListComments(req interface{}) (interface{}, interface{})
+	AddComment(req interface{}) (interface{}, interface{})
+	DeleteComment(req interface{}) (interface{}, interface{})
 }
 
 func newInterEventService(ctx *ctx.Context) InterEventService {
@@ -202,4 +206,37 @@ func pageSlice(data []models.AlertCurEvent, index, size int) []models.AlertCurEv
 	}
 
 	return data[offset:limit]
+}
+
+func (e eventService) ListComments(req interface{}) (interface{}, interface{}) {
+	r := req.(*models.RequestListEventComments)
+	comment := e.ctx.DB.Comment()
+	data, err := comment.List(*r)
+	if err != nil {
+		return nil, fmt.Errorf("获取评论失败, %s", err.Error())
+	}
+
+	return data, nil
+}
+
+func (e eventService) AddComment(req interface{}) (interface{}, interface{}) {
+	r := req.(*models.RequestAddEventComment)
+	comment := e.ctx.DB.Comment()
+	err := comment.Add(*r)
+	if err != nil {
+		return nil, fmt.Errorf("评论失败, %s", err.Error())
+	}
+
+	return "评论成功", nil
+}
+
+func (e eventService) DeleteComment(req interface{}) (interface{}, interface{}) {
+	r := req.(*models.RequestDeleteEventComment)
+	comment := e.ctx.DB.Comment()
+	err := comment.Delete(*r)
+	if err != nil {
+		return nil, fmt.Errorf("删除评论失败, %s", err.Error())
+	}
+
+	return "删除评论成功", nil
 }

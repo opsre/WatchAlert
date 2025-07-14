@@ -447,5 +447,17 @@ func PermissionsInfo() map[string]UserPermissions {
 			Key: "获取拨测历史",
 			API: "/api/w8t/probing/getProbingHistory",
 		},
+		"listComments": {
+			Key: "获取评论",
+			API: "/api/w8t/event/listComments",
+		},
+		"addComment": {
+			Key: "添加评论",
+			API: "/api/w8t/event/addComment",
+		},
+		"deleteComment": {
+			Key: "删除评论",
+			API: "/api/w8t/event/deleteComment",
+		},
 	}
 }

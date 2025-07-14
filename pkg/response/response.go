@@ -31,10 +31,10 @@ func Fail(ctx *gin.Context, data interface{}, msg string) {
 
 func TokenFail(ctx *gin.Context) {
 	code := 401
-	Response(ctx, code, code, nil, CodeInfo[int64(code)])
+	Response(ctx, code, code, CodeInfo[int64(code)], "failed")
 }
 
 func PermissionFail(ctx *gin.Context) {
 	code := 403
-	Response(ctx, code, code, nil, CodeInfo[int64(code)])
+	Response(ctx, code, code, CodeInfo[int64(code)], "failed")
 }

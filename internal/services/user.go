@@ -99,7 +99,11 @@ func (us userService) Login(req interface{}) (interface{}, interface{}) {
 	duration := time.Duration(global.Config.Jwt.Expire) * time.Second
 	us.ctx.Redis.Redis().Set("uid-"+data.UserId, tools.JsonMarshal(r), duration)
 
-	return tokenData, nil
+	return models.ResponseLoginInfo{
+		Token:    tokenData,
+		Username: r.UserName,
+		UserId:   r.UserId,
+	}, nil
 }
 
 func (us userService) Register(req interface{}) (interface{}, interface{}) {
