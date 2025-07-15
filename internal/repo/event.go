@@ -34,7 +34,7 @@ func (e EventRepo) GetHistoryEvent(r models.AlertHisEventQuery) (models.HistoryE
 	db.Where("fault_center_id = ?", r.FaultCenterId)
 
 	if r.Query != "" {
-		db.Where("rule_name LIKE ? OR severity LIKE ? OR annotations LIKE ?", "%"+r.Query+"%", "%"+r.Query+"%", "%"+r.Query+"%")
+		db.Where("rule_name LIKE ? OR severity LIKE ? OR annotations LIKE ? OR fingerprint LIKE ?", "%"+r.Query+"%", "%"+r.Query+"%", "%"+r.Query+"%", "%"+r.Query+"%")
 	}
 
 	if r.DatasourceType != "" {

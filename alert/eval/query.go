@@ -100,6 +100,7 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 			event.Fingerprint = fingerprint
 			event.Severity = ruleExpr.Severity
 			event.SearchQL = rule.PrometheusConfig.PromQL
+			event.ForDuration = rule.GetForDuration(ruleExpr.Severity)
 			event.Annotations = tools.ParserVariables(rule.PrometheusConfig.Annotations, tools.ConvertEventToMap(event))
 
 			// 告警评估

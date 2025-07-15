@@ -90,15 +90,16 @@ type JaegerConfig struct {
 }
 
 type PrometheusConfig struct {
-	PromQL      string  `json:"promQL"`
-	Annotations string  `json:"annotations"`
-	ForDuration int64   `json:"forDuration"`
-	Rules       []Rules `json:"rules"`
+	PromQL      string `json:"promQL"`
+	Annotations string `json:"annotations"`
+	//ForDuration int64   `json:"forDuration"`
+	Rules []Rules `json:"rules"`
 }
 
 type Rules struct {
-	Severity string `json:"severity"`
-	Expr     string `json:"expr"`
+	ForDuration int64  `json:"forDuration"`
+	Severity    string `json:"severity"`
+	Expr        string `json:"expr"`
 }
 
 type EffectiveTime struct {
@@ -178,6 +179,15 @@ func (a *AlertRule) GetEnabled() *bool {
 		return &isOk
 	}
 	return a.Enabled
+}
+
+func (a *AlertRule) GetForDuration(severity string) int64 {
+	for _, rule := range a.PrometheusConfig.Rules {
+		if rule.Severity == severity {
+			return rule.ForDuration
+		}
+	}
+	return 0
 }
 
 type RequestRuleChangeStatus struct {

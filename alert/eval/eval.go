@@ -195,10 +195,10 @@ func (t *AlertRule) Recover(tenantId, ruleId string, eventCacheKey models.AlertE
 			}
 
 			newEvent := event
-			// 转换成预告警状态
-			err := newEvent.TransitionStatus(models.StatePreAlert)
+			// 转换成告警状态
+			err := newEvent.TransitionStatus(models.StateAlerting)
 			if err != nil {
-				logc.Errorf(t.ctx.Ctx, "Failed to transition to「pre_alert」state for fingerprint %s: %v", fingerprint, err)
+				logc.Errorf(t.ctx.Ctx, "Failed to transition to「alerting」state for fingerprint %s: %v", fingerprint, err)
 				continue
 			}
 			t.ctx.Redis.Alert().PushAlertEvent(newEvent)

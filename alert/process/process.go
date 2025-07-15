@@ -16,7 +16,6 @@ func BuildEvent(rule models.AlertRule, labels func() map[string]interface{}) mod
 		RuleName:             rule.RuleName,
 		Labels:               labels(),
 		EvalInterval:         rule.EvalInterval,
-		ForDuration:          rule.PrometheusConfig.ForDuration,
 		IsRecovered:          false,
 		RepeatNoticeInterval: rule.RepeatNoticeInterval,
 		Severity:             rule.Severity,
