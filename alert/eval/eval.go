@@ -9,7 +9,6 @@ import (
 	"slices"
 	"strings"
 	"time"
-	"watchAlert/alert/process"
 	"watchAlert/internal/models"
 	"watchAlert/pkg/ctx"
 	"watchAlert/pkg/provider"
@@ -141,7 +140,6 @@ func (t *AlertRule) executeTask(rule models.AlertRule, taskChan chan struct{}) {
 	}
 	//logc.Infof(t.ctx.Ctx, fmt.Sprintf("规则评估 -> %v", tools.JsonMarshal(rule)))
 	t.Recover(rule.TenantId, rule.RuleId, models.BuildAlertEventCacheKey(rule.TenantId, rule.FaultCenterId), models.BuildFaultCenterInfoCacheKey(rule.TenantId, rule.FaultCenterId), curFingerprints)
-	t.GC(t.ctx, rule, curFingerprints)
 }
 
 // getEvalTimeDuration 获取评估时间
@@ -180,14 +178,13 @@ func (t *AlertRule) Recover(tenantId, ruleId string, eventCacheKey models.AlertE
 		activeRuleFingerprints = append(activeRuleFingerprints, fingerprint)
 	}
 
-	// 计算需要恢复的指纹列表 (即在 Redis 中存在但在当前活动列表中不存在的指纹)
-	recoverFingerprints := tools.GetSliceDifference(activeRuleFingerprints, curFingerprints)
+	/*
+		从待恢复状态转换成告警状态（即在 Redis 中存在待恢复 且在 curFingerprints 存在告警的事件）
+	*/
 
 	// 获取当前待恢复的告警指纹列表
 	pendingFingerprints := t.ctx.Redis.PendingRecover().List(tenantId, ruleId)
-
-	// 从待恢复状态转换成告警状态（即在 Redis 中存在待恢复 且在 curFingerprints 存在告警的事件）
-	if len(recoverFingerprints) == 0 && len(pendingFingerprints) != 0 {
+	if len(pendingFingerprints) != 0 {
 		for _, fingerprint := range curFingerprints {
 			if _, exists := pendingFingerprints[fingerprint]; !exists {
 				continue
@@ -198,14 +195,23 @@ func (t *AlertRule) Recover(tenantId, ruleId string, eventCacheKey models.AlertE
 			}
 
 			newEvent := event
-			newEvent.TransitionStatus(models.StatePreAlert)
+			// 转换成预告警状态
+			err := newEvent.TransitionStatus(models.StatePreAlert)
+			if err != nil {
+				logc.Errorf(t.ctx.Ctx, "Failed to transition to「pre_alert」state for fingerprint %s: %v", fingerprint, err)
+				continue
+			}
 			t.ctx.Redis.Alert().PushAlertEvent(newEvent)
 			t.ctx.Redis.PendingRecover().Delete(tenantId, ruleId, fingerprint)
 		}
-		return
 	}
 
-	// 从待恢复状态转换成已恢复状态
+	/*
+		从待恢复状态转换成已恢复状态
+	*/
+
+	// 计算需要恢复的指纹列表 (即在 Redis 中存在但在当前活动列表中不存在的指纹)
+	recoverFingerprints := tools.GetSliceDifference(activeRuleFingerprints, curFingerprints)
 	curTime := time.Now().Unix()
 	recoverWaitTime := t.getRecoverWaitTime(faultCenterInfoKey)
 	for _, fingerprint := range recoverFingerprints {
@@ -222,12 +228,13 @@ func (t *AlertRule) Recover(tenantId, ruleId string, eventCacheKey models.AlertE
 			t.ctx.Redis.PendingRecover().Set(tenantId, ruleId, fingerprint, curTime)
 			// 转换状态, 标记为待恢复
 			if err := newEvent.TransitionStatus(models.StatePendingRecovery); err != nil {
-				logc.Errorf(t.ctx.Ctx, "Failed to transition to pending recovery state for fingerprint %s: %v", fingerprint, err)
+				logc.Errorf(t.ctx.Ctx, "Failed to transition to「pending_recovery」state for fingerprint %s: %v", fingerprint, err)
+				continue
 			}
 			t.ctx.Redis.Alert().PushAlertEvent(newEvent)
 			continue
 		} else if err != nil {
-			logc.Errorf(t.ctx.Ctx, "Failed to get pending recovery time for fingerprint %s: %v", fingerprint, err)
+			logc.Errorf(t.ctx.Ctx, "Failed to get「pending_recovery」time for fingerprint %s: %v", fingerprint, err)
 			continue
 		}
 
@@ -256,10 +263,6 @@ func (t *AlertRule) getRecoverWaitTime(faultCenterInfoKey models.FaultCenterInfo
 		return 1
 	}
 	return faultCenter.RecoverWaitTime
-}
-
-func (t *AlertRule) GC(ctx *ctx.Context, rule models.AlertRule, curFingerprints []string) {
-	go process.GcRecoverWaitCache(ctx, rule, curFingerprints)
 }
 
 func (t *AlertRule) RestartAllEvals() {

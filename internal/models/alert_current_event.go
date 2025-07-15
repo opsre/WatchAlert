@@ -118,7 +118,7 @@ func (alert *AlertCurEvent) validateTransition(newState AlertStatus) error {
 	allowedTransitions := map[AlertStatus][]AlertStatus{
 		StatePreAlert:        {StateAlerting, StateSilenced},
 		StateAlerting:        {StatePendingRecovery, StateSilenced},
-		StatePendingRecovery: {StateAlerting, StateRecovered},
+		StatePendingRecovery: {StatePreAlert, StateAlerting, StateRecovered},
 		StateRecovered:       {StatePreAlert},
 		StateSilenced:        {StatePreAlert, StateAlerting, StatePendingRecovery, StateRecovered},
 	}

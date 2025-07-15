@@ -6,7 +6,6 @@ import (
 	"watchAlert/alert/mute"
 	"watchAlert/internal/models"
 	"watchAlert/pkg/ctx"
-	"watchAlert/pkg/tools"
 )
 
 func BuildEvent(rule models.AlertRule, labels func() map[string]interface{}) models.AlertCurEvent {
@@ -90,26 +89,6 @@ func IsSilencedEvent(event *models.AlertCurEvent) bool {
 		Labels:        event.Labels,
 		FaultCenterId: event.FaultCenterId,
 	})
-}
-
-func GcRecoverWaitCache(ctx *ctx.Context, rule models.AlertRule, curKeys []string) {
-	// 获取等待恢复告警的keys
-	recoverWaitKeys := getRecoverWaitList(ctx, rule)
-	// 删除正常告警的key
-	fks := tools.GetSliceSame(curKeys, recoverWaitKeys)
-	for _, key := range fks {
-		ctx.Redis.PendingRecover().Delete(rule.TenantId, rule.RuleId, key)
-	}
-}
-
-func getRecoverWaitList(ctx *ctx.Context, rule models.AlertRule) []string {
-	var fingerprints []string
-	list := ctx.Redis.PendingRecover().List(rule.TenantId, rule.RuleId)
-	for fingerprint := range list {
-		fingerprints = append(fingerprints, fingerprint)
-	}
-
-	return fingerprints
 }
 
 func GetDutyUser(ctx *ctx.Context, noticeData models.AlertNotice) string {
