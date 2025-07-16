@@ -100,6 +100,8 @@ func GetDutyUser(ctx *ctx.Context, noticeData models.AlertNotice) string {
 			return fmt.Sprintf("%s", user.DutyUserId)
 		case "Email", "WeChat", "CustomHook":
 			return fmt.Sprintf("@%s", user.UserName)
+		case "Slack":
+			return fmt.Sprintf("<%s>", user.DutyUserId)
 		}
 	}
 

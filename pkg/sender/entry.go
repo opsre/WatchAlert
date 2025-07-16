@@ -77,6 +77,8 @@ func senderFactory(noticeType string) (SendInter, error) {
 		return NewWebHookSender(), nil
 	case "PhoneCall":
 		return NewPhoneCallSender(), nil
+	case "Slack":
+		return NewSlackSender(), nil
 	default:
 		return nil, fmt.Errorf("无效的通知类型: %s", noticeType)
 	}

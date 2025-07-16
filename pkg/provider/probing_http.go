@@ -2,7 +2,6 @@ package provider
 
 import (
 	"bytes"
-	"fmt"
 	"net/http"
 	"time"
 	"watchAlert/pkg/tools"
@@ -45,7 +44,6 @@ func (h HTTPer) Pilot(option EndpointOption) (EndpointValue, error) {
 	end := time.Now()
 	// 计算请求耗时
 	latency := end.Sub(start).Milliseconds()
-	fmt.Println(res.Request.RemoteAddr)
 
 	return convertHTTPerToEndpointValue(HttperInformation{
 		Address:    res.Request.URL.String(),

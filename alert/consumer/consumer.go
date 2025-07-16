@@ -341,6 +341,7 @@ func (c *Consume) RestartAllConsumers() {
 		return
 	}
 	for _, fc := range list {
+		c.ctx.Redis.FaultCenter().PushFaultCenterInfo(fc)
 		c.Submit(fc)
 	}
 }

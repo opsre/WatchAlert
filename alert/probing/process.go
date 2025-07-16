@@ -19,16 +19,6 @@ func (t *ProductProbing) buildEvent(rule models.ProbingRule) models.ProbingEvent
 	}
 }
 
-func SaveProbingEndpointEvent(ctx *ctx.Context, event models.ProbingEvent) {
-	firingKey := models.BuildProbingEventCacheKey(event.TenantId, event.RuleId)
-	cache := ctx.Redis.Probing()
-	event.FirstTriggerTime = cache.GetProbingEventFirstTime(firingKey)
-	event.LastEvalTime = cache.GetProbingEventLastEvalTime(firingKey)
-	event.LastSendTime = cache.GetProbingEventLastSendTime(firingKey)
-
-	cache.SetProbingEventCache(event, 0)
-}
-
 func SetProbingValueMap(key models.ProbingValueCacheKey, m map[string]any) error {
 	for k, v := range m {
 		ctx.DO().Redis.Redis().HSet(string(key), k, v)

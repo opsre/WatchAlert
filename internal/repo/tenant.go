@@ -2,7 +2,6 @@ package repo
 
 import (
 	"context"
-	"fmt"
 	"github.com/zeromicro/go-zero/core/logc"
 	"gorm.io/gorm"
 	"watchAlert/internal/models"
@@ -354,7 +353,6 @@ func (tr TenantRepo) ChangeTenantUserRole(t models.ChangeTenantUserRole) error {
 		return err
 	}
 
-	fmt.Println(tenant)
 	var users []models.TenantUser
 	for _, u := range tenant.Users {
 		if u.UserID != t.UserID {

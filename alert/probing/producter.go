@@ -57,7 +57,7 @@ func (t *ProductProbing) Eval(ctx context.Context, rule models.ProbingRule) {
 	for {
 		select {
 		case <-timer.C:
-			logc.Infof(t.ctx.Ctx, fmt.Sprintf("网络监控: %s", tools.JsonMarshal(rule)))
+			//logc.Infof(t.ctx.Ctx, fmt.Sprintf("网络监控: %s", tools.JsonMarshal(rule)))
 			t.worker(rule)
 		case <-ctx.Done():
 			return
@@ -164,6 +164,10 @@ func (t *ProductProbing) runProbing(rule models.ProbingRule) (provider.EndpointV
 }
 
 func (t *ProductProbing) Evaluation(event models.ProbingEvent, option models.EvalCondition) {
+	key := models.BuildProbingEventCacheKey(event.TenantId, event.RuleId)
+	c := ctx.Redis.Probing()
+	event.FirstTriggerTime = c.GetProbingEventFirstTime(key)
+
 	if process.EvalCondition(option) {
 		// 控制失败频次
 		t.setFrequency(t.FailFrequency, event.RuleId)
@@ -173,11 +177,12 @@ func (t *ProductProbing) Evaluation(event models.ProbingEvent, option models.Eva
 				t.cleanFrequency(t.FailFrequency, event.RuleId)
 			}()
 
-			SaveProbingEndpointEvent(t.ctx, event)
+			event.LastEvalTime = c.GetProbingEventLastEvalTime(key)
+			event.LastSendTime = c.GetProbingEventLastSendTime(key)
+			c.SetProbingEventCache(event, 0)
 		}
+
 	} else {
-		key := models.BuildProbingEventCacheKey(event.TenantId, event.RuleId)
-		c := ctx.Redis.Probing()
 		neCache, err := c.GetProbingEventCache(key)
 		if err != nil && err == redis.Nil {
 			return
@@ -194,7 +199,11 @@ func (t *ProductProbing) Evaluation(event models.ProbingEvent, option models.Eva
 				t.cleanFrequency(t.OkFrequency, event.RuleId)
 			}()
 
-			neCache.FirstTriggerTime = c.GetProbingEventFirstTime(key)
+			// 触发恢复后，需要更新缓存中的 label、annotations
+			neCache.Labels = event.Labels
+			neCache.Annotations = event.Annotations
+
+			// 标记恢复状态
 			neCache.IsRecovered = true
 			neCache.RecoverTime = time.Now().Unix()
 			neCache.LastSendTime = 0

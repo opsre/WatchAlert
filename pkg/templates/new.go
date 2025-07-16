@@ -22,6 +22,8 @@ func NewTemplate(ctx *ctx.Context, alert models.AlertCurEvent, notice models.Ale
 		return Template{CardContentMsg: wechatTemplate(alert, noticeTmpl)}
 	case "PhoneCall":
 		return Template{CardContentMsg: phoneCallTemplate(alert, noticeTmpl)}
+	case "Slack":
+		return Template{slackTemplate(alert, noticeTmpl)}
 	}
 
 	return Template{}
