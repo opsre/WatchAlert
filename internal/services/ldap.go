@@ -2,14 +2,15 @@ package services
 
 import (
 	"fmt"
-	"github.com/robfig/cron/v3"
-	"github.com/zeromicro/go-zero/core/logc"
-	"gopkg.in/ldap.v2"
 	"time"
 	"watchAlert/internal/global"
 	"watchAlert/internal/models"
 	"watchAlert/pkg/ctx"
 	"watchAlert/pkg/tools"
+
+	"github.com/robfig/cron/v3"
+	"github.com/zeromicro/go-zero/core/logc"
+	"gopkg.in/ldap.v2"
 )
 
 type ldapService struct {
@@ -53,38 +54,89 @@ type ldapUser struct {
 
 func (l ldapService) ListUsers() ([]ldapUser, error) {
 	lc := global.Config.Ldap
-	searchRequest := ldap.NewSearchRequest(
-		lc.BaseDN,
-		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
-		"(&(objectClass=*))",
-		[]string{},
-		nil,
-	)
 
 	auth, err := l.getAdminAuth()
 	if err != nil {
 		return nil, err
 	}
 	defer auth.Close()
-	sr, err := auth.Search(searchRequest)
-	if err != nil {
-		logc.Errorf(l.ctx.Ctx, fmt.Sprintf("LDAP 用户搜索失败, err: %s", err.Error()))
-		return nil, err
-	}
 
 	var users []ldapUser
-	for _, entry := range sr.Entries {
-		uid := entry.GetAttributeValue("uid")
-		if uid == "" {
-			continue
+	pageSize := uint32(50)
+	var pagingControl *ldap.ControlPaging
+
+	logc.Infof(l.ctx.Ctx, "开始分页查询LDAP用户，每页大小: %d", pageSize)
+
+	pageNum := 1
+	for {
+		logc.Infof(l.ctx.Ctx, "正在查询第 %d 页用户...", pageNum)
+
+		searchRequest := ldap.NewSearchRequest(
+			lc.BaseDN,
+			ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, // size limit 设为 0，由分页控制
+			"(&(objectClass=person)(objectClass=user))",
+			[]string{"uid", "cn", "sAMAccountName", "mobile", "mail"},
+			nil,
+		)
+
+		// 设置分页控制
+		if pagingControl != nil {
+			searchRequest.Controls = []ldap.Control{pagingControl}
+		} else {
+			pagingControl = ldap.NewControlPaging(pageSize)
+			searchRequest.Controls = []ldap.Control{pagingControl}
 		}
-		users = append(users, ldapUser{
-			Uid:    entry.GetAttributeValue("uid"),
-			Mobile: entry.GetAttributeValue("mobile"),
-			Mail:   entry.GetAttributeValue("mail"),
-		})
+
+		sr, err := auth.Search(searchRequest)
+		if err != nil {
+			logc.Errorf(l.ctx.Ctx, fmt.Sprintf("LDAP 第 %d 页用户搜索失败, err: %s", pageNum, err.Error()))
+			return nil, err
+		}
+
+		// 处理当前页的搜索结果
+		pageUserCount := 0
+		for _, entry := range sr.Entries {
+			uid := entry.GetAttributeValue("sAMAccountName")
+			if uid == "" {
+				uid = entry.GetAttributeValue("uid")
+			}
+			if uid == "" {
+				uid = entry.GetAttributeValue("cn")
+			}
+			if uid == "" {
+				continue
+			}
+			users = append(users, ldapUser{
+				Uid:    uid,
+				Mobile: entry.GetAttributeValue("mobile"),
+				Mail:   entry.GetAttributeValue("mail"),
+			})
+			pageUserCount++
+		}
+
+		logc.Infof(l.ctx.Ctx, "第 %d 页查询完成，获取到 %d 个用户", pageNum, pageUserCount)
+
+		updatedControl := ldap.FindControl(sr.Controls, ldap.ControlTypePaging)
+		if updatedControl == nil {
+			logc.Infof(l.ctx.Ctx, "没有更多页面，查询结束")
+			break
+		}
+
+		pagingControl = updatedControl.(*ldap.ControlPaging)
+		if len(pagingControl.Cookie) == 0 {
+			logc.Infof(l.ctx.Ctx, "分页Cookie为空，查询结束")
+			break
+		}
+
+		pageNum++
+
+		if pageNum > 100 {
+			logc.Errorf(l.ctx.Ctx, "查询页数超过100页，可能存在问题，停止查询")
+			break
+		}
 	}
 
+	logc.Infof(l.ctx.Ctx, "LDAP 用户同步完成，共获取 %d 个用户", len(users))
 	return users, nil
 }
 
