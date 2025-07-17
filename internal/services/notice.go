@@ -59,6 +59,7 @@ func (n noticeService) Create(req interface{}) (interface{}, interface{}) {
 
 func (n noticeService) Update(req interface{}) (interface{}, interface{}) {
 	r := req.(*models.AlertNotice)
+	r.DutyId = r.GetDutyId()
 	err := n.ctx.DB.Notice().Update(*r)
 	if err != nil {
 		return nil, err

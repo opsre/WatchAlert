@@ -8,7 +8,7 @@ type AlertNotice struct {
 	TenantId     string   `json:"tenantId"`
 	Uuid         string   `json:"uuid"`
 	Name         string   `json:"name"`
-	DutyId       string   `json:"dutyId"`
+	DutyId       *string  `json:"dutyId"`
 	NoticeType   string   `json:"noticeType"`
 	NoticeTmplId string   `json:"noticeTmplId"`
 	DefaultHook  string   `json:"hook" gorm:"column:hook"`
@@ -16,6 +16,13 @@ type AlertNotice struct {
 	Routes       []Route  `json:"routes" gorm:"column:routes;serializer:json"`
 	Email        Email    `json:"email" gorm:"email;serializer:json"`
 	PhoneNumber  []string `json:"phoneNumber" gorm:"phoneNumber;serializer:json"`
+}
+
+func (an *AlertNotice) GetDutyId() *string {
+	if an.DutyId == nil {
+		return new(string)
+	}
+	return an.DutyId
 }
 
 type Route struct {

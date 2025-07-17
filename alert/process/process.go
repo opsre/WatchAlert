@@ -91,7 +91,7 @@ func IsSilencedEvent(event *models.AlertCurEvent) bool {
 }
 
 func GetDutyUser(ctx *ctx.Context, noticeData models.AlertNotice) string {
-	user, ok := ctx.DB.DutyCalendar().GetDutyUserInfo(noticeData.DutyId, time.Now().Format("2006-1-2"))
+	user, ok := ctx.DB.DutyCalendar().GetDutyUserInfo(*noticeData.GetDutyId(), time.Now().Format("2006-1-2"))
 	if ok {
 		switch noticeData.NoticeType {
 		case "FeiShu":
@@ -110,7 +110,7 @@ func GetDutyUser(ctx *ctx.Context, noticeData models.AlertNotice) string {
 
 // GetDutyUserPhoneNumber 获取当班人员手机号
 func GetDutyUserPhoneNumber(ctx *ctx.Context, noticeData models.AlertNotice) []string {
-	user, ok := ctx.DB.DutyCalendar().GetDutyUserInfo(noticeData.DutyId, time.Now().Format("2006-1-2"))
+	user, ok := ctx.DB.DutyCalendar().GetDutyUserInfo(*noticeData.GetDutyId(), time.Now().Format("2006-1-2"))
 	if ok {
 		switch noticeData.NoticeType {
 		case "PhoneCall":
