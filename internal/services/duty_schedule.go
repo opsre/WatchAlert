@@ -132,7 +132,7 @@ func (dms dutyCalendarService) createDutyScheduleList(dutyInfo models.DutySchedu
 			break
 		}
 
-		for _, user := range dutyInfo.Users {
+		for _, users := range dutyInfo.UserGroup {
 			for day := 1; day <= dutyDays; day++ {
 				date, ok := <-timeC
 				if !ok {
@@ -142,10 +142,8 @@ func (dms dutyCalendarService) createDutyScheduleList(dutyInfo models.DutySchedu
 				dutyScheduleList = append(dutyScheduleList, models.DutySchedule{
 					DutyId: dutyInfo.DutyId,
 					Time:   date,
-					Users: models.Users{
-						UserId:   user.UserId,
-						Username: user.Username,
-					},
+					Users:  users,
+					Status: dutyInfo.Status,
 				})
 
 				if dutyInfo.DateType == "week" && tools.IsEndOfWeek(date) {

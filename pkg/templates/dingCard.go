@@ -1,20 +1,20 @@
 package templates
 
 import (
-	"fmt"
+	"strings"
 	models2 "watchAlert/internal/models"
 	"watchAlert/pkg/tools"
 )
 
 func dingdingTemplate(alert models2.AlertCurEvent, noticeTmpl models2.NoticeTemplateExample) string {
-
 	Title := ParserTemplate("Title", alert, noticeTmpl.Template)
 	Footer := ParserTemplate("Footer", alert, noticeTmpl.Template)
 
-	userId := alert.DutyUser
-
-	if alert.DutyUser != "暂无" {
-		alert.DutyUser = fmt.Sprintf("@%s", alert.DutyUser)
+	dutyUser := alert.DutyUser
+	var dutyUsers []string
+	for _, user := range strings.Split(dutyUser, " ") {
+		u := strings.Trim(user, "@")
+		dutyUsers = append(dutyUsers, u)
 	}
 
 	t := models2.DingMsg{
@@ -28,14 +28,19 @@ func dingdingTemplate(alert models2.AlertCurEvent, noticeTmpl models2.NoticeTemp
 				Footer,
 		},
 		At: models2.At{
-			AtUserIds: []string{userId},
-			AtMobiles: []string{userId},
+			AtUserIds: dutyUsers,
+			AtMobiles: dutyUsers,
 			IsAtAll:   false,
 		},
 	}
 
-	cardContentString := tools.JsonMarshal(t)
+	if strings.Trim(alert.DutyUser, " ") == "all" {
+		t.At = models2.At{
+			AtUserIds: []string{},
+			AtMobiles: []string{},
+			IsAtAll:   true,
+		}
+	}
 
-	return cardContentString
-
+	return tools.JsonMarshal(t)
 }

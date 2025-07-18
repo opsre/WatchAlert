@@ -1,11 +1,14 @@
 package repo
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"github.com/zeromicro/go-zero/core/logc"
 	"gorm.io/gorm"
 	"time"
 	"watchAlert/internal/models"
+	"watchAlert/pkg/tools"
 )
 
 type (
@@ -15,11 +18,11 @@ type (
 
 	InterDutyCalendar interface {
 		GetCalendarInfo(dutyId, time string) models.DutySchedule
-		GetDutyUserInfo(dutyId, time string) (models.Member, bool)
+		GetDutyUserInfo(dutyId, time string) ([]models.Member, bool)
 		Create(r models.DutySchedule) error
 		Update(r models.DutySchedule) error
 		Search(r models.DutyScheduleQuery) ([]models.DutySchedule, error)
-		GetCalendarUsers(r models.DutyScheduleQuery) ([]models.Users, error)
+		GetCalendarUsers(r models.DutyScheduleQuery) ([][]models.DutyUser, error)
 	}
 )
 
@@ -44,19 +47,24 @@ func (dc DutyCalendarRepo) GetCalendarInfo(dutyId, time string) models.DutySched
 }
 
 // GetDutyUserInfo 获取值班用户信息
-func (dc DutyCalendarRepo) GetDutyUserInfo(dutyId, time string) (models.Member, bool) {
-	var user models.Member
+func (dc DutyCalendarRepo) GetDutyUserInfo(dutyId, time string) ([]models.Member, bool) {
+	var users []models.Member
 	schedule := dc.GetCalendarInfo(dutyId, time)
-	db := dc.db.Model(models.Member{}).
-		Where("user_id = ?", schedule.UserId)
-	if err := db.First(&user).Error; err != nil {
-		return user, false
-	}
-	if user.JoinDuty == "true" {
-		return user, true
+	for _, user := range schedule.Users {
+		var userData models.Member
+		db := dc.db.Model(models.Member{}).Where("user_id = ?", user.UserId)
+		if err := db.First(&userData).Error; err != nil {
+			logc.Error(context.Background(), err.Error())
+			continue
+		}
+		users = append(users, userData)
 	}
 
-	return user, false
+	if users == nil {
+		return users, false
+	}
+
+	return users, true
 }
 
 func (dc DutyCalendarRepo) Create(r models.DutySchedule) error {
@@ -106,8 +114,9 @@ func (dc DutyCalendarRepo) Search(r models.DutyScheduleQuery) ([]models.DutySche
 
 // GetCalendarUsers 获取值班用户
 // 只获取当前月份到月底正在值班的用户，避免已经移除过的用户仍存在值班用户列表当中；
-func (dc DutyCalendarRepo) GetCalendarUsers(r models.DutyScheduleQuery) ([]models.Users, error) {
-	var users []models.Users
+func (dc DutyCalendarRepo) GetCalendarUsers(r models.DutyScheduleQuery) ([][]models.DutyUser, error) {
+	var entries []models.DutySchedule
+	var groupedUsers [][]models.DutyUser
 
 	// 获取当前年月日
 	now := time.Now().UTC()
@@ -117,14 +126,25 @@ func (dc DutyCalendarRepo) GetCalendarUsers(r models.DutyScheduleQuery) ([]model
 
 	db := dc.db.Model(&models.DutySchedule{})
 	db.Where("tenant_id = ? AND duty_id = ?", r.TenantId, r.DutyId)
+	db.Where("status = ?", models.CalendarFormalStatus)
 	db.Where("time >= ? AND time <= ?", currentDate, endOfYear)
-	db.Distinct("user_id", "username")
-	if err := db.Find(&users).Error; err != nil {
+
+	if err := db.Find(&entries).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to get calendar users: %w", err)
 	}
 
-	return users, nil
+	users := make(map[string][]models.DutyUser)
+	for _, entry := range entries {
+		key := tools.JsonMarshal(entry.Users)
+		users[key] = entry.Users
+	}
+
+	for _, userList := range users {
+		groupedUsers = append(groupedUsers, userList)
+	}
+
+	return groupedUsers, nil
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/go-redis/redis"
 	"github.com/zeromicro/go-zero/core/logc"
+	"strings"
 	"time"
 	"watchAlert/alert/process"
 	"watchAlert/internal/models"
@@ -118,7 +119,7 @@ func (m *ConsumeProbing) sendAlert(alert models.ProbingEvent) {
 		return
 	}
 
-	alert.DutyUser = process.GetDutyUser(m.ctx, noticeData)
+	alert.DutyUser = strings.Join(process.GetDutyUsers(m.ctx, noticeData), " ")
 	err = sender.Sender(m.ctx, sender.SendParams{
 		RuleName:    alert.RuleName,
 		TenantId:    alert.TenantId,

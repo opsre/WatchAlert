@@ -60,9 +60,6 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 		return nil
 	}
 
-	// 获取已缓存事件指纹
-	fingerPrintMap := process.GetFingerPrint(ctx, rule.TenantId, rule.FaultCenterId, rule.RuleId)
-
 	// 按优先级排序规则（P0 > P1 > P2）
 	rules := sortRulesByPriority(rule.PrometheusConfig.Rules)
 
@@ -117,17 +114,6 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 				}
 				// 找到符合条件的规则后，跳过该指标的其他规则
 				break
-			} else if _, exist := fingerPrintMap[fingerprint]; exist {
-				// 获取过恢复值则直接跳过
-				if _, existRecoverValue := event.Labels["recover_value"]; existRecoverValue {
-					continue
-				}
-
-				// 获取上一次告警值
-				event.Labels["value"] = ctx.Redis.Alert().GetLastFiringValue(event.TenantId, event.FaultCenterId, event.Fingerprint)
-				// 获取当前恢复值
-				event.Labels["recover_value"] = v.GetValue()
-				process.PushEventToFaultCenter(ctx, &event)
 			}
 		}
 	}

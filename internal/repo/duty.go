@@ -63,7 +63,7 @@ func (d DutyRepo) List(r models.DutyManagementQuery) ([]models.DutyManagement, e
 	for index, value := range data {
 		var dutySchedule models.DutySchedule
 		d.DB().Model(models.DutySchedule{}).Where("duty_id = ? and time = ?", value.ID, time.Now().Format("2006-1-2")).Find(&dutySchedule)
-		data[index].CurDutyUser = dutySchedule.Username
+		data[index].CurDutyUser = dutySchedule.Users
 	}
 
 	return data, nil
