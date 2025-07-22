@@ -58,7 +58,7 @@ func HandleAlert(ctx *ctx.Context, faultCenter models.FaultCenter, noticeId stri
 					return []string{}
 				}()
 
-				event.DutyUser = GetDutyUser(ctx, noticeData)
+				event.DutyUser = strings.Join(GetDutyUsers(ctx, noticeData), " ")
 				event.DutyUserPhoneNumber = GetDutyUserPhoneNumber(ctx, noticeData)
 				content := generateAlertContent(ctx, event, noticeData)
 				return sender.Sender(ctx, sender.SendParams{

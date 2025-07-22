@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -70,104 +71,86 @@ func (e eventService) ProcessAlertEvent(req interface{}) (interface{}, interface
 }
 
 func (e eventService) ListCurrentEvent(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.AlertCurEventQuery)
+	r, ok := req.(*models.AlertCurEventQuery)
+	if !ok {
+		return nil, fmt.Errorf("invalid request type: expected *models.AlertCurEventQuery")
+	}
+
 	center, err := e.ctx.Redis.Alert().GetAllEvents(models.BuildAlertEventCacheKey(r.TenantId, r.FaultCenterId))
 	if err != nil {
 		return nil, err
 	}
 
-	var dataList []models.AlertCurEvent
+	var (
+		allEvents      []models.AlertCurEvent
+		filteredEvents []models.AlertCurEvent
+		curTime        = time.Now()
+	)
 	for _, alert := range center {
-		dataList = append(dataList, *alert)
+		allEvents = append(allEvents, *alert)
 	}
 
-	if r.DatasourceType != "" {
-		var dsTypeDataList []models.AlertCurEvent
-		for _, v := range dataList {
-			if v.DatasourceType == r.DatasourceType {
-				dsTypeDataList = append(dsTypeDataList, v)
-				continue
-			}
-		}
-		dataList = dsTypeDataList
-	}
-
-	if r.Severity != "" {
-		var dsTypeDataList []models.AlertCurEvent
-		for _, v := range dataList {
-			if v.Severity == r.Severity {
-				dsTypeDataList = append(dsTypeDataList, v)
-				continue
-			}
-		}
-		dataList = dsTypeDataList
-	}
-
+	var form int64
+	var to int64
 	if r.Scope > 0 {
-		curTime := time.Now()
-		to := curTime.Unix()
-		form := curTime.Add(-time.Duration(r.Scope) * (time.Hour * 24)).Unix()
+		to = curTime.Unix()
+		form = curTime.Add(-time.Duration(r.Scope) * 24 * time.Hour).Unix()
+	}
 
-		var dsTypeDataList []models.AlertCurEvent
-		for _, v := range dataList {
-			if v.FirstTriggerTime > form && v.FirstTriggerTime < to {
-				dsTypeDataList = append(dsTypeDataList, v)
+	for _, event := range allEvents {
+		if r.DatasourceType != "" && event.DatasourceType != r.DatasourceType {
+			continue
+		}
+
+		if r.Severity != "" && event.Severity != r.Severity {
+			continue
+		}
+
+		if r.Scope > 0 && (event.FirstTriggerTime < form || event.FirstTriggerTime > to) {
+			continue
+		}
+
+		if r.Query != "" {
+			queryMatch := false
+			if strings.Contains(event.RuleName, r.Query) {
+				queryMatch = true
+			} else if strings.Contains(event.Annotations, r.Query) {
+				queryMatch = true
+			} else if event.Labels != nil && strings.Contains(tools.JsonMarshal(event.Labels), r.Query) {
+				queryMatch = true
+			}
+			if !queryMatch {
 				continue
 			}
 		}
-		dataList = dsTypeDataList
-	}
 
-	if r.Query != "" {
-		var dsTypeDataList []models.AlertCurEvent
-		for _, v := range dataList {
-			if strings.Contains(v.RuleName, r.Query) {
-				dsTypeDataList = append(dsTypeDataList, v)
-				continue
-			}
-			if strings.Contains(v.Annotations, r.Query) {
-				dsTypeDataList = append(dsTypeDataList, v)
-				continue
-			}
-			if strings.Contains(tools.JsonMarshal(v.Labels), r.Query) {
-				dsTypeDataList = append(dsTypeDataList, v)
-				continue
-			}
+		if r.FaultCenterId != "" && !strings.Contains(event.FaultCenterId, r.FaultCenterId) {
+			continue
 		}
-		dataList = dsTypeDataList
-	}
 
-	if r.FaultCenterId != "" {
-		var data []models.AlertCurEvent
-		for _, v := range dataList {
-			if strings.Contains(v.FaultCenterId, r.FaultCenterId) {
-				data = append(data, v)
-				continue
-			}
+		if r.Status != "" && string(event.Status) != r.Status {
+			continue
 		}
-		dataList = data
+
+		filteredEvents = append(filteredEvents, event)
 	}
 
-	if r.Status != "" {
-		var data []models.AlertCurEvent
-		for _, v := range dataList {
-			if string(v.Status) == r.Status {
-				data = append(data, v)
-				continue
-			}
+	sort.Slice(filteredEvents, func(i, j int) bool {
+		if filteredEvents[i].RuleName != filteredEvents[j].RuleName {
+			return filteredEvents[i].RuleName < filteredEvents[j].RuleName // Ascending by RuleName
 		}
-		dataList = data
-	}
+		return filteredEvents[i].Annotations < filteredEvents[j].Annotations // Ascending by Annotations
+	})
 
+	paginatedList := pageSlice(filteredEvents, int(r.Page.Index), int(r.Page.Size))
 	return models.CurEventResponse{
-		List: pageSlice(dataList, int(r.Page.Index), int(r.Page.Size)),
+		List: paginatedList,
 		Page: models.Page{
-			Total: int64(len(dataList)),
+			Total: int64(len(filteredEvents)),
 			Index: r.Page.Index,
 			Size:  r.Page.Size,
 		},
 	}, nil
-
 }
 
 func (e eventService) ListHistoryEvent(req interface{}) (interface{}, interface{}) {
