@@ -62,6 +62,7 @@ func (us userService) Get(req interface{}) (interface{}, interface{}) {
 
 func (us userService) Login(req interface{}) (interface{}, interface{}) {
 	r := req.(*models.Member)
+	originalPassword := r.Password
 	r.Password = tools.GenerateHashPassword(r.Password)
 
 	q := models.MemberQuery{
@@ -75,7 +76,7 @@ func (us userService) Login(req interface{}) (interface{}, interface{}) {
 	switch data.CreateBy {
 	case "LDAP":
 		if global.Config.Ldap.Enabled {
-			err := LdapService.Login(r.UserName, r.Password)
+			err := LdapService.Login(r.UserName, originalPassword)
 			if err != nil {
 				logc.Error(us.ctx.Ctx, fmt.Sprintf("LDAP 用户登陆失败, err: %s", err.Error()))
 				return nil, fmt.Errorf("LDAP 用户登陆失败, err: %s", err.Error())
