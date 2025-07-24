@@ -179,3 +179,17 @@ type ProbingHistory struct {
 func (p *ProbingHistory) TableName() string {
 	return "w8t_probing_history"
 }
+
+type RequestProbeChangeState struct {
+	TenantId string `json:"tenantId"`
+	RuleId   string `json:"ruleId"`
+	Enabled  *bool  `json:"enabled"`
+}
+
+func (r *RequestProbeChangeState) GetEnabled() *bool {
+	if r.Enabled == nil {
+		isOk := false
+		return &isOk
+	}
+	return r.Enabled
+}

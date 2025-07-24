@@ -23,6 +23,7 @@ type (
 		Search(req interface{}) (interface{}, interface{})
 		Once(req interface{}) (interface{}, interface{})
 		GetHistory(req interface{}) (interface{}, interface{})
+		ChangeState(req interface{}) (interface{}, interface{})
 	}
 )
 
@@ -44,7 +45,7 @@ func (m probingService) Create(req interface{}) (interface{}, interface{}) {
 	}
 
 	if *r.GetEnabled() {
-		m.ProductTask.Submit(*r)
+		m.ProductTask.Add(*r)
 	}
 	m.ConsumerTask.Add(*r)
 
@@ -66,7 +67,7 @@ func (m probingService) Update(req interface{}) (interface{}, interface{}) {
 	m.ProductTask.Stop(r.RuleId)
 	m.ConsumerTask.Stop(r.RuleId)
 	if *r.GetEnabled() {
-		m.ProductTask.Submit(*r)
+		m.ProductTask.Add(*r)
 		m.ConsumerTask.Add(*r)
 	}
 
@@ -183,4 +184,32 @@ func (m probingService) GetHistory(req interface{}) (interface{}, interface{}) {
 	}
 
 	return data, nil
+}
+
+func (m probingService) ChangeState(req interface{}) (interface{}, interface{}) {
+	r := req.(*models.RequestProbeChangeState)
+	switch *r.GetEnabled() {
+	case true:
+		rule, err := m.ctx.DB.Probing().Search(models.ProbingRuleQuery{
+			TenantId: r.TenantId,
+			RuleId:   r.RuleId,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		m.ProductTask.Add(rule)
+		m.ConsumerTask.Add(rule)
+	case false:
+		m.ProductTask.Stop(r.RuleId)
+		m.ConsumerTask.Stop(r.RuleId)
+		m.ctx.Redis.Probing().DelProbingEventCache(models.BuildProbingEventCacheKey(r.TenantId, r.RuleId))
+	}
+
+	err := m.ctx.DB.Probing().ChangeState(*r)
+	if err != nil {
+		return nil, err
+	}
+
+	return nil, nil
 }

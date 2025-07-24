@@ -35,6 +35,15 @@ func (e ProbingController) API(gin *gin.RouterGroup) {
 		eventB.GET("searchProbing", e.Search)
 		eventB.GET("getProbingHistory", e.GetHistory)
 	}
+
+	c := gin.Group("probing")
+	c.Use(
+		middleware.Auth(),
+		middleware.ParseTenant(),
+	)
+	{
+		c.POST("changeState", e.ChangeState)
+	}
 }
 
 func (e ProbingController) List(ctx *gin.Context) {
@@ -112,5 +121,14 @@ func (e ProbingController) GetHistory(ctx *gin.Context) {
 
 	Service(ctx, func() (interface{}, interface{}) {
 		return services.ProbingService.GetHistory(r)
+	})
+}
+
+func (e ProbingController) ChangeState(ctx *gin.Context) {
+	r := new(models.RequestProbeChangeState)
+	BindJson(ctx, r)
+
+	Service(ctx, func() (interface{}, interface{}) {
+		return services.ProbingService.ChangeState(r)
 	})
 }

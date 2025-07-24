@@ -22,6 +22,7 @@ type (
 		AddRecord(history models.ProbingHistory) error
 		GetRecord(query models.ReqProbingHistory) ([]models.ProbingHistory, error)
 		DeleteRecord() error
+		ChangeState(req models.RequestProbeChangeState) error
 	}
 )
 
@@ -173,4 +174,8 @@ func (p ProbingRepo) DeleteRecord() error {
 		return err
 	}
 	return nil
+}
+
+func (p ProbingRepo) ChangeState(req models.RequestProbeChangeState) error {
+	return p.db.Model(&models.ProbingRule{}).Where("tenant_id = ? AND rule_id = ?", req.TenantId, req.RuleId).Update("enabled", req.GetEnabled()).Error
 }
