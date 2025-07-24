@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/zeromicro/go-zero/core/logc"
 	"golang.org/x/sync/errgroup"
+	"regexp"
 	"runtime/debug"
 	"sort"
 	"sync"
@@ -94,7 +95,12 @@ func (ag *AlertGroups) getNoticeId(alert *models.AlertCurEvent, faultCenter mode
 		labels := alert.Labels
 
 		for _, route := range faultCenter.NoticeRoutes {
-			if labels[route.Key] == route.Value {
+			val, ok := labels[route.Key].(string)
+			if !ok {
+				continue
+			}
+
+			if regexp.MustCompile(route.Value).MatchString(val) {
 				return route.NoticeIds
 			}
 		}

@@ -2,6 +2,7 @@ package mute
 
 import (
 	"github.com/zeromicro/go-zero/core/logc"
+	"regexp"
 	"time"
 	models "watchAlert/internal/models"
 	"watchAlert/pkg/ctx"
@@ -89,17 +90,22 @@ func IsSilence(mute MuteParams) bool {
 
 func evalCondition(metrics map[string]interface{}, muteLabels []models.SilenceLabel) bool {
 	for _, muteLabel := range muteLabels {
-		val, exists := metrics[muteLabel.Key]
+		value, exists := metrics[muteLabel.Key]
 		if !exists {
 			return false
+		}
+
+		val, ok := value.(string)
+		if !ok {
+			continue
 		}
 
 		var matched bool
 		switch muteLabel.Operator {
 		case "==", "=":
-			matched = val == muteLabel.Value
+			matched = regexp.MustCompile(muteLabel.Value).MatchString(val)
 		case "!=":
-			matched = val != muteLabel.Value
+			matched = !regexp.MustCompile(muteLabel.Value).MatchString(val)
 		default:
 			matched = false
 		}

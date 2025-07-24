@@ -53,7 +53,16 @@ func (e EventRepo) GetHistoryEvent(r models.AlertHisEventQuery) (models.HistoryE
 		return models.HistoryEventResponse{}, err
 	}
 
-	if err := db.Limit(int(r.Page.Size)).Offset(int((r.Page.Index - 1) * r.Page.Size)).Order("recover_time desc").Find(&data).Error; err != nil {
+	switch r.SortOrder {
+	case models.SortOrderASC:
+		db.Order("alarm_duration asc")
+	case models.SortOrderDesc:
+		db.Order("alarm_duration desc")
+	default:
+		db.Order("recover_time desc")
+	}
+
+	if err := db.Limit(int(r.Page.Size)).Offset(int((r.Page.Index - 1) * r.Page.Size)).Find(&data).Error; err != nil {
 		return models.HistoryEventResponse{}, err
 	}
 

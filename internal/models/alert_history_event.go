@@ -19,6 +19,7 @@ type AlertHisEvent struct {
 	RecoverTime      int64        `json:"recover_time"`       // 恢复时间
 	FaultCenterId    string       `json:"faultCenterId"`
 	UpgradeState     UpgradeState `json:"upgradeState" gorm:"metric;serializer:json"`
+	AlarmDuration    int64        `json:"alarmDuration"` // 告警持续时长
 }
 
 type AlertHisEventQuery struct {
@@ -33,6 +34,7 @@ type AlertHisEventQuery struct {
 	EndAt          int64  `json:"endAt" form:"endAt"`
 	Query          string `json:"query" form:"query"`
 	FaultCenterId  string `json:"faultCenterId" form:"faultCenterId"`
+	SortOrder      string `json:"sortOrder" form:"sortOrder"`
 	Page
 }
 
