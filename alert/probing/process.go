@@ -1,8 +1,8 @@
 package probing
 
 import (
+	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
-	"watchAlert/pkg/ctx"
 )
 
 func (t *ProductProbing) buildEvent(rule models.ProbingRule) models.ProbingEvent {

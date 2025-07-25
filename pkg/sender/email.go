@@ -3,8 +3,8 @@ package sender
 import (
 	"errors"
 	"fmt"
+	"watchAlert/internal/ctx"
 	"watchAlert/pkg/client"
-	"watchAlert/pkg/ctx"
 )
 
 // EmailSender 邮件发送策略

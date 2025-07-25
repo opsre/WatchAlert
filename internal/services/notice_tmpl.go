@@ -3,8 +3,8 @@ package services
 import (
 	"errors"
 	"fmt"
+	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
-	"watchAlert/pkg/ctx"
 )
 
 type noticeTmplService struct {

@@ -21,7 +21,6 @@ func (e ProbingController) API(gin *gin.RouterGroup) {
 		eventA.POST("createProbing", e.Create)
 		eventA.POST("updateProbing", e.Update)
 		eventA.POST("deleteProbing", e.Delete)
-		eventA.POST("onceProbing", e.Once)
 	}
 
 	eventB := gin.Group("probing")
@@ -42,6 +41,7 @@ func (e ProbingController) API(gin *gin.RouterGroup) {
 		middleware.ParseTenant(),
 	)
 	{
+		c.POST("onceProbing", e.Once)
 		c.POST("changeState", e.ChangeState)
 	}
 }

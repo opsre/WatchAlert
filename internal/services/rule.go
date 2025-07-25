@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"github.com/zeromicro/go-zero/core/logc"
 	"watchAlert/alert"
+	"watchAlert/internal/ctx"
 	models "watchAlert/internal/models"
-	"watchAlert/pkg/ctx"
 )
 
 type ruleService struct {

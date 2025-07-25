@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 	"watchAlert/alert/mute"
+	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
-	"watchAlert/pkg/ctx"
 )
 
 func BuildEvent(rule models.AlertRule, labels func() map[string]interface{}) models.AlertCurEvent {

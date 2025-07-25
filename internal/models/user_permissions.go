@@ -27,17 +27,9 @@ func PermissionsInfo() map[string]UserPermissions {
 			Key: "更新日历表",
 			API: "/api/w8t/calendar/calendarUpdate",
 		},
-		"createDashboard": {
-			Key: "创建仪表盘",
-			API: "/api/w8t/dashboard/createDashboard",
-		},
 		"createTenant": {
 			Key: "创建租户",
 			API: "/api/w8t/tenant/createTenant",
-		},
-		"curEvent": {
-			Key: "查看当前告警事件",
-			API: "/api/w8t/event/curEvent",
 		},
 		"dataSourceCreate": {
 			Key: "创建数据源",
@@ -63,10 +55,6 @@ func PermissionsInfo() map[string]UserPermissions {
 			Key: "更新数据源",
 			API: "/api/w8t/datasource/dataSourceUpdate",
 		},
-		"deleteDashboard": {
-			Key: "删除仪表盘",
-			API: "/api/w8t/dashboard/deleteDashboard",
-		},
 		"deleteTenant": {
 			Key: "删除租户",
 			API: "/api/w8t/tenant/deleteTenant",
@@ -91,21 +79,9 @@ func PermissionsInfo() map[string]UserPermissions {
 			Key: "更新值班表",
 			API: "/api/w8t/dutyManage/dutyManageUpdate",
 		},
-		"getDashboard": {
-			Key: "获取仪表盘",
-			API: "/api/w8t/dashboard/getDashboard",
-		},
 		"getTenantList": {
 			Key: "查看租户",
 			API: "/api/w8t/tenant/getTenantList",
-		},
-		"hisEvent": {
-			Key: "查看历史告警",
-			API: "/api/w8t/event/hisEvent",
-		},
-		"listDashboard": {
-			Key: "查看仪表盘",
-			API: "/api/w8t/dashboard/listDashboard",
 		},
 		"noticeCreate": {
 			Key: "创建通知对象",
@@ -231,10 +207,6 @@ func PermissionsInfo() map[string]UserPermissions {
 			Key: "更新告警规则",
 			API: "/api/w8t/rule/ruleUpdate",
 		},
-		"searchDashboard": {
-			Key: "搜索仪表盘",
-			API: "/api/w8t/dashboard/searchDashboard",
-		},
 		"searchDutyUser": {
 			Key: "搜索值班用户",
 			API: "/api/w8t/user/searchDutyUser",
@@ -254,10 +226,6 @@ func PermissionsInfo() map[string]UserPermissions {
 		"silenceUpdate": {
 			Key: "更新静默规则",
 			API: "/api/w8t/silence/silenceUpdate",
-		},
-		"updateDashboard": {
-			Key: "更新仪表盘",
-			API: "/api/w8t/dashboard/updateDashboard",
 		},
 		"updateTenant": {
 			Key: "更新租户信息",
@@ -298,10 +266,6 @@ func PermissionsInfo() map[string]UserPermissions {
 		"getSystemSetting": {
 			Key: "获取系统配置",
 			API: "/api/w8t/setting/getSystemSetting",
-		},
-		"promQuery": {
-			Key: "Prometheus指标查询",
-			API: "/api/w8t/datasource/promQuery",
 		},
 		"getTenant": {
 			Key: "获取租户详细信息",
@@ -351,10 +315,6 @@ func PermissionsInfo() map[string]UserPermissions {
 			Key: "获取拨测规则信息",
 			API: "/api/w8t/probing/searchProbing",
 		},
-		"onceProbing": {
-			Key: "一次性拨测任务",
-			API: "/api/w8t/probing/onceProbing",
-		},
 		"listFolder": {
 			Key: "获取仪表盘目录列表",
 			API: "/api/w8t/dashboard/listFolder",
@@ -378,10 +338,6 @@ func PermissionsInfo() map[string]UserPermissions {
 		"listGrafanaDashboards": {
 			Key: "获取仪表盘图表列表",
 			API: "/api/w8t/dashboard/listGrafanaDashboards",
-		},
-		"getDashboardFullUrl": {
-			Key: "获取仪表盘完整URL",
-			API: "/api/w8t/dashboard/getDashboardFullUrl",
 		},
 		"createSubscribe": {
 			Key: "创建告警订阅",
@@ -407,10 +363,6 @@ func PermissionsInfo() map[string]UserPermissions {
 			Key: "获取通知记录指标",
 			API: "/api/w8t/notice/noticeRecordMetric",
 		},
-		"dataSourcePing": {
-			Key: "数据源连接测试",
-			API: "/api/w8t/datasource/dataSourcePing",
-		},
 		"faultCenterList": {
 			Key: "获取故障中心列表",
 			API: "/api/w8t/faultCenter/faultCenterList",
@@ -434,10 +386,6 @@ func PermissionsInfo() map[string]UserPermissions {
 		"faultCenterReset": {
 			Key: "修改故障中心基本信息",
 			API: "/api/w8t/faultCenter/faultCenterReset",
-		},
-		"searchViewLogsContent": {
-			Key: "搜索VictoriaLogs数据源内容",
-			API: "/api/w8t/datasource/searchViewLogsContent",
 		},
 		"processAlertEvent": {
 			Key: "认领/处理告警",

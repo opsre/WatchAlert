@@ -1,6 +1,8 @@
 package services
 
-import "watchAlert/pkg/ctx"
+import (
+	"watchAlert/internal/ctx"
+)
 
 type (
 	userPermissionService struct {

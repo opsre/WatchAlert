@@ -13,13 +13,11 @@ type (
 	}
 
 	InterDashboardRepo interface {
-		Create(d models.Dashboard) error
-		Update(d models.Dashboard) error
-		Delete(d models.DashboardQuery) error
-		Search(d models.DashboardQuery) ([]models.Dashboard, error)
+		ListDashboardFolder(tenantId, query string) ([]models.DashboardFolders, error)
+		GetDashboardFolder(tenantId, id string) (models.DashboardFolders, error)
 		CreateDashboardFolder(fd models.DashboardFolders) error
 		UpdateDashboardFolder(fd models.DashboardFolders) error
-		DeleteDashboardFolder(fd models.DashboardFolders) error
+		DeleteDashboardFolder(tenantId, id string) error
 	}
 )
 
@@ -32,60 +30,37 @@ func newDashboardInterface(db *gorm.DB, g InterGormDBCli) InterDashboardRepo {
 	}
 }
 
-func (dr DashboardRepo) Create(d models.Dashboard) error {
-	err := dr.g.Create(&models.Dashboard{}, d)
-	if err != nil {
-		logc.Error(context.Background(), err)
-		return err
-	}
-	return nil
-}
+func (dr DashboardRepo) ListDashboardFolder(tenantId, query string) ([]models.DashboardFolders, error) {
+	var (
+		data []models.DashboardFolders
+		db   = dr.db.Model(&models.DashboardFolders{})
+	)
 
-func (dr DashboardRepo) Update(d models.Dashboard) error {
-	u := Updates{
-		Table: &models.Dashboard{},
-		Where: map[string]interface{}{
-			"tenant_id = ?": d.TenantId,
-			"id = ?":        d.ID,
-		},
-		Updates: d,
+	db.Where("tenant_id = ?", tenantId)
+	if query != "" {
+		db.Where("name LIKE ? OR grafana_host LIKE ? OR grafana_folder_id LIKE ?", "%"+query+"%", "%"+query+"%", "%"+query+"%")
 	}
-	err := dr.g.Updates(u)
-	if err != nil {
-		logc.Error(context.Background(), err)
-		return err
-	}
-	return nil
-}
 
-func (dr DashboardRepo) Delete(d models.DashboardQuery) error {
-	del := Delete{
-		Table: &models.Dashboard{},
-		Where: map[string]interface{}{
-			"tenant_id = ?": d.TenantId,
-			"id = ?":        d.ID,
-		},
-	}
-	err := dr.g.Delete(del)
-	if err != nil {
-		logc.Error(context.Background(), err)
-		return err
-	}
-	return nil
-}
-
-func (dr DashboardRepo) Search(d models.DashboardQuery) ([]models.Dashboard, error) {
-	var db = dr.db.Model(&models.Dashboard{})
-	var data []models.Dashboard
-	if d.Query != "" {
-		db.Where("tenant_id = ? AND name LIKE ? OR description LIKE ? OR url LIKE ?", d.TenantId, "%"+d.Query+"%", "%"+d.Query+"%", "%"+d.Query+"%")
-	} else {
-		db.Where("tenant_id = ?", d.TenantId).Find(&data)
-	}
 	err := db.Find(&data).Error
 	if err != nil {
-		return nil, err
+		return data, err
 	}
+
+	return data, nil
+}
+
+func (dr DashboardRepo) GetDashboardFolder(tenantId, id string) (models.DashboardFolders, error) {
+	var (
+		data models.DashboardFolders
+		db   = dr.db.Model(&models.DashboardFolders{})
+	)
+
+	db.Where("tenant_id = ? and id = ?", tenantId, id)
+	err := db.First(&data).Error
+	if err != nil {
+		return data, err
+	}
+
 	return data, nil
 }
 
@@ -115,18 +90,20 @@ func (dr DashboardRepo) UpdateDashboardFolder(fd models.DashboardFolders) error 
 	return nil
 }
 
-func (dr DashboardRepo) DeleteDashboardFolder(fd models.DashboardFolders) error {
+func (dr DashboardRepo) DeleteDashboardFolder(tenantId, id string) error {
 	d := Delete{
 		Table: &models.DashboardFolders{},
 		Where: map[string]interface{}{
-			"tenant_id = ?": fd.TenantId,
-			"id = ?":        fd.ID,
+			"tenant_id = ?": tenantId,
+			"id = ?":        id,
 		},
 	}
+
 	err := dr.g.Delete(d)
 	if err != nil {
 		logc.Error(context.Background(), err)
 		return err
 	}
+
 	return nil
 }

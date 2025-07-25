@@ -2,9 +2,9 @@ package services
 
 import (
 	"watchAlert/alert"
+	"watchAlert/internal/ctx"
 	service2 "watchAlert/pkg/community/aws/cloudwatch/service"
 	"watchAlert/pkg/community/aws/service"
-	"watchAlert/pkg/ctx"
 )
 
 var (

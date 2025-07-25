@@ -4,8 +4,8 @@ import (
 	"github.com/zeromicro/go-zero/core/logc"
 	"gorm.io/gorm"
 	"time"
+	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
-	"watchAlert/pkg/ctx"
 )
 
 var perms []models.UserPermissions
