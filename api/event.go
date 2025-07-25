@@ -36,8 +36,8 @@ func (e AlertEventController) API(gin *gin.RouterGroup) {
 		middleware.ParseTenant(),
 	)
 	{
-		a.GET("curEvent", e.ListCurrentEvent)
-		a.GET("hisEvent", e.ListHistoryEvent)
+		b.GET("curEvent", e.ListCurrentEvent)
+		b.GET("hisEvent", e.ListHistoryEvent)
 	}
 }
 
