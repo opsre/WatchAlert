@@ -18,24 +18,6 @@ type AuditLog struct {
 	AuditType  string `json:"auditType"`
 }
 
-type AuditLogQuery struct {
-	TenantId string `json:"tenantId" form:"tenantId"`
-	Query    string `json:"query" form:"query"`
-	Scope    string `json:"scope" form:"scope"`
-	Page
-}
-
-type Page struct {
-	Total int64 `json:"total" form:"total" gorm:"-"`
-	Index int64 `json:"index" form:"index" gorm:"-"`
-	Size  int64 `json:"size" form:"size" gorm:"-"`
-}
-
-type AuditLogResponse struct {
-	List []AuditLog `json:"list"`
-	Page
-}
-
 func (a AuditLog) String() string {
 	buf := bytes.NewBuffer(nil)
 	buf.WriteString("{")

@@ -6,8 +6,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
-	"watchAlert/pkg/ctx"
 	"watchAlert/pkg/tools"
 )
 
@@ -136,10 +136,28 @@ func (e eventService) ListCurrentEvent(req interface{}) (interface{}, interface{
 	}
 
 	sort.Slice(filteredEvents, func(i, j int) bool {
-		if filteredEvents[i].RuleName != filteredEvents[j].RuleName {
-			return filteredEvents[i].RuleName < filteredEvents[j].RuleName // Ascending by RuleName
+		a, b := &filteredEvents[i], &filteredEvents[j]
+
+		// 按持续时间降序
+		durA := a.LastEvalTime - a.FirstTriggerTime
+		durB := b.LastEvalTime - b.FirstTriggerTime
+		switch r.SortOrder {
+		case models.SortOrderASC:
+			if durA != durB {
+				return durA < durB // 升序
+			}
+		case models.SortOrderDesc:
+			if durA != durB {
+				return durA > durB // 降序
+			}
+		default:
+			if a.FirstTriggerTime != b.FirstTriggerTime {
+				return a.Fingerprint < b.Fingerprint
+			}
 		}
-		return filteredEvents[i].Annotations < filteredEvents[j].Annotations // Ascending by Annotations
+
+		// 默认按指纹升序
+		return a.Fingerprint < b.Fingerprint
 	})
 
 	paginatedList := pageSlice(filteredEvents, int(r.Page.Index), int(r.Page.Size))

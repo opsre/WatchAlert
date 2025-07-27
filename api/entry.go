@@ -9,7 +9,6 @@ type ApiGroup struct {
 	NoticeController
 	DutyController
 	DutyCalendarController
-	CallbackController
 	DatasourceController
 	SilenceController
 	RuleController

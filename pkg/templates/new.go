@@ -1,8 +1,8 @@
 package templates
 
 import (
+	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
-	"watchAlert/pkg/ctx"
 )
 
 type Template struct {

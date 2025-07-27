@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"gorm.io/gorm"
 	"strings"
+	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
+	"watchAlert/internal/types"
 	"watchAlert/pkg/ai"
-	"watchAlert/pkg/ctx"
 )
 
 type (
@@ -35,7 +36,7 @@ func (a aiService) Chat(req interface{}) (interface{}, interface{}) {
 		return nil, fmt.Errorf("未开启 Ai 分析能力")
 	}
 
-	r := req.(*models.AiParams)
+	r := req.(*types.RequestAiChatContent)
 	err = r.ValidateParams()
 	if err != nil {
 		return nil, err

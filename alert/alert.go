@@ -4,7 +4,7 @@ import (
 	"watchAlert/alert/consumer"
 	"watchAlert/alert/eval"
 	"watchAlert/alert/probing"
-	"watchAlert/pkg/ctx"
+	"watchAlert/internal/ctx"
 )
 
 var (

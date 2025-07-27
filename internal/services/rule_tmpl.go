@@ -1,8 +1,8 @@
 package services
 
 import (
+	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
-	"watchAlert/pkg/ctx"
 )
 
 type ruleTmplService struct {

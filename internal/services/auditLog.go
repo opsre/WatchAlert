@@ -1,8 +1,8 @@
 package services
 
 import (
-	"watchAlert/internal/models"
-	"watchAlert/pkg/ctx"
+	"watchAlert/internal/ctx"
+	"watchAlert/internal/types"
 )
 
 type auditLogService struct {
@@ -21,7 +21,7 @@ func newInterAuditLogService(ctx *ctx.Context) InterAuditLogService {
 }
 
 func (as auditLogService) List(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.AuditLogQuery)
+	r := req.(*types.RequestAuditLogQuery)
 	data, err := as.ctx.DB.AuditLog().List(*r)
 	if err != nil {
 		return nil, err
@@ -31,7 +31,7 @@ func (as auditLogService) List(req interface{}) (interface{}, interface{}) {
 }
 
 func (as auditLogService) Search(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.AuditLogQuery)
+	r := req.(*types.RequestAuditLogQuery)
 	data, err := as.ctx.DB.AuditLog().Search(*r)
 	if err != nil {
 		return nil, err

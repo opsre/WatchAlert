@@ -3,8 +3,8 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 	"watchAlert/internal/middleware"
-	"watchAlert/internal/models"
 	"watchAlert/internal/services"
+	"watchAlert/internal/types"
 )
 
 type AiController struct{}
@@ -21,7 +21,7 @@ func (a AiController) API(gin *gin.RouterGroup) {
 }
 
 func (a AiController) Chat(ctx *gin.Context) {
-	r := new(models.AiParams)
+	r := new(types.RequestAiChatContent)
 	r.Content = ctx.PostForm("content")
 	r.RuleId = ctx.PostForm("rule_id")
 	r.RuleName = ctx.PostForm("rule_name")

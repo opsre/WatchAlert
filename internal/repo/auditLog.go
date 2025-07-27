@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 	"watchAlert/internal/models"
+	"watchAlert/internal/types"
 )
 
 type (
@@ -13,8 +14,8 @@ type (
 	}
 
 	InterAuditLogRepo interface {
-		List(r models.AuditLogQuery) (models.AuditLogResponse, error)
-		Search(r models.AuditLogQuery) (models.AuditLogResponse, error)
+		List(r types.RequestAuditLogQuery) (types.ResponseAuditLog, error)
+		Search(r types.RequestAuditLogQuery) (types.ResponseAuditLog, error)
 		Create(r models.AuditLog) error
 	}
 )
@@ -37,7 +38,7 @@ func (a AuditLogRepo) Create(r models.AuditLog) error {
 	return nil
 }
 
-func (a AuditLogRepo) List(r models.AuditLogQuery) (models.AuditLogResponse, error) {
+func (a AuditLogRepo) List(r types.RequestAuditLogQuery) (types.ResponseAuditLog, error) {
 	var db = a.db.Model(&models.AuditLog{})
 	var data []models.AuditLog
 	var count int64
@@ -59,10 +60,10 @@ func (a AuditLogRepo) List(r models.AuditLogQuery) (models.AuditLogResponse, err
 	db.Limit(int(pageSizeInt)).Offset(int((pageIndexInt - 1) * pageSizeInt)).Order("created_at desc")
 	err := db.Find(&data).Error
 	if err != nil {
-		return models.AuditLogResponse{}, err
+		return types.ResponseAuditLog{}, err
 	}
 
-	d := models.AuditLogResponse{
+	d := types.ResponseAuditLog{
 		List: data,
 		Page: models.Page{
 			Index: pageIndexInt,
@@ -73,7 +74,7 @@ func (a AuditLogRepo) List(r models.AuditLogQuery) (models.AuditLogResponse, err
 	return d, nil
 }
 
-func (a AuditLogRepo) Search(r models.AuditLogQuery) (models.AuditLogResponse, error) {
+func (a AuditLogRepo) Search(r types.RequestAuditLogQuery) (types.ResponseAuditLog, error) {
 	var db = a.db.Model(&models.AuditLog{})
 	var data []models.AuditLog
 	var count int64
@@ -101,9 +102,9 @@ func (a AuditLogRepo) Search(r models.AuditLogQuery) (models.AuditLogResponse, e
 
 	err := db.Find(&data).Error
 	if err != nil {
-		return models.AuditLogResponse{}, err
+		return types.ResponseAuditLog{}, err
 	}
-	d := models.AuditLogResponse{
+	d := types.ResponseAuditLog{
 		List: data,
 		Page: models.Page{
 			Index: pageIndexInt,

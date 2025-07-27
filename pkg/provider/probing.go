@@ -18,9 +18,7 @@ type EndpointFactoryProvider interface {
 type EndpointValue map[string]any
 
 func (e EndpointValue) GetLabels() map[string]interface{} {
-	return map[string]interface{}{
-		"address": e["address"].(string),
-	}
+	return e
 }
 
 func (e EndpointValue) GetFingerprint() string {
@@ -71,6 +69,8 @@ type HttperInformation struct {
 	StatusCode float64 `json:"statusCode"`
 	// 响应时间, ms
 	Latency float64 `json:"latency"`
+	// Headers
+	Headers map[string][]string
 }
 
 type SslInformation struct {

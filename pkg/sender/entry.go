@@ -4,11 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
-
-	"watchAlert/internal/models"
-	"watchAlert/pkg/ctx"
+	"watchAlert/internal/ctx"
 
 	"github.com/zeromicro/go-zero/core/logc"
+	"watchAlert/internal/models"
 )
 
 type (

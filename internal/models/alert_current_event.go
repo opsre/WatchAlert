@@ -71,8 +71,14 @@ type AlertCurEventQuery struct {
 	Severity       string `json:"severity" form:"severity"`
 	FaultCenterId  string `json:"faultCenterId" form:"faultCenterId"`
 	Status         string `json:"status" form:"status"`
+	SortOrder      string `json:"sortOrder" form:"sortOrder"`
 	Page
 }
+
+const (
+	SortOrderASC  string = "ascend"
+	SortOrderDesc string = "descend"
+)
 
 type ProcessAlertEvent struct {
 	TenantId      string   `json:"tenantId"`

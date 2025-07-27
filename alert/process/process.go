@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 	"watchAlert/alert/mute"
+	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
-	"watchAlert/pkg/ctx"
 )
 
 func BuildEvent(rule models.AlertRule, labels func() map[string]interface{}) models.AlertCurEvent {
@@ -154,6 +154,7 @@ func RecordAlertHisEvent(ctx *ctx.Context, alert models.AlertCurEvent) error {
 		RecoverTime:      alert.RecoverTime,
 		FaultCenterId:    alert.FaultCenterId,
 		UpgradeState:     alert.UpgradeState,
+		AlarmDuration:    alert.RecoverTime - alert.FirstTriggerTime,
 	}
 
 	err := ctx.DB.Event().CreateHistoryEvent(hisData)
@@ -162,14 +163,4 @@ func RecordAlertHisEvent(ctx *ctx.Context, alert models.AlertCurEvent) error {
 	}
 
 	return nil
-}
-
-// GetFingerPrint 获取指纹信息
-func GetFingerPrint(ctx *ctx.Context, tenantId string, faultCenterId string, ruleId string) map[string]struct{} {
-	fingerPrints := ctx.Redis.Alert().GetFingerprintsByRuleId(tenantId, faultCenterId, ruleId)
-	fingerPrintMap := make(map[string]struct{})
-	for _, fingerPrint := range fingerPrints {
-		fingerPrintMap[fingerPrint] = struct{}{}
-	}
-	return fingerPrintMap
 }

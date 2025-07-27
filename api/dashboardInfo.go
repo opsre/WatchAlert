@@ -3,9 +3,9 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/zeromicro/go-zero/core/logc"
+	"watchAlert/internal/ctx"
 	"watchAlert/internal/middleware"
 	"watchAlert/internal/models"
-	"watchAlert/pkg/ctx"
 	"watchAlert/pkg/response"
 )
 

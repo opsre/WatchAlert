@@ -17,19 +17,27 @@ type AlertEventController struct{}
 /api/w8t/event
 */
 func (e AlertEventController) API(gin *gin.RouterGroup) {
-	event := gin.Group("event")
-	event.Use(
+	a := gin.Group("event")
+	a.Use(
 		middleware.Auth(),
 		middleware.Permission(),
 		middleware.ParseTenant(),
 	)
 	{
-		event.GET("curEvent", e.ListCurrentEvent)
-		event.GET("hisEvent", e.ListHistoryEvent)
-		event.POST("processAlertEvent", e.ProcessAlertEvent)
-		event.POST("addComment", e.AddComment)
-		event.GET("listComments", e.ListComment)
-		event.POST("deleteComment", e.DeleteComment)
+		a.POST("processAlertEvent", e.ProcessAlertEvent)
+		a.POST("addComment", e.AddComment)
+		a.GET("listComments", e.ListComment)
+		a.POST("deleteComment", e.DeleteComment)
+	}
+
+	b := gin.Group("event")
+	b.Use(
+		middleware.Auth(),
+		middleware.ParseTenant(),
+	)
+	{
+		b.GET("curEvent", e.ListCurrentEvent)
+		b.GET("hisEvent", e.ListHistoryEvent)
 	}
 }
 

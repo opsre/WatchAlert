@@ -8,8 +8,8 @@ import (
 	"golang.org/x/sync/errgroup"
 	"time"
 	"watchAlert/alert/process"
+	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
-	"watchAlert/pkg/ctx"
 	"watchAlert/pkg/provider"
 	"watchAlert/pkg/tools"
 )
@@ -30,7 +30,7 @@ func NewProbingTask(ctx *ctx.Context) ProductProbing {
 	}
 }
 
-func (t *ProductProbing) Submit(rule models.ProbingRule) {
+func (t *ProductProbing) Add(rule models.ProbingRule) {
 	t.ctx.Mux.Lock()
 	defer t.ctx.Mux.Unlock()
 
@@ -223,7 +223,7 @@ func (t *ProductProbing) RePushRule(consumer *ConsumeProbing) {
 	for _, rule := range ruleList {
 		rule := rule
 		g.Go(func() error {
-			t.Submit(rule)
+			t.Add(rule)
 			consumer.Add(rule)
 			return nil
 		})

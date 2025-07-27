@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	v1 "k8s.io/api/core/v1"
 	"strings"
-	"watchAlert/pkg/ctx"
+	"watchAlert/internal/ctx"
 	"watchAlert/pkg/tools"
 )
 

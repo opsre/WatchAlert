@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	middleware "watchAlert/internal/middleware"
+	ctx2 "watchAlert/internal/ctx"
+	"watchAlert/internal/middleware"
 	"watchAlert/internal/models"
 	"watchAlert/internal/services"
-	ctx2 "watchAlert/pkg/ctx"
 	"watchAlert/pkg/provider"
 	"watchAlert/pkg/tools"
 )
@@ -46,9 +46,17 @@ func (dc DatasourceController) API(gin *gin.RouterGroup) {
 		datasourceB.GET("dataSourceList", dc.List)
 		datasourceB.GET("dataSourceGet", dc.Get)
 		datasourceB.GET("dataSourceSearch", dc.Search)
-		datasourceB.GET("promQuery", dc.PromQuery)
-		datasourceB.POST("dataSourcePing", dc.Ping)
-		datasourceB.POST("searchViewLogsContent", dc.SearchViewLogsContent)
+	}
+
+	c := gin.Group("datasource")
+	c.Use(
+		middleware.Auth(),
+		middleware.ParseTenant(),
+	)
+	{
+		c.GET("promQuery", dc.PromQuery)
+		c.POST("dataSourcePing", dc.Ping)
+		c.POST("searchViewLogsContent", dc.SearchViewLogsContent)
 	}
 
 }
