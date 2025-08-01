@@ -3,65 +3,65 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 	middleware "watchAlert/internal/middleware"
-	"watchAlert/internal/models"
 	"watchAlert/internal/services"
-	"watchAlert/pkg/tools"
+	"watchAlert/internal/types"
 )
 
-type RuleController struct{}
+type ruleController struct{}
+
+var RuleController = new(ruleController)
 
 /*
 告警规则 API
 /api/w8t/rule
 */
-func (rc RuleController) API(gin *gin.RouterGroup) {
-	ruleA := gin.Group("rule")
-	ruleA.Use(
+func (ruleController ruleController) API(gin *gin.RouterGroup) {
+	a := gin.Group("rule")
+	a.Use(
 		middleware.Auth(),
 		middleware.Permission(),
 		middleware.ParseTenant(),
 		middleware.AuditingLog(),
 	)
 	{
-		ruleA.POST("ruleCreate", rc.Create)
-		ruleA.POST("ruleUpdate", rc.Update)
-		ruleA.POST("ruleDelete", rc.Delete)
+		a.POST("ruleCreate", ruleController.Create)
+		a.POST("ruleUpdate", ruleController.Update)
+		a.POST("ruleDelete", ruleController.Delete)
 	}
-	ruleB := gin.Group("rule")
-	ruleB.Use(
+	b := gin.Group("rule")
+	b.Use(
 		middleware.Auth(),
 		middleware.Permission(),
 		middleware.ParseTenant(),
 	)
 	{
-		ruleB.GET("ruleList", rc.List)
-		ruleB.GET("ruleSearch", rc.Search)
+		b.GET("ruleList", ruleController.List)
+		b.GET("ruleSearch", ruleController.Search)
 	}
-	ruleC := gin.Group("rule")
-	ruleC.Use(
+	c := gin.Group("rule")
+	c.Use(
 		middleware.Auth(),
 		middleware.ParseTenant(),
 	)
 	{
-		ruleC.POST("ruleChangeStatus", rc.ChangeStatus)
+		c.POST("ruleChangeStatus", ruleController.ChangeStatus)
 	}
 }
 
-func (rc RuleController) Create(ctx *gin.Context) {
-	r := new(models.AlertRule)
+func (ruleController ruleController) Create(ctx *gin.Context) {
+	r := new(types.RequestRuleCreate)
 	BindJson(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
 	r.TenantId = tid.(string)
-	r.RuleId = "a-" + tools.RandId()
 
 	Service(ctx, func() (interface{}, interface{}) {
 		return services.RuleService.Create(r)
 	})
 }
 
-func (rc RuleController) Update(ctx *gin.Context) {
-	r := new(models.AlertRule)
+func (ruleController ruleController) Update(ctx *gin.Context) {
+	r := new(types.RequestRuleUpdate)
 	BindJson(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -72,8 +72,8 @@ func (rc RuleController) Update(ctx *gin.Context) {
 	})
 }
 
-func (rc RuleController) List(ctx *gin.Context) {
-	r := new(models.AlertRuleQuery)
+func (ruleController ruleController) List(ctx *gin.Context) {
+	r := new(types.RequestRuleQuery)
 	BindQuery(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -84,8 +84,8 @@ func (rc RuleController) List(ctx *gin.Context) {
 	})
 }
 
-func (rc RuleController) Delete(ctx *gin.Context) {
-	r := new(models.AlertRuleQuery)
+func (ruleController ruleController) Delete(ctx *gin.Context) {
+	r := new(types.RequestRuleQuery)
 	BindJson(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -96,20 +96,20 @@ func (rc RuleController) Delete(ctx *gin.Context) {
 	})
 }
 
-func (rc RuleController) Search(ctx *gin.Context) {
-	r := new(models.AlertRuleQuery)
+func (ruleController ruleController) Search(ctx *gin.Context) {
+	r := new(types.RequestRuleQuery)
 	BindQuery(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
 	r.TenantId = tid.(string)
 
 	Service(ctx, func() (interface{}, interface{}) {
-		return services.RuleService.Search(r)
+		return services.RuleService.Get(r)
 	})
 }
 
-func (rc RuleController) ChangeStatus(ctx *gin.Context) {
-	r := new(models.RequestRuleChangeStatus)
+func (ruleController ruleController) ChangeStatus(ctx *gin.Context) {
+	r := new(types.RequestRuleChangeStatus)
 	BindJson(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")

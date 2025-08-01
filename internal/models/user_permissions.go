@@ -19,10 +19,6 @@ func PermissionsInfo() map[string]UserPermissions {
 			Key: "搜索日历表",
 			API: "/api/w8t/calendar/calendarSearch",
 		},
-		"getCalendarUsers": {
-			Key: "获取值班表用户列表",
-			API: "/api/w8t/calendar/getCalendarUsers",
-		},
 		"calendarUpdate": {
 			Key: "更新日历表",
 			API: "/api/w8t/calendar/calendarUpdate",
@@ -47,10 +43,6 @@ func PermissionsInfo() map[string]UserPermissions {
 			Key: "查看数据源",
 			API: "/api/w8t/datasource/dataSourceList",
 		},
-		"dataSourceSearch": {
-			Key: "搜索数据源",
-			API: "/api/w8t/datasource/dataSourceSearch",
-		},
 		"dataSourceUpdate": {
 			Key: "更新数据源",
 			API: "/api/w8t/datasource/dataSourceUpdate",
@@ -71,10 +63,6 @@ func PermissionsInfo() map[string]UserPermissions {
 			Key: "查看值班表",
 			API: "/api/w8t/dutyManage/dutyManageList",
 		},
-		"dutyManageSearch": {
-			Key: "搜索值班表",
-			API: "/api/w8t/dutyManage/dutyManageSearch",
-		},
 		"dutyManageUpdate": {
 			Key: "更新值班表",
 			API: "/api/w8t/dutyManage/dutyManageUpdate",
@@ -94,10 +82,6 @@ func PermissionsInfo() map[string]UserPermissions {
 		"noticeList": {
 			Key: "查看通知对象",
 			API: "/api/w8t/notice/noticeList",
-		},
-		"noticeSearch": {
-			Key: "搜索通知对象",
-			API: "/api/w8t/notice/noticeSearch",
 		},
 		"noticeTemplateCreate": {
 			Key: "创建通知模版",
@@ -207,10 +191,6 @@ func PermissionsInfo() map[string]UserPermissions {
 			Key: "更新告警规则",
 			API: "/api/w8t/rule/ruleUpdate",
 		},
-		"searchDutyUser": {
-			Key: "搜索值班用户",
-			API: "/api/w8t/user/searchDutyUser",
-		},
 		"silenceCreate": {
 			Key: "创建静默规则",
 			API: "/api/w8t/silence/silenceCreate",
@@ -250,14 +230,6 @@ func PermissionsInfo() map[string]UserPermissions {
 		"getJaegerService": {
 			Key: "获取Jaeger服务列表",
 			API: "/api/w8t/c/getJaegerService",
-		},
-		"searchUser": {
-			Key: "搜索用户",
-			API: "/api/w8t/user/searchUser",
-		},
-		"searchNoticeTmpl": {
-			Key: "搜索通知模版",
-			API: "/api/w8t/noticeTemplate/searchNoticeTmpl",
 		},
 		"saveSystemSetting": {
 			Key: "编辑系统配置",

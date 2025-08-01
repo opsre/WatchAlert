@@ -15,16 +15,16 @@ type (
 	InterTenantRepo interface {
 		Create(t models.Tenant) error
 		Update(t models.Tenant) error
-		Delete(t models.TenantQuery) error
-		List(t models.TenantQuery) (data []models.Tenant, err error)
-		Get(t models.TenantQuery) (data models.Tenant, err error)
+		Delete(tenantId string) error
+		List(userId string) (data []models.Tenant, err error)
+		Get(tenantId string) (data models.Tenant, err error)
 		CreateTenantLinkedUserRecord(t models.TenantLinkedUsers) error
-		AddTenantLinkedUsers(t models.TenantLinkedUsers) error
-		RemoveTenantLinkedUsers(t models.TenantQuery) error
-		GetTenantLinkedUsers(t models.TenantQuery) (models.TenantLinkedUsers, error)
-		DelTenantLinkedUserRecord(t models.TenantQuery) error
-		GetTenantLinkedUserInfo(t models.GetTenantLinkedUserInfo) (models.TenantUser, error)
-		ChangeTenantUserRole(t models.ChangeTenantUserRole) error
+		AddTenantLinkedUsers(tenantId string, users []models.TenantUser, userRole string) error
+		RemoveTenantLinkedUsers(tenantId, userId string) error
+		GetTenantLinkedUsers(tenantId string) (models.TenantLinkedUsers, error)
+		DelTenantLinkedUserRecord(tenantId string) error
+		GetTenantLinkedUserInfo(tenantId, userId string) (models.TenantUser, error)
+		ChangeTenantUserRole(tenantId, userId, userRole string) error
 	}
 )
 
@@ -40,7 +40,6 @@ func newTenantInterface(db *gorm.DB, g InterGormDBCli) InterTenantRepo {
 func (tr TenantRepo) Create(t models.Tenant) error {
 	err := tr.g.Create(&models.Tenant{}, t)
 	if err != nil {
-		logc.Error(context.Background(), err)
 		return err
 	}
 
@@ -72,7 +71,7 @@ func (tr TenantRepo) Create(t models.Tenant) error {
 			return err
 		}
 
-		userData, _, err := tr.User().Get(models.MemberQuery{UserId: u.UserID})
+		userData, _, err := tr.User().Get(u.UserID, "", "")
 		if err != nil {
 			return err
 		}
@@ -109,20 +108,20 @@ func (tr TenantRepo) Update(t models.Tenant) error {
 	return nil
 }
 
-func (tr TenantRepo) Delete(t models.TenantQuery) error {
-	getTenant, err := tr.Tenant().GetTenantLinkedUsers(models.TenantQuery{ID: t.ID})
+func (tr TenantRepo) Delete(tenantId string) error {
+	getTenant, err := tr.Tenant().GetTenantLinkedUsers(tenantId)
 	if err != nil {
 		return err
 	}
 
 	for _, u := range getTenant.Users {
-		err := tr.Tenant().RemoveTenantLinkedUsers(models.TenantQuery{ID: t.ID, UserID: u.UserID})
+		err := tr.Tenant().RemoveTenantLinkedUsers(tenantId, u.UserID)
 		if err != nil {
 			return err
 		}
 	}
 
-	err = tr.Tenant().DelTenantLinkedUserRecord(models.TenantQuery{ID: t.ID})
+	err = tr.Tenant().DelTenantLinkedUserRecord(tenantId)
 	if err != nil {
 		return err
 	}
@@ -130,7 +129,7 @@ func (tr TenantRepo) Delete(t models.TenantQuery) error {
 	err = tr.g.Delete(Delete{
 		Table: &models.Tenant{},
 		Where: map[string]interface{}{
-			"id = ?": t.ID,
+			"id = ?": tenantId,
 		},
 	})
 	if err != nil {
@@ -140,15 +139,15 @@ func (tr TenantRepo) Delete(t models.TenantQuery) error {
 	return nil
 }
 
-func (tr TenantRepo) List(t models.TenantQuery) (data []models.Tenant, err error) {
-	getUser, _, err := tr.User().Get(models.MemberQuery{UserId: t.UserID})
+func (tr TenantRepo) List(userId string) (data []models.Tenant, err error) {
+	getUser, _, err := tr.User().Get(userId, "", "")
 	if err != nil {
 		return nil, err
 	}
 
 	var ts = &[]models.Tenant{}
 	for _, tid := range getUser.Tenants {
-		getT, err := tr.Tenant().Get(models.TenantQuery{ID: tid})
+		getT, err := tr.Tenant().Get(tid)
 		if err != nil {
 			return nil, err
 		}
@@ -158,12 +157,13 @@ func (tr TenantRepo) List(t models.TenantQuery) (data []models.Tenant, err error
 	return *ts, nil
 }
 
-func (tr TenantRepo) Get(t models.TenantQuery) (data models.Tenant, err error) {
+func (tr TenantRepo) Get(tenantId string) (data models.Tenant, err error) {
 	var d models.Tenant
-	err = tr.db.Model(&models.Tenant{}).Where("id = ?", t.ID).First(&d).Error
+	err = tr.db.Model(&models.Tenant{}).Where("id = ?", tenantId).First(&d).Error
 	if err != nil {
 		return d, err
 	}
+
 	return d, nil
 }
 
@@ -178,14 +178,14 @@ func (tr TenantRepo) CreateTenantLinkedUserRecord(t models.TenantLinkedUsers) er
 }
 
 // AddTenantLinkedUsers 新增租户用户数据
-func (tr TenantRepo) AddTenantLinkedUsers(t models.TenantLinkedUsers) error {
-	oldTenantUsers, err := tr.Tenant().GetTenantLinkedUsers(models.TenantQuery{ID: t.ID})
+func (tr TenantRepo) AddTenantLinkedUsers(tenantId string, users []models.TenantUser, userRole string) error {
+	oldTenantUsers, err := tr.Tenant().GetTenantLinkedUsers(tenantId)
 	if err != nil {
 		return err
 	}
 
 	// 在新增成员时不会一并将角色写入，需要找到新增的成员，并且修改它的角色。
-	for _, nUser := range t.Users {
+	for _, nUser := range users {
 		found := false
 		for _, oUser := range oldTenantUsers.Users {
 			if oUser.UserID == nUser.UserID {
@@ -197,15 +197,16 @@ func (tr TenantRepo) AddTenantLinkedUsers(t models.TenantLinkedUsers) error {
 			oldTenantUsers.Users = append(oldTenantUsers.Users, models.TenantUser{
 				UserID:   nUser.UserID,
 				UserName: nUser.UserName,
-				UserRole: t.UserRole,
+				UserRole: userRole,
 			})
 		}
 	}
 
+	// 更新租户表
 	err = tr.g.Updates(Updates{
 		Table: models.TenantLinkedUsers{},
 		Where: map[string]interface{}{
-			"id = ?": t.ID,
+			"id = ?": tenantId,
 		},
 		Updates: oldTenantUsers,
 	})
@@ -213,21 +214,22 @@ func (tr TenantRepo) AddTenantLinkedUsers(t models.TenantLinkedUsers) error {
 		return err
 	}
 
-	for _, u := range t.Users {
-		userData, _, err := tr.User().Get(models.MemberQuery{UserId: u.UserID})
+	// 更新用户表，新增租户ID
+	for _, u := range users {
+		userData, _, err := tr.User().Get(u.UserID, "", "")
 		if err != nil {
 			return err
 		}
 
 		var exist bool
 		for _, tid := range userData.Tenants {
-			if tid == t.ID {
+			if tid == tenantId {
 				exist = true
 			}
 		}
 
 		if !exist {
-			userData.Tenants = append(userData.Tenants, t.ID)
+			userData.Tenants = append(userData.Tenants, tenantId)
 		}
 		err = tr.g.Updates(Updates{
 			Table: models.Member{},
@@ -245,15 +247,16 @@ func (tr TenantRepo) AddTenantLinkedUsers(t models.TenantLinkedUsers) error {
 }
 
 // RemoveTenantLinkedUsers 移除租户关联的用户数据
-func (tr TenantRepo) RemoveTenantLinkedUsers(t models.TenantQuery) error {
-	record, err := tr.GetTenantLinkedUsers(models.TenantQuery{ID: t.ID})
+func (tr TenantRepo) RemoveTenantLinkedUsers(tenantId, userId string) error {
+	record, err := tr.GetTenantLinkedUsers(tenantId)
 	if err != nil {
 		return err
 	}
 
 	var newRecord []models.TenantUser
+	// 移除租户中当前选择的用户，保留其他用户
 	for _, u := range record.Users {
-		if u.UserID == t.UserID {
+		if u.UserID == userId {
 			continue
 		}
 		newRecord = append(newRecord, u)
@@ -263,7 +266,7 @@ func (tr TenantRepo) RemoveTenantLinkedUsers(t models.TenantQuery) error {
 	err = tr.g.Updates(Updates{
 		Table: models.TenantLinkedUsers{},
 		Where: map[string]interface{}{
-			"id = ?": t.ID,
+			"id = ?": tenantId,
 		},
 		Updates: record,
 	})
@@ -271,14 +274,16 @@ func (tr TenantRepo) RemoveTenantLinkedUsers(t models.TenantQuery) error {
 		return err
 	}
 
-	userData, _, err := tr.User().Get(models.MemberQuery{UserId: t.UserID})
+	// 获取当前选择的用户详情
+	userData, _, err := tr.User().Get(userId, "", "")
 	if err != nil {
 		return err
 	}
 
 	var newTenants = &[]string{}
+	// 删除当前选择的租户，保留其他租户
 	for _, tid := range userData.Tenants {
-		if tid == t.ID {
+		if tid == tenantId {
 			continue
 		}
 		*newTenants = append(*newTenants, tid)
@@ -288,7 +293,7 @@ func (tr TenantRepo) RemoveTenantLinkedUsers(t models.TenantQuery) error {
 	err = tr.g.Updates(Updates{
 		Table: models.Member{},
 		Where: map[string]interface{}{
-			"user_id = ?": t.UserID,
+			"user_id = ?": userId,
 		},
 		Updates: userData,
 	})
@@ -300,21 +305,22 @@ func (tr TenantRepo) RemoveTenantLinkedUsers(t models.TenantQuery) error {
 }
 
 // GetTenantLinkedUsers 获取租户关联的用户数据
-func (tr TenantRepo) GetTenantLinkedUsers(t models.TenantQuery) (models.TenantLinkedUsers, error) {
+func (tr TenantRepo) GetTenantLinkedUsers(tenantId string) (models.TenantLinkedUsers, error) {
 	var d models.TenantLinkedUsers
-	err := tr.db.Model(&models.TenantLinkedUsers{}).Where("id = ?", t.ID).First(&d).Error
+	err := tr.db.Model(&models.TenantLinkedUsers{}).Where("id = ?", tenantId).First(&d).Error
 	if err != nil {
 		return d, err
 	}
+
 	return d, nil
 }
 
 // DelTenantLinkedUserRecord 删除租户关联表记录
-func (tr TenantRepo) DelTenantLinkedUserRecord(t models.TenantQuery) error {
+func (tr TenantRepo) DelTenantLinkedUserRecord(tenantId string) error {
 	err := tr.g.Delete(Delete{
 		Table: &models.TenantLinkedUsers{},
 		Where: map[string]interface{}{
-			"id = ?": t.ID,
+			"id = ?": tenantId,
 		},
 	})
 	if err != nil {
@@ -326,18 +332,19 @@ func (tr TenantRepo) DelTenantLinkedUserRecord(t models.TenantQuery) error {
 }
 
 // GetTenantLinkedUserInfo 获取租户关联用户的详细信息
-func (tr TenantRepo) GetTenantLinkedUserInfo(t models.GetTenantLinkedUserInfo) (models.TenantUser, error) {
+func (tr TenantRepo) GetTenantLinkedUserInfo(tenantId, userId string) (models.TenantUser, error) {
 	var (
 		tlu models.TenantLinkedUsers
 		tu  models.TenantUser
 	)
-	err := tr.db.Model(&models.TenantLinkedUsers{}).Where("id = ?", t.ID).First(&tlu).Error
+
+	err := tr.db.Model(&models.TenantLinkedUsers{}).Where("id = ?", tenantId).First(&tlu).Error
 	if err != nil {
 		return tu, err
 	}
 
 	for _, u := range tlu.Users {
-		if u.UserID == t.UserID {
+		if u.UserID == userId {
 			tu = u
 			break
 		}
@@ -347,18 +354,18 @@ func (tr TenantRepo) GetTenantLinkedUserInfo(t models.GetTenantLinkedUserInfo) (
 }
 
 // ChangeTenantUserRole 修改用户角色
-func (tr TenantRepo) ChangeTenantUserRole(t models.ChangeTenantUserRole) error {
-	tenant, err := tr.GetTenantLinkedUsers(models.TenantQuery{ID: t.ID})
+func (tr TenantRepo) ChangeTenantUserRole(tenantId, userId, userRole string) error {
+	tenant, err := tr.GetTenantLinkedUsers(tenantId)
 	if err != nil {
 		return err
 	}
 
 	var users []models.TenantUser
 	for _, u := range tenant.Users {
-		if u.UserID != t.UserID {
+		if u.UserID != userId {
 			users = append(users, u)
 		} else {
-			u.UserRole = t.UserRole
+			u.UserRole = userRole
 			users = append(users, u)
 		}
 	}
@@ -367,7 +374,7 @@ func (tr TenantRepo) ChangeTenantUserRole(t models.ChangeTenantUserRole) error {
 	err = tr.g.Updates(Updates{
 		Table: models.TenantLinkedUsers{},
 		Where: map[string]interface{}{
-			"id = ?": t.ID,
+			"id = ?": tenantId,
 		},
 		Updates: tenant,
 	})

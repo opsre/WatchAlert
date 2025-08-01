@@ -16,13 +16,13 @@ type (
 	InterProbingRepo interface {
 		Create(d models.ProbingRule) error
 		Update(d models.ProbingRule) error
-		Delete(d models.ProbingRuleQuery) error
-		List(d models.ProbingRuleQuery) ([]models.ProbingRule, error)
-		Search(d models.ProbingRuleQuery) (models.ProbingRule, error)
+		Delete(tenantId, ruleId string) error
+		List(tenantId, ruleType, query string) ([]models.ProbingRule, error)
+		Search(tenantId, ruleId string) (models.ProbingRule, error)
 		AddRecord(history models.ProbingHistory) error
-		GetRecord(query models.ReqProbingHistory) ([]models.ProbingHistory, error)
+		GetRecord(ruleId string, dateRange int64) ([]models.ProbingHistory, error)
 		DeleteRecord() error
-		ChangeState(req models.RequestProbeChangeState) error
+		ChangeState(tenantId, ruleId string, state *bool) error
 	}
 )
 
@@ -62,12 +62,12 @@ func (p ProbingRepo) Update(d models.ProbingRule) error {
 	return nil
 }
 
-func (p ProbingRepo) Delete(d models.ProbingRuleQuery) error {
+func (p ProbingRepo) Delete(tenantId, ruleId string) error {
 	del := Delete{
 		Table: &models.ProbingRule{},
 		Where: map[string]interface{}{
-			"tenant_id = ?": d.TenantId,
-			"rule_id = ?":   d.RuleId,
+			"tenant_id = ?": tenantId,
+			"rule_id = ?":   ruleId,
 		},
 	}
 	err := p.g.Delete(del)
@@ -78,19 +78,18 @@ func (p ProbingRepo) Delete(d models.ProbingRuleQuery) error {
 	return nil
 }
 
-func (p ProbingRepo) List(d models.ProbingRuleQuery) ([]models.ProbingRule, error) {
+func (p ProbingRepo) List(tenantId, ruleType, query string) ([]models.ProbingRule, error) {
 	var (
 		data []models.ProbingRule
 		db   = p.db.Model(&models.ProbingRule{})
 	)
-	db.Where("tenant_id = ?", d.TenantId)
 
-	if d.RuleType != "" {
-		db.Where("rule_type = ?", d.RuleType)
+	db.Where("tenant_id = ?", tenantId)
+	if ruleType != "" {
+		db.Where("rule_type = ?", ruleType)
 	}
-
-	if d.Query != "" {
-		db.Where("probing_endpoint_config LIKE ?", "%"+d.Query+"%")
+	if query != "" {
+		db.Where("probing_endpoint_config LIKE ?", "%"+query+"%")
 	}
 
 	err := db.Find(&data).Error
@@ -103,17 +102,18 @@ func (p ProbingRepo) List(d models.ProbingRuleQuery) ([]models.ProbingRule, erro
 	return data, nil
 }
 
-func (p ProbingRepo) Search(d models.ProbingRuleQuery) (models.ProbingRule, error) {
+func (p ProbingRepo) Search(tenantId, ruleId string) (models.ProbingRule, error) {
 	var (
 		data models.ProbingRule
 		db   = p.db.Model(&models.ProbingRule{})
 	)
-	if d.TenantId != "" {
-		db.Where("tenant_id = ?", d.TenantId)
-	}
 
-	db.Where("rule_id = ? ", d.RuleId)
-	err := db.Find(&data).Error
+	if tenantId != "" {
+		db.Where("tenant_id = ?", tenantId)
+	}
+	db.Where("rule_id = ? ", ruleId)
+
+	err := db.First(&data).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return data, nil
@@ -132,17 +132,17 @@ func (p ProbingRepo) AddRecord(history models.ProbingHistory) error {
 	return nil
 }
 
-func (p ProbingRepo) GetRecord(query models.ReqProbingHistory) ([]models.ProbingHistory, error) {
+func (p ProbingRepo) GetRecord(ruleId string, dateRange int64) ([]models.ProbingHistory, error) {
 	var (
 		data []models.ProbingHistory
 		db   = p.db.Model(&models.ProbingHistory{})
 	)
-	db.Where("rule_id = ? ", query.RuleId)
+
 	// 计算起始时间戳（秒）
 	now := time.Now().Unix()
-	startTime := now - query.DateRange
+	startTime := now - dateRange
 
-	db.Where("rule_id = ?", query.RuleId).
+	db.Where("rule_id = ?", ruleId).
 		Where("timestamp BETWEEN ? AND ?", startTime, now)
 
 	err := db.Find(&data).Error
@@ -176,6 +176,6 @@ func (p ProbingRepo) DeleteRecord() error {
 	return nil
 }
 
-func (p ProbingRepo) ChangeState(req models.RequestProbeChangeState) error {
-	return p.db.Model(&models.ProbingRule{}).Where("tenant_id = ? AND rule_id = ?", req.TenantId, req.RuleId).Update("enabled", req.GetEnabled()).Error
+func (p ProbingRepo) ChangeState(tenantId, ruleId string, state *bool) error {
+	return p.db.Model(&models.ProbingRule{}).Where("tenant_id = ? AND rule_id = ?", tenantId, ruleId).Update("enabled", state).Error
 }

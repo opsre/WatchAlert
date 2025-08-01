@@ -12,14 +12,14 @@ type (
 
 	InterRuleRepo interface {
 		GetQuota(id string) bool
-		Search(r models.AlertRuleQuery) (models.AlertRule, error)
-		List(r models.AlertRuleQuery) (models.RuleResponse, error)
+		Get(tenantId, ruleGroupId, ruleId string) (models.AlertRule, error)
+		List(tenantId, ruleGroupId, datasourceType, query, status string, page models.Page) ([]models.AlertRule, error)
 		Create(r models.AlertRule) error
 		Update(r models.AlertRule) error
-		Delete(r models.AlertRuleQuery) error
+		Delete(tenantId, ruleId string) error
 		GetRuleIsExist(ruleId string) bool
 		GetRuleObject(ruleId string) models.AlertRule
-		ChangeStatus(req models.RequestRuleChangeStatus) error
+		ChangeStatus(tenantId, ruleGroupId, ruleId string, state *bool) error
 	}
 )
 
@@ -51,11 +51,11 @@ func (rr RuleRepo) GetQuota(id string) bool {
 	return false
 }
 
-func (rr RuleRepo) Search(r models.AlertRuleQuery) (models.AlertRule, error) {
+func (rr RuleRepo) Get(tenantId, ruleGroupId, ruleId string) (models.AlertRule, error) {
 	var data models.AlertRule
 
 	db := rr.db.Model(&models.AlertRule{})
-	db.Where("tenant_id = ? AND rule_group_id = ? AND rule_id = ?", r.TenantId, r.RuleGroupId, r.RuleId)
+	db.Where("tenant_id = ? AND rule_group_id = ? AND rule_id = ?", tenantId, ruleGroupId, ruleId)
 	err := db.First(&data).Error
 	if err != nil {
 		return data, err
@@ -64,29 +64,29 @@ func (rr RuleRepo) Search(r models.AlertRuleQuery) (models.AlertRule, error) {
 	return data, nil
 }
 
-func (rr RuleRepo) List(r models.AlertRuleQuery) (models.RuleResponse, error) {
+func (rr RuleRepo) List(tenantId, ruleGroupId, datasourceType, query, status string, page models.Page) ([]models.AlertRule, error) {
 	var (
 		data  []models.AlertRule
 		count int64
 	)
 
 	db := rr.db.Model(&models.AlertRule{})
-	db.Where("tenant_id = ?", r.TenantId)
-	if r.RuleGroupId != "" {
-		db.Where("rule_group_id = ?", r.RuleGroupId)
+	db.Where("tenant_id = ?", tenantId)
+	if ruleGroupId != "" {
+		db.Where("rule_group_id = ?", ruleGroupId)
 	}
 
-	if r.DatasourceType != "" {
-		db.Where("datasource_type = ?", r.DatasourceType)
+	if datasourceType != "" {
+		db.Where("datasource_type = ?", datasourceType)
 	}
 
-	if r.Query != "" {
+	if query != "" {
 		db.Where("rule_id LIKE ? OR rule_name LIKE ? OR description LIKE ?",
-			"%"+r.Query+"%", "%"+r.Query+"%", "%"+r.Query+"%")
+			"%"+query+"%", "%"+query+"%", "%"+query+"%")
 	}
 
-	if r.Status != "all" {
-		switch r.Status {
+	if status != "all" {
+		switch status {
 		case "enabled":
 			db.Where("enabled = ?", true)
 		case "disabled":
@@ -96,22 +96,15 @@ func (rr RuleRepo) List(r models.AlertRuleQuery) (models.RuleResponse, error) {
 
 	db.Count(&count)
 
-	db.Limit(int(r.Page.Size)).Offset(int((r.Page.Index - 1) * r.Page.Size))
+	db.Limit(int(page.Size)).Offset(int((page.Index - 1) * page.Size))
 
 	err := db.Find(&data).Error
 
 	if err != nil {
-		return models.RuleResponse{}, err
+		return nil, err
 	}
 
-	return models.RuleResponse{
-		List: data,
-		Page: models.Page{
-			Total: count,
-			Index: r.Page.Index,
-			Size:  r.Page.Size,
-		},
-	}, nil
+	return data, nil
 }
 
 func (rr RuleRepo) Create(r models.AlertRule) error {
@@ -141,13 +134,13 @@ func (rr RuleRepo) Update(r models.AlertRule) error {
 	return nil
 }
 
-func (rr RuleRepo) Delete(r models.AlertRuleQuery) error {
+func (rr RuleRepo) Delete(tenantId, ruleId string) error {
 	var alertRule models.AlertRule
 	d := Delete{
 		Table: alertRule,
 		Where: map[string]interface{}{
-			"tenant_id = ?": r.TenantId,
-			"rule_id = ?":   r.RuleId,
+			"tenant_id = ?": tenantId,
+			"rule_id = ?":   ruleId,
 		},
 	}
 
@@ -180,8 +173,8 @@ func (rr RuleRepo) GetRuleObject(ruleId string) models.AlertRule {
 	return data
 }
 
-func (rr RuleRepo) ChangeStatus(req models.RequestRuleChangeStatus) error {
+func (rr RuleRepo) ChangeStatus(tenantId, ruleGroupId, ruleId string, state *bool) error {
 	return rr.DB().Model(&models.AlertRule{}).
-		Where("tenant_id = ? AND rule_group_id = ? AND rule_id = ?", req.TenantId, req.RuleGroupId, req.RuleId).
-		Update("enabled", req.Enabled).Error
+		Where("tenant_id = ? AND rule_group_id = ? AND rule_id = ?", tenantId, ruleGroupId, ruleId).
+		Update("enabled", state).Error
 }

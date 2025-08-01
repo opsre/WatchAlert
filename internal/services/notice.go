@@ -6,6 +6,7 @@ import (
 	"time"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
+	"watchAlert/internal/types"
 	"watchAlert/pkg/tools"
 )
 
@@ -20,7 +21,6 @@ type InterNoticeService interface {
 	Delete(req interface{}) (interface{}, interface{})
 	Get(req interface{}) (interface{}, interface{})
 	Check(req interface{}) (interface{}, interface{})
-	Search(req interface{}) (interface{}, interface{})
 	ListRecord(req interface{}) (interface{}, interface{})
 	GetRecordMetric(req interface{}) (interface{}, interface{})
 	DeleteRecord(req interface{}) (interface{}, interface{})
@@ -33,8 +33,8 @@ func newInterAlertNoticeService(ctx *ctx.Context) InterNoticeService {
 }
 
 func (n noticeService) List(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.NoticeQuery)
-	data, err := n.ctx.DB.Notice().List(*r)
+	r := req.(*types.RequestNoticeQuery)
+	data, err := n.ctx.DB.Notice().List(r.TenantId, r.NoticeTmplId, r.Query)
 	if err != nil {
 		return nil, err
 	}
@@ -42,15 +42,25 @@ func (n noticeService) List(req interface{}) (interface{}, interface{}) {
 }
 
 func (n noticeService) Create(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.AlertNotice)
+	r := req.(*types.RequestNoticeCreate)
 	ok := n.ctx.DB.Notice().GetQuota(r.TenantId)
 	if !ok {
 		return models.AlertNotice{}, fmt.Errorf("创建失败, 配额不足")
 	}
 
-	r.Uuid = "n-" + tools.RandId()
-
-	err := n.ctx.DB.Notice().Create(*r)
+	err := n.ctx.DB.Notice().Create(models.AlertNotice{
+		TenantId:     r.TenantId,
+		Uuid:         "n-" + tools.RandId(),
+		Name:         r.Name,
+		DutyId:       r.DutyId,
+		NoticeType:   r.NoticeType,
+		NoticeTmplId: r.NoticeTmplId,
+		DefaultHook:  r.DefaultHook,
+		DefaultSign:  r.DefaultSign,
+		Routes:       r.Routes,
+		Email:        r.Email,
+		PhoneNumber:  r.PhoneNumber,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -58,9 +68,20 @@ func (n noticeService) Create(req interface{}) (interface{}, interface{}) {
 }
 
 func (n noticeService) Update(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.AlertNotice)
-	r.DutyId = r.GetDutyId()
-	err := n.ctx.DB.Notice().Update(*r)
+	r := req.(*types.RequestNoticeUpdate)
+	err := n.ctx.DB.Notice().Update(models.AlertNotice{
+		TenantId:     r.TenantId,
+		Uuid:         r.Uuid,
+		Name:         r.Name,
+		DutyId:       r.GetDutyId(),
+		NoticeType:   r.NoticeType,
+		NoticeTmplId: r.NoticeTmplId,
+		DefaultHook:  r.DefaultHook,
+		DefaultSign:  r.DefaultSign,
+		Routes:       r.Routes,
+		Email:        r.Email,
+		PhoneNumber:  r.PhoneNumber,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -68,8 +89,8 @@ func (n noticeService) Update(req interface{}) (interface{}, interface{}) {
 }
 
 func (n noticeService) Delete(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.NoticeQuery)
-	err := n.ctx.DB.Notice().Delete(*r)
+	r := req.(*types.RequestNoticeQuery)
+	err := n.ctx.DB.Notice().Delete(r.TenantId, r.Uuid)
 	if err != nil {
 		return nil, err
 	}
@@ -77,18 +98,8 @@ func (n noticeService) Delete(req interface{}) (interface{}, interface{}) {
 }
 
 func (n noticeService) Get(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.NoticeQuery)
-	data, err := n.ctx.DB.Notice().Get(*r)
-	if err != nil {
-		return nil, err
-	}
-
-	return data, nil
-}
-
-func (n noticeService) Search(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.NoticeQuery)
-	data, err := n.ctx.DB.Notice().Search(*r)
+	r := req.(*types.RequestNoticeQuery)
+	data, err := n.ctx.DB.Notice().Get(r.TenantId, r.Uuid)
 	if err != nil {
 		return nil, err
 	}
@@ -104,8 +115,8 @@ func (n noticeService) Check(req interface{}) (interface{}, interface{}) {
 }
 
 func (n noticeService) ListRecord(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.NoticeQuery)
-	data, err := n.ctx.DB.Notice().ListRecord(*r)
+	r := req.(*types.RequestNoticeQuery)
+	data, err := n.ctx.DB.Notice().ListRecord(r.TenantId, r.Severity, r.Status, r.Query, r.Page)
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +145,7 @@ type series struct {
 }
 
 func (n noticeService) GetRecordMetric(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.NoticeQuery)
+	r := req.(*types.RequestNoticeQuery)
 	curTime := time.Now()
 	var layout = "2006-01-02"
 	timeList := []string{

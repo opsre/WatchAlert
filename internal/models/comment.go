@@ -19,32 +19,3 @@ type Comment struct {
 	// 内容
 	Content string `json:"content"`
 }
-
-type RequestAddEventComment struct {
-	// 租户
-	TenantId string `json:"tenantId"`
-	// 故障中心
-	FaultCenterId string `json:"faultCenterId"`
-	// 告警指纹
-	Fingerprint string `json:"fingerprint"`
-	// 用户名
-	Username string `json:"username"`
-	// 用户 ID
-	UserId string `json:"userId"`
-	// 评论内容
-	Content string `json:"content"`
-}
-
-type RequestDeleteEventComment struct {
-	// 租户
-	TenantId string `json:"tenantId"`
-	// 评论 ID
-	CommentId string `json:"commentId"`
-}
-
-type RequestListEventComments struct {
-	// 租户
-	TenantId string `json:"tenantId" form:"tenantId"`
-	// 告警指纹
-	Fingerprint string `json:"fingerprint" form:"fingerprint"`
-}

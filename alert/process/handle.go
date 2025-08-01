@@ -124,10 +124,7 @@ func withRuleGroupByAlerts(ctx *ctx.Context, timeInt int64, alerts []*models.Ale
 
 // getNoticeData 获取 Notice 数据
 func getNoticeData(ctx *ctx.Context, tenantId, noticeId string) (models.AlertNotice, error) {
-	return ctx.DB.Notice().Get(models.NoticeQuery{
-		TenantId: tenantId,
-		Uuid:     noticeId,
-	})
+	return ctx.DB.Notice().Get(tenantId, noticeId)
 }
 
 // getNoticeHookUrlAndSign 获取事件等级对应的 Hook 和 Sign

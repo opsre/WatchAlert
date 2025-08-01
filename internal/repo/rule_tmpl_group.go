@@ -11,10 +11,10 @@ type (
 	}
 
 	InterRuleTmplGroupRepo interface {
-		List(r models.RuleTemplateGroupQuery) ([]models.RuleTemplateGroup, error)
+		List(groupType, query string) ([]models.RuleTemplateGroup, error)
 		Create(r models.RuleTemplateGroup) error
 		Update(r models.RuleTemplateGroup) error
-		Delete(r models.RuleTemplateGroupQuery) error
+		Delete(groupName string) error
 	}
 )
 
@@ -27,13 +27,13 @@ func newRuleTmplGroupInterface(db *gorm.DB, g InterGormDBCli) InterRuleTmplGroup
 	}
 }
 
-func (rtg RuleTmplGroupRepo) List(r models.RuleTemplateGroupQuery) ([]models.RuleTemplateGroup, error) {
+func (rtg RuleTmplGroupRepo) List(groupType, query string) ([]models.RuleTemplateGroup, error) {
 	var data []models.RuleTemplateGroup
 	db := rtg.db.Model(&models.RuleTemplateGroup{})
-	db.Where("type = ?", r.Type)
-	if r.Query != "" {
+	db.Where("type = ?", groupType)
+	if query != "" {
 		db.Where("name LIKE ? OR description LIKE ?",
-			"%"+r.Query+"%", "%"+r.Query+"%")
+			"%"+query+"%", "%"+query+"%")
 	}
 	err := db.Find(&data).Error
 	if err != nil {
@@ -43,7 +43,7 @@ func (rtg RuleTmplGroupRepo) List(r models.RuleTemplateGroupQuery) ([]models.Rul
 	for k, v := range data {
 		var ruleCount int64
 		rtdb := rtg.db.Model(&models.RuleTemplate{})
-		rtdb.Where("type = ?", r.Type)
+		rtdb.Where("type = ?", groupType)
 		rtdb.Where("rule_group_name = ?", v.Name).Count(&ruleCount)
 		data[k].Number = int(ruleCount)
 	}
@@ -76,11 +76,11 @@ func (rtg RuleTmplGroupRepo) Update(r models.RuleTemplateGroup) error {
 	return nil
 }
 
-func (rtg RuleTmplGroupRepo) Delete(r models.RuleTemplateGroupQuery) error {
+func (rtg RuleTmplGroupRepo) Delete(groupName string) error {
 	d := Delete{
 		Table: &models.RuleTemplateGroup{},
 		Where: map[string]interface{}{
-			"name = ?": r.Name,
+			"name = ?": groupName,
 		},
 	}
 

@@ -3,43 +3,53 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 	middleware "watchAlert/internal/middleware"
-	"watchAlert/internal/models"
 	"watchAlert/internal/services"
+	"watchAlert/internal/types"
 )
 
-type DutyCalendarController struct{}
+type dutyCalendarController struct{}
+
+var DutyCalendarController = new(dutyCalendarController)
 
 /*
 值班表 API
 /api/w8t/calendar
 */
-func (dc DutyCalendarController) API(gin *gin.RouterGroup) {
-	calendarA := gin.Group("calendar")
-	calendarA.Use(
+func (dutyCalendarController dutyCalendarController) API(gin *gin.RouterGroup) {
+	a := gin.Group("calendar")
+	a.Use(
 		middleware.Auth(),
 		middleware.Permission(),
 		middleware.ParseTenant(),
 		middleware.AuditingLog(),
 	)
 	{
-		calendarA.POST("calendarCreate", dc.Create)
-		calendarA.POST("calendarUpdate", dc.Update)
+		a.POST("calendarCreate", dutyCalendarController.Create)
+		a.POST("calendarUpdate", dutyCalendarController.Update)
 	}
 
-	calendarB := gin.Group("calendar")
-	calendarB.Use(
+	b := gin.Group("calendar")
+	b.Use(
 		middleware.Auth(),
 		middleware.Permission(),
 		middleware.ParseTenant(),
 	)
 	{
-		calendarB.GET("calendarSearch", dc.Search)
-		calendarB.GET("getCalendarUsers", dc.GetCalendarUsers)
+		b.GET("calendarSearch", dutyCalendarController.Search)
+	}
+
+	c := gin.Group("calendar")
+	c.Use(
+		middleware.Auth(),
+		middleware.ParseTenant(),
+	)
+	{
+		c.GET("getCalendarUsers", dutyCalendarController.GetCalendarUsers)
 	}
 }
 
-func (dc DutyCalendarController) Create(ctx *gin.Context) {
-	r := new(models.DutyScheduleCreate)
+func (dutyCalendarController dutyCalendarController) Create(ctx *gin.Context) {
+	r := new(types.RequestDutyCalendarCreate)
 	BindJson(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -50,8 +60,8 @@ func (dc DutyCalendarController) Create(ctx *gin.Context) {
 	})
 }
 
-func (dc DutyCalendarController) Update(ctx *gin.Context) {
-	r := new(models.DutySchedule)
+func (dutyCalendarController dutyCalendarController) Update(ctx *gin.Context) {
+	r := new(types.RequestDutyCalendarUpdate)
 	BindJson(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -62,8 +72,8 @@ func (dc DutyCalendarController) Update(ctx *gin.Context) {
 	})
 }
 
-func (dc DutyCalendarController) Search(ctx *gin.Context) {
-	r := new(models.DutyScheduleQuery)
+func (dutyCalendarController dutyCalendarController) Search(ctx *gin.Context) {
+	r := new(types.RequestDutyCalendarQuery)
 	BindQuery(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -74,8 +84,8 @@ func (dc DutyCalendarController) Search(ctx *gin.Context) {
 	})
 }
 
-func (dc DutyCalendarController) GetCalendarUsers(ctx *gin.Context) {
-	r := new(models.DutyScheduleQuery)
+func (dutyCalendarController dutyCalendarController) GetCalendarUsers(ctx *gin.Context) {
+	r := new(types.RequestDutyCalendarQuery)
 	BindQuery(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")

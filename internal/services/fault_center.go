@@ -5,6 +5,7 @@ import (
 	"watchAlert/alert"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
+	"watchAlert/internal/types"
 	"watchAlert/pkg/tools"
 )
 
@@ -30,37 +31,69 @@ func newInterFaultCenterService(ctx *ctx.Context) InterFaultCenterService {
 }
 
 func (f faultCenterService) Create(req interface{}) (data interface{}, err interface{}) {
-	r := req.(*models.FaultCenter)
-	r.ID = "fc-" + tools.RandId()
-	r.CreateAt = time.Now().Unix()
-	err = f.ctx.DB.FaultCenter().Create(*r)
+	r := req.(*types.RequestFaultCenterCreate)
+	fc := models.FaultCenter{
+		TenantId:             r.TenantId,
+		ID:                   "fc-" + tools.RandId(),
+		Name:                 r.Name,
+		Description:          r.Description,
+		NoticeIds:            r.NoticeIds,
+		NoticeRoutes:         r.NoticeRoutes,
+		RepeatNoticeInterval: r.RepeatNoticeInterval,
+		RecoverNotify:        r.RecoverNotify,
+		AggregationType:      r.AggregationType,
+		CreateAt:             time.Now().Unix(),
+		RecoverWaitTime:      r.RecoverWaitTime,
+		IsUpgradeEnabled:     r.IsUpgradeEnabled,
+		UpgradableSeverity:   r.UpgradableSeverity,
+		UpgradeStrategy:      r.UpgradeStrategy,
+	}
+
+	err = f.ctx.DB.FaultCenter().Create(fc)
 	if err != nil {
 		return nil, err
 	}
 
-	f.ctx.Redis.FaultCenter().PushFaultCenterInfo(*r)
-	alert.ConsumerWork.Submit(*r)
+	f.ctx.Redis.FaultCenter().PushFaultCenterInfo(fc)
+	alert.ConsumerWork.Submit(fc)
 
 	return nil, nil
 }
 
 func (f faultCenterService) Update(req interface{}) (data interface{}, err interface{}) {
-	r := req.(*models.FaultCenter)
-	err = f.ctx.DB.FaultCenter().Update(*r)
+	r := req.(*types.RequestFaultCenterUpdate)
+	fc := models.FaultCenter{
+		TenantId:             r.TenantId,
+		ID:                   r.ID,
+		Name:                 r.Name,
+		Description:          r.Description,
+		NoticeIds:            r.NoticeIds,
+		NoticeRoutes:         r.NoticeRoutes,
+		RepeatNoticeInterval: r.RepeatNoticeInterval,
+		RecoverNotify:        r.RecoverNotify,
+		AggregationType:      r.AggregationType,
+		CreateAt:             r.CreateAt,
+		RecoverWaitTime:      r.RecoverWaitTime,
+		IsUpgradeEnabled:     r.IsUpgradeEnabled,
+		UpgradableSeverity:   r.UpgradableSeverity,
+		UpgradeStrategy:      r.UpgradeStrategy,
+	}
+
+	err = f.ctx.DB.FaultCenter().Update(fc)
 	if err != nil {
 		return nil, err
 	}
 
-	f.ctx.Redis.FaultCenter().PushFaultCenterInfo(*r)
+	f.ctx.Redis.FaultCenter().PushFaultCenterInfo(fc)
 	alert.ConsumerWork.Stop(r.ID)
-	alert.ConsumerWork.Submit(*r)
+	alert.ConsumerWork.Submit(fc)
 
 	return nil, nil
 }
 
 func (f faultCenterService) Delete(req interface{}) (data interface{}, err interface{}) {
-	r := req.(*models.FaultCenterQuery)
-	err = f.ctx.DB.FaultCenter().Delete(*r)
+	r := req.(*types.RequestFaultCenterQuery)
+	err = f.ctx.DB.FaultCenter().Delete(r.TenantId, r.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -72,8 +105,8 @@ func (f faultCenterService) Delete(req interface{}) (data interface{}, err inter
 }
 
 func (f faultCenterService) List(req interface{}) (data interface{}, err interface{}) {
-	r := req.(*models.FaultCenterQuery)
-	data, err = f.ctx.DB.FaultCenter().List(*r)
+	r := req.(*types.RequestFaultCenterQuery)
+	data, err = f.ctx.DB.FaultCenter().List(r.TenantId, r.Query)
 	if err != nil {
 		return nil, err
 	}
@@ -106,8 +139,8 @@ func (f faultCenterService) List(req interface{}) (data interface{}, err interfa
 }
 
 func (f faultCenterService) Get(req interface{}) (data interface{}, err interface{}) {
-	r := req.(*models.FaultCenterQuery)
-	data, err = f.ctx.DB.FaultCenter().Get(*r)
+	r := req.(*types.RequestFaultCenterQuery)
+	data, err = f.ctx.DB.FaultCenter().Get(r.TenantId, r.ID, r.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -115,14 +148,14 @@ func (f faultCenterService) Get(req interface{}) (data interface{}, err interfac
 }
 
 func (f faultCenterService) Reset(req interface{}) (data interface{}, err interface{}) {
-	r := req.(*models.FaultCenter)
-	err = f.ctx.DB.FaultCenter().Reset(*r)
+	r := req.(*types.RequestFaultCenterReset)
+	err = f.ctx.DB.FaultCenter().Reset(r.TenantId, r.ID, r.Name, r.Description, r.AggregationType)
 	if err != nil {
 		return nil, err
 	}
 
 	alert.ConsumerWork.Stop(r.ID)
-	data, err = f.ctx.DB.FaultCenter().Get(models.FaultCenterQuery{ID: r.ID})
+	data, err = f.ctx.DB.FaultCenter().Get(r.TenantId, r.ID, r.Name)
 	f.ctx.Redis.FaultCenter().PushFaultCenterInfo(data.(models.FaultCenter))
 	alert.ConsumerWork.Submit(data.(models.FaultCenter))
 

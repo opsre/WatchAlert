@@ -14,12 +14,3 @@ type AlertSubscribe struct {
 	SFilter           []string `json:"sFilter" gorm:"sFilter;serializer:json"`             // 过滤
 	SCreateAt         int64    `json:"sCreateAt"`
 }
-
-type AlertSubscribeQuery struct {
-	SId        string `json:"sId" form:"sId"`
-	STenantId  string `json:"sTenantId" form:"sTenantId"`
-	SRuleId    string `json:"sRuleId" form:"sRuleId"`
-	SUserId    string `json:"sUserId" form:"sUserId"`
-	SUserEmail string `json:"sUserEmail" form:"sUserEmail"`
-	Query      string `json:"query" form:"query"`
-}

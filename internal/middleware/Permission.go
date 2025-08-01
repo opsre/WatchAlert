@@ -45,7 +45,7 @@ func Permission() gin.HandlerFunc {
 		context.Set("UserEmail", user.Email)
 
 		// 获取租户用户角色
-		tenantUserInfo, _ := c.DB.Tenant().GetTenantLinkedUserInfo(models.GetTenantLinkedUserInfo{ID: tid, UserID: userId})
+		tenantUserInfo, _ := c.DB.Tenant().GetTenantLinkedUserInfo(tid, userId)
 		if err != nil {
 			logc.Errorf(c.Ctx, fmt.Sprintf("获取租户用户角色失败 %s", err.Error()))
 			response.TokenFail(context)

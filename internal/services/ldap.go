@@ -147,7 +147,7 @@ func (l ldapService) SyncUserToW8t() {
 	}
 
 	for _, u := range users {
-		_, b, _ := l.ctx.DB.User().Get(models.MemberQuery{Query: u.Mail})
+		_, b, _ := l.ctx.DB.User().Get("", "", u.Mail)
 		if b {
 			continue
 		}
@@ -167,16 +167,15 @@ func (l ldapService) SyncUserToW8t() {
 			return
 		}
 
-		err = l.ctx.DB.Tenant().AddTenantLinkedUsers(models.TenantLinkedUsers{
-			ID:       "default",
-			UserRole: global.Config.Ldap.DefaultUserRole,
-			Users: []models.TenantUser{
+		err = l.ctx.DB.Tenant().AddTenantLinkedUsers("default",
+			[]models.TenantUser{
 				{
 					UserID:   uid,
 					UserName: u.Mail,
 				},
 			},
-		})
+			global.Config.Ldap.DefaultUserRole,
+		)
 		if err != nil {
 			logc.Errorf(l.ctx.Ctx, err.Error())
 			return

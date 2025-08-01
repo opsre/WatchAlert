@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
+	"watchAlert/internal/types"
+	"watchAlert/pkg/tools"
 )
 
 type noticeTmplService struct {
@@ -13,7 +15,6 @@ type noticeTmplService struct {
 
 type InterNoticeTmplService interface {
 	List(req interface{}) (interface{}, interface{})
-	Search(req interface{}) (interface{}, interface{})
 	Create(req interface{}) (interface{}, interface{})
 	Update(req interface{}) (interface{}, interface{})
 	Delete(req interface{}) (interface{}, interface{})
@@ -26,18 +27,8 @@ func newInterNoticeTmplService(ctx *ctx.Context) InterNoticeTmplService {
 }
 
 func (nts noticeTmplService) List(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.NoticeTemplateExampleQuery)
-	data, err := nts.ctx.DB.NoticeTmpl().List(*r)
-	if err != nil {
-		return nil, err
-	}
-
-	return data, nil
-}
-
-func (nts noticeTmplService) Search(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.NoticeTemplateExampleQuery)
-	data, err := nts.ctx.DB.NoticeTmpl().Search(*r)
+	r := req.(*types.RequestNoticeTemplateQuery)
+	data, err := nts.ctx.DB.NoticeTmpl().List(r.ID, r.NoticeType, r.Query)
 	if err != nil {
 		return nil, err
 	}
@@ -46,8 +37,17 @@ func (nts noticeTmplService) Search(req interface{}) (interface{}, interface{}) 
 }
 
 func (nts noticeTmplService) Create(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.NoticeTemplateExample)
-	err := nts.ctx.DB.NoticeTmpl().Create(*r)
+	r := req.(*types.RequestNoticeTemplateCreate)
+	err := nts.ctx.DB.NoticeTmpl().Create(models.NoticeTemplateExample{
+		ID:                   "nt-" + tools.RandId(),
+		Name:                 r.Name,
+		NoticeType:           r.NoticeType,
+		Description:          r.Description,
+		Template:             r.Template,
+		TemplateFiring:       r.TemplateFiring,
+		TemplateRecover:      r.TemplateRecover,
+		EnableFeiShuJsonCard: r.EnableFeiShuJsonCard,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -56,8 +56,17 @@ func (nts noticeTmplService) Create(req interface{}) (interface{}, interface{}) 
 }
 
 func (nts noticeTmplService) Update(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.NoticeTemplateExample)
-	err := nts.ctx.DB.NoticeTmpl().Update(*r)
+	r := req.(*types.RequestNoticeTemplateUpdate)
+	err := nts.ctx.DB.NoticeTmpl().Update(models.NoticeTemplateExample{
+		ID:                   r.ID,
+		Name:                 r.Name,
+		NoticeType:           r.NoticeType,
+		Description:          r.Description,
+		Template:             r.Template,
+		TemplateFiring:       r.TemplateFiring,
+		TemplateRecover:      r.TemplateRecover,
+		EnableFeiShuJsonCard: r.EnableFeiShuJsonCard,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -66,8 +75,8 @@ func (nts noticeTmplService) Update(req interface{}) (interface{}, interface{}) 
 }
 
 func (nts noticeTmplService) Delete(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.NoticeTemplateExampleQuery)
-	nl, err := nts.ctx.DB.Notice().Search(models.NoticeQuery{NoticeTmplId: r.Id})
+	r := req.(*types.RequestNoticeTemplateQuery)
+	nl, err := nts.ctx.DB.Notice().List("", r.ID, "")
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +89,7 @@ func (nts noticeTmplService) Delete(req interface{}) (interface{}, interface{}) 
 		return nil, errors.New(fmt.Sprintf("删除失败, 已有通知对象绑定: %s", ids))
 	}
 
-	err = nts.ctx.DB.NoticeTmpl().Delete(*r)
+	err = nts.ctx.DB.NoticeTmpl().Delete(r.ID)
 	if err != nil {
 		return nil, err
 	}

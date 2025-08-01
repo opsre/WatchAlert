@@ -3,6 +3,7 @@ package services
 import (
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
+	"watchAlert/internal/types"
 )
 
 type ruleTmplService struct {
@@ -23,8 +24,8 @@ func newInterRuleTmplService(ctx *ctx.Context) InterRuleTmplService {
 }
 
 func (rt ruleTmplService) List(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.RuleTemplateQuery)
-	data, err := rt.ctx.DB.RuleTmpl().List(*r)
+	r := req.(*types.RequestRuleTemplateQuery)
+	data, err := rt.ctx.DB.RuleTmpl().List(r.RuleGroupName, r.Type, r.Query)
 	if err != nil {
 		return nil, err
 	}
@@ -33,8 +34,25 @@ func (rt ruleTmplService) List(req interface{}) (interface{}, interface{}) {
 }
 
 func (rt ruleTmplService) Create(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.RuleTemplate)
-	err := rt.ctx.DB.RuleTmpl().Create(*r)
+	r := req.(*types.RequestRuleTemplateCreate)
+	err := rt.ctx.DB.RuleTmpl().Create(models.RuleTemplate{
+		Type:                 r.Type,
+		RuleGroupName:        r.RuleGroupName,
+		RuleName:             r.RuleName,
+		DatasourceType:       r.DatasourceType,
+		EvalInterval:         r.EvalInterval,
+		ForDuration:          r.ForDuration,
+		RepeatNoticeInterval: r.RepeatNoticeInterval,
+		Description:          r.Description,
+		PrometheusConfig:     r.PrometheusConfig,
+		AliCloudSLSConfig:    r.AliCloudSLSConfig,
+		LokiConfig:           r.LokiConfig,
+		JaegerConfig:         r.JaegerConfig,
+		KubernetesConfig:     r.KubernetesConfig,
+		ElasticSearchConfig:  r.ElasticSearchConfig,
+		VictoriaLogsConfig:   r.VictoriaLogsConfig,
+		ClickHouseConfig:     r.ClickHouseConfig,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -43,8 +61,25 @@ func (rt ruleTmplService) Create(req interface{}) (interface{}, interface{}) {
 }
 
 func (rt ruleTmplService) Update(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.RuleTemplate)
-	err := rt.ctx.DB.RuleTmpl().Update(*r)
+	r := req.(*types.RequestRuleTemplateUpdate)
+	err := rt.ctx.DB.RuleTmpl().Update(models.RuleTemplate{
+		Type:                 r.Type,
+		RuleGroupName:        r.RuleGroupName,
+		RuleName:             r.RuleName,
+		DatasourceType:       r.DatasourceType,
+		EvalInterval:         r.EvalInterval,
+		ForDuration:          r.ForDuration,
+		RepeatNoticeInterval: r.RepeatNoticeInterval,
+		Description:          r.Description,
+		PrometheusConfig:     r.PrometheusConfig,
+		AliCloudSLSConfig:    r.AliCloudSLSConfig,
+		LokiConfig:           r.LokiConfig,
+		JaegerConfig:         r.JaegerConfig,
+		KubernetesConfig:     r.KubernetesConfig,
+		ElasticSearchConfig:  r.ElasticSearchConfig,
+		VictoriaLogsConfig:   r.VictoriaLogsConfig,
+		ClickHouseConfig:     r.ClickHouseConfig,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -53,8 +88,8 @@ func (rt ruleTmplService) Update(req interface{}) (interface{}, interface{}) {
 }
 
 func (rt ruleTmplService) Delete(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.RuleTemplateQuery)
-	err := rt.ctx.DB.RuleTmpl().Delete(*r)
+	r := req.(*types.RequestRuleTemplateQuery)
+	err := rt.ctx.DB.RuleTmpl().Delete(r.RuleGroupName, r.RuleName)
 	if err != nil {
 		return nil, err
 	}

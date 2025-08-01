@@ -3,46 +3,47 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 	middleware "watchAlert/internal/middleware"
-	"watchAlert/internal/models"
 	"watchAlert/internal/services"
+	"watchAlert/internal/types"
 )
 
-type NoticeController struct{}
+type noticeController struct{}
+
+var NoticeController = new(noticeController)
 
 /*
-	通知对象 API
-	/api/w8t/sender
+通知对象 API
+/api/w8t/sender
 */
-func (nc NoticeController) API(gin *gin.RouterGroup) {
-	noticeA := gin.Group("notice")
-	noticeA.Use(
+func (noticeController noticeController) API(gin *gin.RouterGroup) {
+	a := gin.Group("notice")
+	a.Use(
 		middleware.Auth(),
 		middleware.Permission(),
 		middleware.ParseTenant(),
 		middleware.AuditingLog(),
 	)
 	{
-		noticeA.POST("noticeCreate", nc.Create)
-		noticeA.POST("noticeUpdate", nc.Update)
-		noticeA.POST("noticeDelete", nc.Delete)
+		a.POST("noticeCreate", noticeController.Create)
+		a.POST("noticeUpdate", noticeController.Update)
+		a.POST("noticeDelete", noticeController.Delete)
 	}
 
-	noticeB := gin.Group("notice")
-	noticeB.Use(
+	b := gin.Group("notice")
+	b.Use(
 		middleware.Auth(),
 		middleware.Permission(),
 		middleware.ParseTenant(),
 	)
 	{
-		noticeB.GET("noticeList", nc.List)
-		noticeB.GET("noticeSearch", nc.Search)
-		noticeB.GET("noticeRecordList", nc.ListRecord)
-		noticeB.GET("noticeRecordMetric", nc.GetRecordMetric)
+		b.GET("noticeList", noticeController.List)
+		b.GET("noticeRecordList", noticeController.ListRecord)
+		b.GET("noticeRecordMetric", noticeController.GetRecordMetric)
 	}
 }
 
-func (nc NoticeController) List(ctx *gin.Context) {
-	r := new(models.NoticeQuery)
+func (noticeController noticeController) List(ctx *gin.Context) {
+	r := new(types.RequestNoticeQuery)
 	BindQuery(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -53,8 +54,8 @@ func (nc NoticeController) List(ctx *gin.Context) {
 	})
 }
 
-func (nc NoticeController) Create(ctx *gin.Context) {
-	r := new(models.AlertNotice)
+func (noticeController noticeController) Create(ctx *gin.Context) {
+	r := new(types.RequestNoticeCreate)
 	BindJson(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -65,8 +66,8 @@ func (nc NoticeController) Create(ctx *gin.Context) {
 	})
 }
 
-func (nc NoticeController) Update(ctx *gin.Context) {
-	r := new(models.AlertNotice)
+func (noticeController noticeController) Update(ctx *gin.Context) {
+	r := new(types.RequestNoticeUpdate)
 	BindJson(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -77,8 +78,8 @@ func (nc NoticeController) Update(ctx *gin.Context) {
 	})
 }
 
-func (nc NoticeController) Delete(ctx *gin.Context) {
-	r := new(models.NoticeQuery)
+func (noticeController noticeController) Delete(ctx *gin.Context) {
+	r := new(types.RequestNoticeQuery)
 	BindJson(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -89,8 +90,8 @@ func (nc NoticeController) Delete(ctx *gin.Context) {
 	})
 }
 
-func (nc NoticeController) Get(ctx *gin.Context) {
-	r := new(models.NoticeQuery)
+func (noticeController noticeController) Get(ctx *gin.Context) {
+	r := new(types.RequestNoticeQuery)
 	BindQuery(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -102,8 +103,8 @@ func (nc NoticeController) Get(ctx *gin.Context) {
 
 }
 
-func (nc NoticeController) Check(ctx *gin.Context) {
-	r := new(models.NoticeQuery)
+func (noticeController noticeController) Check(ctx *gin.Context) {
+	r := new(types.RequestNoticeQuery)
 	BindQuery(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -114,20 +115,8 @@ func (nc NoticeController) Check(ctx *gin.Context) {
 	})
 }
 
-func (nc NoticeController) Search(ctx *gin.Context) {
-	r := new(models.NoticeQuery)
-	BindQuery(ctx, r)
-
-	tid, _ := ctx.Get("TenantID")
-	r.TenantId = tid.(string)
-
-	Service(ctx, func() (interface{}, interface{}) {
-		return services.NoticeService.Search(r)
-	})
-}
-
-func (nc NoticeController) ListRecord(ctx *gin.Context) {
-	r := new(models.NoticeQuery)
+func (noticeController noticeController) ListRecord(ctx *gin.Context) {
+	r := new(types.RequestNoticeQuery)
 	BindQuery(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -138,8 +127,8 @@ func (nc NoticeController) ListRecord(ctx *gin.Context) {
 	})
 }
 
-func (nc NoticeController) GetRecordMetric(ctx *gin.Context) {
-	r := new(models.NoticeQuery)
+func (noticeController noticeController) GetRecordMetric(ctx *gin.Context) {
+	r := new(types.RequestNoticeQuery)
 	BindQuery(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")

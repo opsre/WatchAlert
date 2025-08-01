@@ -153,24 +153,6 @@ type EvalCondition struct {
 
 type Fingerprint uint64
 
-type AlertRuleQuery struct {
-	TenantId         string   `json:"tenantId" form:"tenantId"`
-	RuleId           string   `json:"ruleId" form:"ruleId"`
-	RuleGroupId      string   `json:"ruleGroupId" form:"ruleGroupId"`
-	DatasourceType   string   `json:"datasourceType" form:"datasourceType"`
-	DatasourceIdList []string `json:"datasourceId" form:"datasourceId"`
-	RuleName         string   `json:"ruleName" form:"ruleName"`
-	Enabled          string   `json:"enabled" form:"enabled"`
-	Query            string   `json:"query" form:"query"`
-	Status           string   `json:"status" form:"status"` // 查询规则状态
-	Page
-}
-
-type RuleResponse struct {
-	List []AlertRule `json:"list"`
-	Page
-}
-
 func (a *AlertRule) GetRuleType() string { return a.DatasourceType }
 
 func (a *AlertRule) GetEnabled() *bool {
@@ -188,20 +170,4 @@ func (a *AlertRule) GetForDuration(severity string) int64 {
 		}
 	}
 	return 0
-}
-
-type RequestRuleChangeStatus struct {
-	TenantId      string `json:"tenantId" form:"tenantId"`
-	RuleId        string `json:"ruleId" form:"ruleId"`
-	RuleGroupId   string `json:"ruleGroupId" form:"ruleGroupId"`
-	FaultCenterId string `json:"faultCenterId" form:"faultCenterId"`
-	Enabled       *bool  `json:"enabled" form:"enabled"`
-}
-
-func (r *RequestRuleChangeStatus) GetEnabled() *bool {
-	if r.Enabled == nil {
-		isOk := false
-		return &isOk
-	}
-	return r.Enabled
 }

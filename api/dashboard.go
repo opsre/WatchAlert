@@ -7,32 +7,34 @@ import (
 	"watchAlert/internal/types"
 )
 
-type DashboardController struct{}
+type dashboardController struct{}
 
-func (dc DashboardController) API(gin *gin.RouterGroup) {
-	dashboardA := gin.Group("dashboard")
-	dashboardA.Use(
+var DashboardController = new(dashboardController)
+
+func (dashboardController dashboardController) API(gin *gin.RouterGroup) {
+	a := gin.Group("dashboard")
+	a.Use(
 		middleware.Auth(),
 		middleware.Permission(),
 		middleware.ParseTenant(),
 		middleware.AuditingLog(),
 	)
 	{
-		dashboardA.POST("createFolder", dc.CreateFolder)
-		dashboardA.POST("updateFolder", dc.UpdateFolder)
-		dashboardA.POST("deleteFolder", dc.DeleteFolder)
+		a.POST("createFolder", dashboardController.CreateFolder)
+		a.POST("updateFolder", dashboardController.UpdateFolder)
+		a.POST("deleteFolder", dashboardController.DeleteFolder)
 	}
 
-	dashboardB := gin.Group("dashboard")
-	dashboardB.Use(
+	b := gin.Group("dashboard")
+	b.Use(
 		middleware.Auth(),
 		middleware.Permission(),
 		middleware.ParseTenant(),
 	)
 	{
-		dashboardB.GET("listFolder", dc.ListFolder)
-		dashboardB.GET("getFolder", dc.GetFolder)
-		dashboardB.GET("listGrafanaDashboards", dc.ListGrafanaDashboards)
+		b.GET("listFolder", dashboardController.ListFolder)
+		b.GET("getFolder", dashboardController.GetFolder)
+		b.GET("listGrafanaDashboards", dashboardController.ListGrafanaDashboards)
 	}
 
 	c := gin.Group("dashboard")
@@ -41,11 +43,11 @@ func (dc DashboardController) API(gin *gin.RouterGroup) {
 		middleware.ParseTenant(),
 	)
 	{
-		c.GET("getDashboardFullUrl", dc.GetDashboardFullUrl)
+		c.GET("getDashboardFullUrl", dashboardController.GetDashboardFullUrl)
 	}
 }
 
-func (dc DashboardController) ListFolder(ctx *gin.Context) {
+func (dashboardController dashboardController) ListFolder(ctx *gin.Context) {
 	r := new(types.RequestDashboardFoldersQuery)
 	BindQuery(ctx, r)
 
@@ -57,7 +59,7 @@ func (dc DashboardController) ListFolder(ctx *gin.Context) {
 	})
 }
 
-func (dc DashboardController) SearchFolder(ctx *gin.Context) {
+func (dashboardController dashboardController) SearchFolder(ctx *gin.Context) {
 	r := new(types.RequestDashboardFoldersQuery)
 	BindQuery(ctx, r)
 
@@ -69,7 +71,7 @@ func (dc DashboardController) SearchFolder(ctx *gin.Context) {
 	})
 }
 
-func (dc DashboardController) GetFolder(ctx *gin.Context) {
+func (dashboardController dashboardController) GetFolder(ctx *gin.Context) {
 	r := new(types.RequestDashboardFoldersQuery)
 	BindQuery(ctx, r)
 
@@ -81,7 +83,7 @@ func (dc DashboardController) GetFolder(ctx *gin.Context) {
 	})
 }
 
-func (dc DashboardController) CreateFolder(ctx *gin.Context) {
+func (dashboardController dashboardController) CreateFolder(ctx *gin.Context) {
 	r := new(types.RequestDashboardFoldersCreate)
 	BindJson(ctx, r)
 
@@ -93,7 +95,7 @@ func (dc DashboardController) CreateFolder(ctx *gin.Context) {
 	})
 }
 
-func (dc DashboardController) UpdateFolder(ctx *gin.Context) {
+func (dashboardController dashboardController) UpdateFolder(ctx *gin.Context) {
 	r := new(types.RequestDashboardFoldersUpdate)
 	BindJson(ctx, r)
 
@@ -105,7 +107,7 @@ func (dc DashboardController) UpdateFolder(ctx *gin.Context) {
 	})
 }
 
-func (dc DashboardController) DeleteFolder(ctx *gin.Context) {
+func (dashboardController dashboardController) DeleteFolder(ctx *gin.Context) {
 	r := new(types.RequestDashboardFoldersQuery)
 	BindJson(ctx, r)
 
@@ -117,7 +119,7 @@ func (dc DashboardController) DeleteFolder(ctx *gin.Context) {
 	})
 }
 
-func (dc DashboardController) ListGrafanaDashboards(ctx *gin.Context) {
+func (dashboardController dashboardController) ListGrafanaDashboards(ctx *gin.Context) {
 	r := new(types.RequestDashboardFoldersQuery)
 	BindQuery(ctx, r)
 
@@ -129,7 +131,7 @@ func (dc DashboardController) ListGrafanaDashboards(ctx *gin.Context) {
 	})
 }
 
-func (dc DashboardController) GetDashboardFullUrl(ctx *gin.Context) {
+func (dashboardController dashboardController) GetDashboardFullUrl(ctx *gin.Context) {
 	r := new(types.RequestGetGrafanaDashboard)
 	BindQuery(ctx, r)
 

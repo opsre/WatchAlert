@@ -11,30 +11,6 @@ type DutyManagement struct {
 	CreateAt    int64      `json:"create_at"`
 }
 
-type DutyManagementQuery struct {
-	TenantId string `json:"tenantId" form:"tenantId"`
-	ID       string `json:"id" form:"id"`
-	Name     string `json:"name" form:"name"`
-}
-
-type DutyScheduleCreate struct {
-	TenantId   string `json:"tenantId"`
-	DutyId     string `json:"dutyId"`
-	DutyPeriod int    `json:"dutyPeriod"`
-	Month      string `json:"month"`
-	//Users      []DutyUser `json:"users"`
-	UserGroup [][]DutyUser `json:"userGroup"`
-	DateType  string       `json:"dateType"`
-	Status    string       `json:"status" `
-}
-
-type DutyUser struct {
-	UserId   string `json:"userid"`
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	Mobile   string `json:"mobile"`
-}
-
 type CalendarStatus string
 
 const (
@@ -45,18 +21,16 @@ const (
 )
 
 type DutySchedule struct {
-	TenantId string `json:"tenantId"`
-	DutyId   string `json:"dutyId"`
-	Time     string `json:"time"`
-	//Users    DutyUser `json:"users"`
-	Status string     `json:"status"`
-	Users  []DutyUser `json:"users" gorm:"users;serializer:json"`
+	TenantId string     `json:"tenantId"`
+	DutyId   string     `json:"dutyId"`
+	Time     string     `json:"time"`
+	Status   string     `json:"status"`
+	Users    []DutyUser `json:"users" gorm:"users;serializer:json"`
 }
 
-type DutyScheduleQuery struct {
-	TenantId string `json:"tenantId" form:"tenantId"`
-	DutyId   string `json:"dutyId" form:"dutyId"`
-	Time     string `json:"time" form:"time"`
-	Year     string `json:"year" form:"year"`
-	Month    string `json:"mouth" form:"month"`
+type DutyUser struct {
+	UserId   string `json:"userid"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	Mobile   string `json:"mobile"`
 }

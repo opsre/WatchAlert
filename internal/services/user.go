@@ -9,6 +9,7 @@ import (
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/global"
 	"watchAlert/internal/models"
+	"watchAlert/internal/types"
 	"watchAlert/pkg/tools"
 )
 
@@ -17,7 +18,6 @@ type userService struct {
 }
 
 type InterUserService interface {
-	Search(req interface{}) (interface{}, interface{})
 	List(req interface{}) (interface{}, interface{})
 	Get(req interface{}) (interface{}, interface{})
 	Login(req interface{}) (interface{}, interface{})
@@ -33,26 +33,21 @@ func newInterUserService(ctx *ctx.Context) InterUserService {
 	}
 }
 
-func (us userService) Search(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.MemberQuery)
-	data, err := us.ctx.DB.User().Search(*r)
-	if err != nil {
-		return nil, err
-	}
-	return data, nil
-}
-
 func (us userService) List(req interface{}) (interface{}, interface{}) {
-	data, err := us.ctx.DB.User().List()
+	r := req.(*types.RequestUserQuery)
+
+	data, err := us.ctx.DB.User().List(r.Query, r.JoinDuty)
 	if err != nil {
 		return nil, err
 	}
+
 	return data, nil
 }
 
 func (us userService) Get(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.MemberQuery)
-	data, _, err := us.ctx.DB.User().Get(*r)
+	r := req.(*types.RequestUserQuery)
+
+	data, _, err := us.ctx.DB.User().Get(r.UserId, r.UserName, r.Query)
 	if err != nil {
 		return nil, err
 	}
@@ -61,14 +56,11 @@ func (us userService) Get(req interface{}) (interface{}, interface{}) {
 }
 
 func (us userService) Login(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.Member)
+	r := req.(*types.RequestUserLogin)
 	originalPassword := r.Password
 	r.Password = tools.GenerateHashPassword(r.Password)
 
-	q := models.MemberQuery{
-		UserName: r.UserName,
-	}
-	data, _, err := us.ctx.DB.User().Get(q)
+	data, _, err := us.ctx.DB.User().Get("", r.UserName, "")
 	if err != nil {
 		return nil, err
 	}
@@ -91,8 +83,7 @@ func (us userService) Login(req interface{}) (interface{}, interface{}) {
 		}
 	}
 
-	r.UserId = data.UserId
-	tokenData, err := tools.GenerateToken(r.UserId, r.UserName, r.Password)
+	tokenData, err := tools.GenerateToken(data.UserId, r.UserName, r.Password)
 	if err != nil {
 		return nil, err
 	}
@@ -103,15 +94,14 @@ func (us userService) Login(req interface{}) (interface{}, interface{}) {
 	return models.ResponseLoginInfo{
 		Token:    tokenData,
 		Username: r.UserName,
-		UserId:   r.UserId,
+		UserId:   data.UserId,
 	}, nil
 }
 
 func (us userService) Register(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.Member)
+	r := req.(*types.RequestUserCreate)
 
-	q := models.MemberQuery{UserName: r.UserName}
-	_, ok, _ := us.ctx.DB.User().Get(q)
+	_, ok, _ := us.ctx.DB.User().Get("", r.UserName, "")
 	if ok {
 		return nil, fmt.Errorf("用户已存在")
 	}
@@ -121,14 +111,23 @@ func (us userService) Register(req interface{}) (interface{}, interface{}) {
 		r.UserId = tools.RandUid()
 	}
 
-	r.Password = tools.GenerateHashPassword(r.Password)
-	r.CreateAt = time.Now().Unix()
-
 	if r.CreateBy == "" {
 		r.CreateBy = "system"
 	}
 
-	err := us.ctx.DB.User().Create(*r)
+	err := us.ctx.DB.User().Create(models.Member{
+		UserId:     r.UserId,
+		UserName:   r.UserName,
+		Email:      r.Email,
+		Phone:      r.Phone,
+		Password:   tools.GenerateHashPassword(r.Password),
+		Role:       r.Role,
+		CreateBy:   r.CreateBy,
+		CreateAt:   time.Now().Unix(),
+		JoinDuty:   r.JoinDuty,
+		DutyUserId: r.DutyUserId,
+		Tenants:    r.Tenants,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +136,7 @@ func (us userService) Register(req interface{}) (interface{}, interface{}) {
 }
 
 func (us userService) Update(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.Member)
+	r := req.(*types.RequestUserUpdate)
 	var dbData models.Member
 
 	db := us.ctx.DB.DB().Model(models.Member{})
@@ -148,7 +147,19 @@ func (us userService) Update(req interface{}) (interface{}, interface{}) {
 	} else {
 		r.Password = tools.GenerateHashPassword(r.Password)
 	}
-	err := us.ctx.DB.User().Update(*r)
+	err := us.ctx.DB.User().Update(models.Member{
+		UserId:     r.UserId,
+		UserName:   r.UserName,
+		Email:      r.Email,
+		Phone:      r.Phone,
+		Password:   r.Password,
+		Role:       r.Role,
+		CreateBy:   r.CreateBy,
+		CreateAt:   r.CreateAt,
+		JoinDuty:   r.JoinDuty,
+		DutyUserId: r.DutyUserId,
+		Tenants:    r.Tenants,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -159,8 +170,8 @@ func (us userService) Update(req interface{}) (interface{}, interface{}) {
 }
 
 func (us userService) Delete(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.MemberQuery)
-	err := us.ctx.DB.User().Delete(*r)
+	r := req.(*types.RequestUserQuery)
+	err := us.ctx.DB.User().Delete(r.UserId)
 	if err != nil {
 		return nil, err
 	}
@@ -171,13 +182,13 @@ func (us userService) Delete(req interface{}) (interface{}, interface{}) {
 }
 
 func (us userService) ChangePass(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.Member)
+	r := req.(*types.RequestUserChangePassword)
 
 	arr := md5.Sum([]byte(r.Password))
 	hashPassword := hex.EncodeToString(arr[:])
 	r.Password = hashPassword
 
-	err := us.ctx.DB.User().ChangePass(*r)
+	err := us.ctx.DB.User().ChangePass(r.UserId, r.Password)
 	if err != nil {
 		return nil, err
 	}

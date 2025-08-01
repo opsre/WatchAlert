@@ -23,31 +23,13 @@ func (t *Tenant) GetRemoveProtection() *bool {
 	return t.RemoveProtection
 }
 
-type TenantQuery struct {
-	ID     string `json:"id" form:"id"`
-	Name   string `json:"name" form:"name"`
-	UserID string `json:"userId" form:"userId"`
-}
-
 type TenantLinkedUsers struct {
-	ID       string       `json:"id"`
-	UserRole string       `json:"userRole" gorm:"-"` // 用于新增成员时统一的用户角色
-	Users    []TenantUser `json:"users" gorm:"users;serializer:json"`
+	ID    string       `json:"id"`
+	Users []TenantUser `json:"users" gorm:"users;serializer:json"`
 }
 
 type TenantUser struct {
 	UserID   string `json:"userId"`
 	UserName string `json:"userName"`
 	UserRole string `json:"userRole"`
-}
-
-type GetTenantLinkedUserInfo struct {
-	ID     string `json:"id" form:"id"`
-	UserID string `json:"userId" form:"userId"`
-}
-
-type ChangeTenantUserRole struct {
-	ID       string `json:"id"`
-	UserID   string `json:"userId"`
-	UserRole string `json:"userRole" `
 }

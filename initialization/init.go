@@ -10,7 +10,6 @@ import (
 	"watchAlert/internal/cache"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/global"
-	"watchAlert/internal/models"
 	"watchAlert/internal/repo"
 	"watchAlert/internal/services"
 	"watchAlert/pkg/ai"
@@ -65,7 +64,7 @@ func InitBasic() {
 }
 
 func importClientPools(ctx *ctx.Context) {
-	list, err := ctx.DB.Datasource().List(models.DatasourceQuery{})
+	list, err := ctx.DB.Datasource().List("", "", "", "")
 	if err != nil {
 		logc.Error(ctx.Ctx, err.Error())
 		return

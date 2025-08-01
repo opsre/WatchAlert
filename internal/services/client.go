@@ -2,7 +2,7 @@ package services
 
 import (
 	"watchAlert/internal/ctx"
-	"watchAlert/internal/models"
+	"watchAlert/internal/types"
 	"watchAlert/pkg/provider"
 )
 
@@ -23,9 +23,9 @@ func newInterClientService(ctx *ctx.Context) InterClientService {
 }
 
 func (cs clientService) GetJaegerService(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.DatasourceQuery)
+	r := req.(*types.RequestDatasourceQuery)
 
-	getInfo, err := cs.ctx.DB.Datasource().Get(*r)
+	getInfo, err := cs.ctx.DB.Datasource().Get(r.ID)
 	if err != nil {
 		return nil, err
 	}

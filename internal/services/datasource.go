@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
+	"watchAlert/internal/types"
 	"watchAlert/pkg/provider"
 	"watchAlert/pkg/tools"
 )
@@ -18,7 +19,6 @@ type InterDatasourceService interface {
 	Delete(req interface{}) (interface{}, interface{})
 	List(req interface{}) (interface{}, interface{})
 	Get(req interface{}) (interface{}, interface{})
-	Search(req interface{}) (interface{}, interface{})
 	WithAddClientToProviderPools(datasource models.AlertDataSource) error
 	WithRemoveClientForProviderPools(datasourceId string)
 }
@@ -30,18 +30,30 @@ func newInterDatasourceService(ctx *ctx.Context) InterDatasourceService {
 }
 
 func (ds datasourceService) Create(req interface{}) (interface{}, interface{}) {
-	dataSource := req.(*models.AlertDataSource)
+	dataSource := req.(*types.RequestDatasourceCreate)
 
-	id := "ds-" + tools.RandId()
-	data := dataSource
-	data.Id = id
+	data := models.AlertDataSource{
+		TenantId:         dataSource.TenantId,
+		ID:               "ds-" + tools.RandId(),
+		Name:             dataSource.Name,
+		Labels:           dataSource.Labels,
+		Type:             dataSource.Type,
+		HTTP:             dataSource.HTTP,
+		Auth:             dataSource.Auth,
+		DsAliCloudConfig: dataSource.DsAliCloudConfig,
+		AWSCloudWatch:    dataSource.AWSCloudWatch,
+		ClickHouseConfig: dataSource.ClickHouseConfig,
+		Description:      dataSource.Description,
+		KubeConfig:       dataSource.KubeConfig,
+		Enabled:          dataSource.Enabled,
+	}
 
-	err := ds.ctx.DB.Datasource().Create(*dataSource)
+	err := ds.ctx.DB.Datasource().Create(data)
 	if err != nil {
 		return nil, err
 	}
 
-	err = ds.WithAddClientToProviderPools(*dataSource)
+	err = ds.WithAddClientToProviderPools(data)
 	if err != nil {
 		return nil, err
 	}
@@ -50,14 +62,30 @@ func (ds datasourceService) Create(req interface{}) (interface{}, interface{}) {
 }
 
 func (ds datasourceService) Update(req interface{}) (interface{}, interface{}) {
-	dataSource := req.(*models.AlertDataSource)
+	dataSource := req.(*types.RequestDatasourceUpdate)
 
-	err := ds.ctx.DB.Datasource().Update(*dataSource)
+	data := models.AlertDataSource{
+		TenantId:         dataSource.TenantId,
+		ID:               dataSource.ID,
+		Name:             dataSource.Name,
+		Labels:           dataSource.Labels,
+		Type:             dataSource.Type,
+		HTTP:             dataSource.HTTP,
+		Auth:             dataSource.Auth,
+		DsAliCloudConfig: dataSource.DsAliCloudConfig,
+		AWSCloudWatch:    dataSource.AWSCloudWatch,
+		ClickHouseConfig: dataSource.ClickHouseConfig,
+		Description:      dataSource.Description,
+		KubeConfig:       dataSource.KubeConfig,
+		Enabled:          dataSource.Enabled,
+	}
+
+	err := ds.ctx.DB.Datasource().Update(data)
 	if err != nil {
 		return nil, err
 	}
 
-	err = ds.WithAddClientToProviderPools(*dataSource)
+	err = ds.WithAddClientToProviderPools(data)
 	if err != nil {
 		return nil, err
 	}
@@ -66,30 +94,20 @@ func (ds datasourceService) Update(req interface{}) (interface{}, interface{}) {
 }
 
 func (ds datasourceService) Delete(req interface{}) (interface{}, interface{}) {
-	dataSource := req.(*models.DatasourceQuery)
-	err := ds.ctx.DB.Datasource().Delete(*dataSource)
+	dataSource := req.(*types.RequestDatasourceQuery)
+	err := ds.ctx.DB.Datasource().Delete(dataSource.TenantId, dataSource.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	ds.WithRemoveClientForProviderPools(dataSource.Id)
+	ds.WithRemoveClientForProviderPools(dataSource.ID)
 
 	return nil, nil
 }
 
-func (ds datasourceService) List(req interface{}) (interface{}, interface{}) {
-	dataSource := req.(*models.DatasourceQuery)
-	data, err := ds.ctx.DB.Datasource().List(*dataSource)
-	if err != nil {
-		return nil, err
-	}
-
-	return data, nil
-}
-
 func (ds datasourceService) Get(req interface{}) (interface{}, interface{}) {
-	dataSource := req.(*models.DatasourceQuery)
-	data, err := ds.ctx.DB.Datasource().Get(*dataSource)
+	dataSource := req.(*types.RequestDatasourceQuery)
+	data, err := ds.ctx.DB.Datasource().Get(dataSource.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -97,10 +115,10 @@ func (ds datasourceService) Get(req interface{}) (interface{}, interface{}) {
 	return data, nil
 }
 
-func (ds datasourceService) Search(req interface{}) (interface{}, interface{}) {
+func (ds datasourceService) List(req interface{}) (interface{}, interface{}) {
 	var newData []models.AlertDataSource
-	r := req.(*models.DatasourceQuery)
-	data, err := ds.ctx.DB.Datasource().Search(*r)
+	dataSource := req.(*types.RequestDatasourceQuery)
+	data, err := ds.ctx.DB.Datasource().List(dataSource.TenantId, dataSource.ID, dataSource.Type, dataSource.Query)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +160,7 @@ func (ds datasourceService) WithAddClientToProviderPools(datasource models.Alert
 		return fmt.Errorf("New %s client failed, err: %s", datasource.Type, err.Error())
 	}
 
-	pools.SetClient(datasource.Id, cli)
+	pools.SetClient(datasource.ID, cli)
 	return nil
 }
 

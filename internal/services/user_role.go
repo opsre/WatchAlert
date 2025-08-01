@@ -4,6 +4,7 @@ import (
 	"time"
 	"watchAlert/internal/ctx"
 	models "watchAlert/internal/models"
+	"watchAlert/internal/types"
 	"watchAlert/pkg/tools"
 )
 
@@ -25,9 +26,7 @@ func newInterUserRoleService(ctx *ctx.Context) InterUserRoleService {
 }
 
 func (ur userRoleService) List(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.UserRoleQuery)
-
-	data, err := ur.ctx.DB.UserRole().List(*r)
+	data, err := ur.ctx.DB.UserRole().List()
 	if err != nil {
 		return nil, err
 	}
@@ -36,12 +35,15 @@ func (ur userRoleService) List(req interface{}) (interface{}, interface{}) {
 }
 
 func (ur userRoleService) Create(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.UserRole)
+	r := req.(*types.RequestUserRoleCreate)
 
-	r.ID = "ur-" + tools.RandId()
-	r.CreateAt = time.Now().Unix()
-
-	err := ur.ctx.DB.UserRole().Create(*r)
+	err := ur.ctx.DB.UserRole().Create(models.UserRole{
+		ID:          "ur-" + tools.RandId(),
+		Name:        r.Name,
+		Description: r.Description,
+		Permissions: r.Permissions,
+		CreateAt:    time.Now().Unix(),
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -50,9 +52,15 @@ func (ur userRoleService) Create(req interface{}) (interface{}, interface{}) {
 }
 
 func (ur userRoleService) Update(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.UserRole)
+	r := req.(*types.RequestUserRoleUpdate)
 
-	err := ur.ctx.DB.UserRole().Update(*r)
+	err := ur.ctx.DB.UserRole().Update(models.UserRole{
+		ID:          r.ID,
+		Name:        r.Name,
+		Description: r.Description,
+		Permissions: r.Permissions,
+		CreateAt:    r.CreateAt,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -61,8 +69,8 @@ func (ur userRoleService) Update(req interface{}) (interface{}, interface{}) {
 }
 
 func (ur userRoleService) Delete(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.UserRoleQuery)
-	err := ur.ctx.DB.UserRole().Delete(*r)
+	r := req.(*types.RequestUserRoleQuery)
+	err := ur.ctx.DB.UserRole().Delete(r.ID)
 	if err != nil {
 		return nil, err
 	}

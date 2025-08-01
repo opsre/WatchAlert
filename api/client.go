@@ -3,26 +3,28 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 	middleware "watchAlert/internal/middleware"
-	"watchAlert/internal/models"
 	"watchAlert/internal/services"
+	"watchAlert/internal/types"
 )
 
-type ClientController struct{}
+type clientController struct{}
 
-func (cc ClientController) API(gin *gin.RouterGroup) {
-	c := gin.Group("c")
-	c.Use(
+var ClientController = new(clientController)
+
+func (clientController clientController) API(gin *gin.RouterGroup) {
+	a := gin.Group("c")
+	a.Use(
 		middleware.Auth(),
 		middleware.Permission(),
 		middleware.ParseTenant(),
 	)
 	{
-		c.GET("getJaegerService", cc.GetJaegerService)
+		a.GET("getJaegerService", clientController.GetJaegerService)
 	}
 }
 
-func (cc ClientController) GetJaegerService(ctx *gin.Context) {
-	r := new(models.DatasourceQuery)
+func (clientController clientController) GetJaegerService(ctx *gin.Context) {
+	r := new(types.RequestDatasourceQuery)
 	BindQuery(ctx, r)
 
 	Service(ctx, func() (interface{}, interface{}) {

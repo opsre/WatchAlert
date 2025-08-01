@@ -11,10 +11,10 @@ type (
 	}
 
 	InterSubscribeRepo interface {
-		List(r models.AlertSubscribeQuery) ([]models.AlertSubscribe, error)
-		Get(r models.AlertSubscribeQuery) (models.AlertSubscribe, bool, error)
+		List(tenantId, ruleId, query string) ([]models.AlertSubscribe, error)
+		Get(tenantId, sid, userId, ruleId string) (models.AlertSubscribe, bool, error)
 		Create(r models.AlertSubscribe) error
-		Delete(r models.AlertSubscribeQuery) error
+		Delete(tenantId, sid string) error
 	}
 )
 
@@ -27,18 +27,18 @@ func newInterSubscribeRepo(db *gorm.DB, g InterGormDBCli) InterSubscribeRepo {
 	}
 }
 
-func (s subscribeRepo) List(r models.AlertSubscribeQuery) ([]models.AlertSubscribe, error) {
+func (s subscribeRepo) List(tenantId, ruleId, query string) ([]models.AlertSubscribe, error) {
 	var (
 		data []models.AlertSubscribe
 		db   = s.db.Model(models.AlertSubscribe{})
 	)
 
-	db.Where("s_tenant_id = ?", r.STenantId)
-	if r.SRuleId != "" {
-		db.Where("s_rule_id = ?", r.SRuleId)
+	db.Where("s_tenant_id = ?", tenantId)
+	if ruleId != "" {
+		db.Where("s_rule_id = ?", ruleId)
 	}
-	if r.Query != "" {
-		db.Where("s_rule_id LIKE ? or s_rule_name LIKE ? or s_rule_type LIKE ?", "%"+r.Query+"%", "%"+r.Query+"%", "%"+r.Query+"%")
+	if query != "" {
+		db.Where("s_rule_id LIKE ? or s_rule_name LIKE ? or s_rule_type LIKE ?", "%"+query+"%", "%"+query+"%", "%"+query+"%")
 	}
 
 	err := db.Find(&data).Error
@@ -49,22 +49,22 @@ func (s subscribeRepo) List(r models.AlertSubscribeQuery) ([]models.AlertSubscri
 	return data, nil
 }
 
-func (s subscribeRepo) Get(r models.AlertSubscribeQuery) (models.AlertSubscribe, bool, error) {
+func (s subscribeRepo) Get(tenantId, sid, userId, ruleId string) (models.AlertSubscribe, bool, error) {
 	var (
 		data models.AlertSubscribe
 		db   = s.db.Model(models.AlertSubscribe{})
 	)
-	db.Where("s_tenant_id = ?", r.STenantId)
-	if r.SId != "" {
-		db.Where("s_id = ?", r.SId)
+	db.Where("s_tenant_id = ?", tenantId)
+	if sid != "" {
+		db.Where("s_id = ?", sid)
 
 	}
-	if r.SUserId != "" {
-		db.Where("s_user_id = ?", r.SUserId)
+	if userId != "" {
+		db.Where("s_user_id = ?", userId)
 
 	}
-	if r.SRuleId != "" {
-		db.Where("s_rule_id = ?", r.SRuleId)
+	if ruleId != "" {
+		db.Where("s_rule_id = ?", ruleId)
 
 	}
 	err := db.First(&data).Error
@@ -84,12 +84,12 @@ func (s subscribeRepo) Create(r models.AlertSubscribe) error {
 	return nil
 }
 
-func (s subscribeRepo) Delete(r models.AlertSubscribeQuery) error {
+func (s subscribeRepo) Delete(tenantId, sid string) error {
 	err := s.g.Delete(Delete{
 		Table: models.AlertSubscribe{},
 		Where: map[string]interface{}{
-			"s_tenant_id": r.STenantId,
-			"s_id":        r.SId,
+			"s_tenant_id": tenantId,
+			"s_id":        sid,
 		},
 	})
 	if err != nil {

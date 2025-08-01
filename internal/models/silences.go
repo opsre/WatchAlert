@@ -3,7 +3,7 @@ package models
 type AlertSilences struct {
 	TenantId      string         `json:"tenantId"`
 	Name          string         `json:"name"`
-	Id            string         `json:"id"`
+	ID            string         `json:"id"`
 	Labels        []SilenceLabel `json:"labels" gorm:"labels;serializer:json"`
 	StartsAt      int64          `json:"startsAt"`
 	UpdateBy      string         `json:"updateBy"`
@@ -18,18 +18,4 @@ type SilenceLabel struct {
 	Key      string `json:"key"`
 	Value    string `json:"value"`
 	Operator string `json:"operator"`
-}
-
-type AlertSilenceQuery struct {
-	TenantId      string `json:"tenantId" form:"tenantId"`
-	Id            string `json:"id" form:"id"`
-	Query         string `json:"query" form:"query"`
-	FaultCenterId string `json:"faultCenterId" form:"faultCenterId"`
-	Status        int    `json:"status" form:"status"`
-	Page
-}
-
-type SilenceResponse struct {
-	List []AlertSilences `json:"list"`
-	Page
 }

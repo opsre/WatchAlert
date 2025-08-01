@@ -7,13 +7,6 @@ type RuleTemplateGroup struct {
 	Description string `json:"description"`
 }
 
-type RuleTemplateGroupQuery struct {
-	Name        string `json:"name" form:"name"`
-	Type        string `json:"type" form:"type"`
-	Description string `json:"description" form:"description"`
-	Query       string `json:"query" form:"query"`
-}
-
 type RuleTemplate struct {
 	Type                 string              `json:"type"`
 	RuleGroupName        string              `json:"ruleGroupName"`
@@ -23,21 +16,12 @@ type RuleTemplate struct {
 	ForDuration          int64               `json:"forDuration"`
 	RepeatNoticeInterval int64               `json:"repeatNoticeInterval"`
 	Description          string              `json:"description"`
-	EffectiveTime        EffectiveTime       `json:"effectiveTime" gorm:"effectiveTime;serializer:json"`
 	PrometheusConfig     PrometheusConfig    `json:"prometheusConfig" gorm:"prometheusConfig;serializer:json"`
 	AliCloudSLSConfig    AliCloudSLSConfig   `json:"alicloudSLSConfig" gorm:"alicloudSLSConfig;serializer:json"`
 	LokiConfig           LokiConfig          `json:"lokiConfig" gorm:"lokiConfig;serializer:json"`
 	JaegerConfig         JaegerConfig        `json:"jaegerConfig" gorm:"JaegerConfig;serializer:json"`
 	KubernetesConfig     KubernetesConfig    `json:"kubernetesConfig" gorm:"kubernetesConfig;serializer:json"`
 	ElasticSearchConfig  ElasticSearchConfig `json:"elasticSearchConfig" gorm:"elasticSearchConfig;serializer:json"`
-}
-
-type RuleTemplateQuery struct {
-	Type           string `json:"type" form:"type"`
-	RuleGroupName  string `json:"ruleGroupName" form:"ruleGroupName"`
-	RuleName       string `json:"ruleName" form:"ruleName"`
-	DatasourceType string `json:"datasourceType" form:"datasourceType"`
-	Severity       int64  `json:"severity" form:"severity"`
-	Annotations    string `json:"annotations" form:"annotations"`
-	Query          string `json:"query" form:"query"`
+	VictoriaLogsConfig   VictoriaLogsConfig  `json:"victoriaLogsConfig" gorm:"victoriaConfig;serializer:json"`
+	ClickHouseConfig     ClickHouseConfig    `json:"clickhouseConfig" gorm:"clickhouseConfig;serializer:json"`
 }

@@ -59,40 +59,10 @@ type UpgradeState struct {
 	WhoAreHandle   string `json:"whoAreHandle"`
 }
 
-type AlertCurEventQuery struct {
-	TenantId       string `json:"tenantId" form:"tenantId"`
-	RuleId         string `json:"ruleId" form:"ruleId"`
-	RuleName       string `json:"ruleName" form:"ruleName"`
-	DatasourceType string `json:"datasourceType" form:"datasourceType"`
-	DatasourceId   string `json:"datasourceId" form:"datasourceId"`
-	Fingerprint    string `json:"fingerprint" form:"fingerprint"`
-	Query          string `json:"query" form:"query"`
-	Scope          int64  `json:"scope" form:"scope"`
-	Severity       string `json:"severity" form:"severity"`
-	FaultCenterId  string `json:"faultCenterId" form:"faultCenterId"`
-	Status         string `json:"status" form:"status"`
-	SortOrder      string `json:"sortOrder" form:"sortOrder"`
-	Page
-}
-
 const (
 	SortOrderASC  string = "ascend"
 	SortOrderDesc string = "descend"
 )
-
-type ProcessAlertEvent struct {
-	TenantId      string   `json:"tenantId"`
-	State         int64    `json:"state"`
-	FaultCenterId string   `json:"faultCenterId"`
-	Fingerprints  []string `json:"fingerprints"`
-	Time          int64    `json:"time"`
-	Username      string   `json:"username"`
-}
-
-type CurEventResponse struct {
-	List []AlertCurEvent `json:"list"`
-	Page
-}
 
 func (alert *AlertCurEvent) TransitionStatus(newStatus AlertStatus) error {
 	// 相同状态不需要转换

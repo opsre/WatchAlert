@@ -3,6 +3,7 @@ package services
 import (
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
+	"watchAlert/internal/types"
 )
 
 type ruleTmplGroupService struct {
@@ -23,8 +24,8 @@ func newInterRuleTmplGroupService(ctx *ctx.Context) InterRuleTmplGroupService {
 }
 
 func (rtg ruleTmplGroupService) List(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.RuleTemplateGroupQuery)
-	data, err := rtg.ctx.DB.RuleTmplGroup().List(*r)
+	r := req.(*types.RequestRuleTemplateGroupQuery)
+	data, err := rtg.ctx.DB.RuleTmplGroup().List(r.Type, r.Query)
 	if err != nil {
 		return nil, err
 	}
@@ -33,8 +34,12 @@ func (rtg ruleTmplGroupService) List(req interface{}) (interface{}, interface{})
 }
 
 func (rtg ruleTmplGroupService) Create(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.RuleTemplateGroup)
-	err := rtg.ctx.DB.RuleTmplGroup().Create(*r)
+	r := req.(*types.RequestRuleTemplateGroupCreate)
+	err := rtg.ctx.DB.RuleTmplGroup().Create(models.RuleTemplateGroup{
+		Name:        r.Name,
+		Type:        r.Type,
+		Description: r.Description,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -43,8 +48,12 @@ func (rtg ruleTmplGroupService) Create(req interface{}) (interface{}, interface{
 }
 
 func (rtg ruleTmplGroupService) Update(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.RuleTemplateGroup)
-	err := rtg.ctx.DB.RuleTmplGroup().Update(*r)
+	r := req.(*types.RequestRuleTemplateGroupUpdate)
+	err := rtg.ctx.DB.RuleTmplGroup().Update(models.RuleTemplateGroup{
+		Name:        r.Name,
+		Type:        r.Type,
+		Description: r.Description,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -53,8 +62,8 @@ func (rtg ruleTmplGroupService) Update(req interface{}) (interface{}, interface{
 }
 
 func (rtg ruleTmplGroupService) Delete(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.RuleTemplateGroupQuery)
-	err := rtg.ctx.DB.RuleTmplGroup().Delete(*r)
+	r := req.(*types.RequestRuleTemplateGroupQuery)
+	err := rtg.ctx.DB.RuleTmplGroup().Delete(r.Name)
 	if err != nil {
 		return nil, err
 	}

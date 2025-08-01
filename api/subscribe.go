@@ -5,37 +5,40 @@ import (
 	"watchAlert/internal/middleware"
 	"watchAlert/internal/models"
 	"watchAlert/internal/services"
+	"watchAlert/internal/types"
 )
 
-type SubscribeController struct{}
+type subscribeController struct{}
 
-func (sc SubscribeController) API(gin *gin.RouterGroup) {
-	subscribeA := gin.Group("subscribe")
-	subscribeA.Use(
+var SubscribeController = new(subscribeController)
+
+func (subscribeController subscribeController) API(gin *gin.RouterGroup) {
+	a := gin.Group("subscribe")
+	a.Use(
 		middleware.Auth(),
 		middleware.Permission(),
 		middleware.AuditingLog(),
 		middleware.ParseTenant(),
 	)
 	{
-		subscribeA.POST("createSubscribe", sc.Create)
-		subscribeA.POST("deleteSubscribe", sc.Delete)
+		a.POST("createSubscribe", subscribeController.Create)
+		a.POST("deleteSubscribe", subscribeController.Delete)
 	}
 
-	subscribeB := gin.Group("subscribe")
-	subscribeB.Use(
+	b := gin.Group("subscribe")
+	b.Use(
 		middleware.Auth(),
 		middleware.Permission(),
 		middleware.ParseTenant(),
 	)
 	{
-		subscribeB.GET("listSubscribe", sc.List)
-		subscribeB.GET("getSubscribe", sc.Get)
+		b.GET("listSubscribe", subscribeController.List)
+		b.GET("getSubscribe", subscribeController.Get)
 	}
 }
 
-func (sc SubscribeController) List(ctx *gin.Context) {
-	r := new(models.AlertSubscribeQuery)
+func (subscribeController subscribeController) List(ctx *gin.Context) {
+	r := new(types.RequestSubscribeQuery)
 	BindQuery(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -46,8 +49,8 @@ func (sc SubscribeController) List(ctx *gin.Context) {
 	})
 }
 
-func (sc SubscribeController) Get(ctx *gin.Context) {
-	r := new(models.AlertSubscribeQuery)
+func (subscribeController subscribeController) Get(ctx *gin.Context) {
+	r := new(types.RequestSubscribeQuery)
 	BindQuery(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -58,7 +61,7 @@ func (sc SubscribeController) Get(ctx *gin.Context) {
 	})
 }
 
-func (sc SubscribeController) Create(ctx *gin.Context) {
+func (subscribeController subscribeController) Create(ctx *gin.Context) {
 	r := new(models.AlertSubscribe)
 	BindJson(ctx, r)
 
@@ -74,8 +77,8 @@ func (sc SubscribeController) Create(ctx *gin.Context) {
 	})
 }
 
-func (sc SubscribeController) Delete(ctx *gin.Context) {
-	r := new(models.AlertSubscribeQuery)
+func (subscribeController subscribeController) Delete(ctx *gin.Context) {
+	r := new(types.RequestSubscribeQuery)
 	BindJson(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")

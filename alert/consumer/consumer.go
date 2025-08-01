@@ -341,7 +341,7 @@ func (c *Consume) removeAlertFromCache(alert *models.AlertCurEvent) {
 
 // RestartAllConsumers 重启消费进程
 func (c *Consume) RestartAllConsumers() {
-	list, err := ctx.DB.FaultCenter().List(models.FaultCenterQuery{})
+	list, err := ctx.DB.FaultCenter().List("", "")
 	if err != nil {
 		logc.Error(ctx.Ctx, fmt.Sprintf("获取故障中心列表错误, err: %s", err.Error()))
 		return

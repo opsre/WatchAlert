@@ -4,6 +4,7 @@ import (
 	"gorm.io/gorm"
 	"time"
 	"watchAlert/internal/models"
+	"watchAlert/internal/types"
 	"watchAlert/pkg/tools"
 )
 
@@ -13,9 +14,9 @@ type (
 	}
 
 	InterCommentRepo interface {
-		Add(r models.RequestAddEventComment) error
-		Delete(r models.RequestDeleteEventComment) error
-		List(r models.RequestListEventComments) ([]models.Comment, error)
+		Add(r types.RequestAddEventComment) error
+		Delete(r types.RequestDeleteEventComment) error
+		List(r types.RequestListEventComments) ([]models.Comment, error)
 	}
 )
 
@@ -28,7 +29,7 @@ func newCommentInterface(db *gorm.DB, g InterGormDBCli) InterCommentRepo {
 	}
 }
 
-func (c CommentRepo) List(r models.RequestListEventComments) ([]models.Comment, error) {
+func (c CommentRepo) List(r types.RequestListEventComments) ([]models.Comment, error) {
 	var data = []models.Comment{}
 
 	db := c.db.Model(&models.Comment{})
@@ -39,7 +40,7 @@ func (c CommentRepo) List(r models.RequestListEventComments) ([]models.Comment, 
 	return data, nil
 }
 
-func (c CommentRepo) Add(r models.RequestAddEventComment) error {
+func (c CommentRepo) Add(r types.RequestAddEventComment) error {
 	db := c.db.Model(&models.Comment{})
 
 	return db.Create(&models.Comment{
@@ -53,7 +54,7 @@ func (c CommentRepo) Add(r models.RequestAddEventComment) error {
 	}).Error
 }
 
-func (c CommentRepo) Delete(r models.RequestDeleteEventComment) error {
+func (c CommentRepo) Delete(r types.RequestDeleteEventComment) error {
 	db := c.db.Model(&models.Comment{})
 	return db.Where("tenant_id = ? AND comment_id = ?", r.TenantId, r.CommentId).Delete(&models.Comment{}).Error
 }

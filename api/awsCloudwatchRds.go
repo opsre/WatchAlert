@@ -7,9 +7,11 @@ import (
 	"watchAlert/pkg/community/aws/cloudwatch/types"
 )
 
-type AWSCloudWatchRDSController struct{}
+type awsCloudWatchRDSController struct{}
 
-func (a AWSCloudWatchRDSController) API(gin *gin.RouterGroup) {
+var AWSCloudWatchRDSController = new(awsCloudWatchRDSController)
+
+func (awsCloudWatchRDSController awsCloudWatchRDSController) API(gin *gin.RouterGroup) {
 	community := gin.Group("community")
 	community.Use(
 		middleware.Cors(),
@@ -19,13 +21,13 @@ func (a AWSCloudWatchRDSController) API(gin *gin.RouterGroup) {
 	{
 		rds := community.Group("rds")
 		{
-			rds.GET("instances", a.GetRdsInstanceIdentifier)
-			rds.GET("clusters", a.GetRdsClusterIdentifier)
+			rds.GET("instances", awsCloudWatchRDSController.GetRdsInstanceIdentifier)
+			rds.GET("clusters", awsCloudWatchRDSController.GetRdsClusterIdentifier)
 		}
 	}
 }
 
-func (a AWSCloudWatchRDSController) GetRdsInstanceIdentifier(ctx *gin.Context) {
+func (awsCloudWatchRDSController awsCloudWatchRDSController) GetRdsInstanceIdentifier(ctx *gin.Context) {
 	req := new(types.RdsInstanceReq)
 	BindQuery(ctx, req)
 	Service(ctx, func() (interface{}, interface{}) {
@@ -33,7 +35,7 @@ func (a AWSCloudWatchRDSController) GetRdsInstanceIdentifier(ctx *gin.Context) {
 	})
 }
 
-func (a AWSCloudWatchRDSController) GetRdsClusterIdentifier(ctx *gin.Context) {
+func (awsCloudWatchRDSController awsCloudWatchRDSController) GetRdsClusterIdentifier(ctx *gin.Context) {
 	req := new(types.RdsClusterReq)
 	BindQuery(ctx, req)
 	Service(ctx, func() (interface{}, interface{}) {

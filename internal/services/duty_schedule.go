@@ -7,6 +7,7 @@ import (
 	"time"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
+	"watchAlert/internal/types"
 	"watchAlert/pkg/tools"
 )
 
@@ -29,7 +30,7 @@ func newInterDutyCalendarService(ctx *ctx.Context) InterDutyCalendarService {
 
 // CreateAndUpdate 创建和更新值班表
 func (dms dutyCalendarService) CreateAndUpdate(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.DutyScheduleCreate)
+	r := req.(*types.RequestDutyCalendarCreate)
 	dutyScheduleList, err := dms.generateDutySchedule(*r)
 	if err != nil {
 		return nil, fmt.Errorf("生成值班表失败: %w", err)
@@ -45,8 +46,14 @@ func (dms dutyCalendarService) CreateAndUpdate(req interface{}) (interface{}, in
 
 // Update 更新值班表
 func (dms dutyCalendarService) Update(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.DutySchedule)
-	err := dms.ctx.DB.DutyCalendar().Update(*r)
+	r := req.(*types.RequestDutyCalendarUpdate)
+	err := dms.ctx.DB.DutyCalendar().Update(models.DutySchedule{
+		TenantId: r.TenantId,
+		DutyId:   r.DutyId,
+		Time:     r.Time,
+		Status:   r.Status,
+		Users:    r.Users,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -56,8 +63,8 @@ func (dms dutyCalendarService) Update(req interface{}) (interface{}, interface{}
 
 // Search 查询值班表
 func (dms dutyCalendarService) Search(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.DutyScheduleQuery)
-	data, err := dms.ctx.DB.DutyCalendar().Search(*r)
+	r := req.(*types.RequestDutyCalendarQuery)
+	data, err := dms.ctx.DB.DutyCalendar().Search(r.TenantId, r.DutyId, r.Time)
 	if err != nil {
 		return nil, err
 	}
@@ -66,8 +73,8 @@ func (dms dutyCalendarService) Search(req interface{}) (interface{}, interface{}
 }
 
 func (dms dutyCalendarService) GetCalendarUsers(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.DutyScheduleQuery)
-	data, err := dms.ctx.DB.DutyCalendar().GetCalendarUsers(*r)
+	r := req.(*types.RequestDutyCalendarQuery)
+	data, err := dms.ctx.DB.DutyCalendar().GetCalendarUsers(r.TenantId, r.DutyId)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +82,7 @@ func (dms dutyCalendarService) GetCalendarUsers(req interface{}) (interface{}, i
 	return data, nil
 }
 
-func (dms dutyCalendarService) generateDutySchedule(dutyInfo models.DutyScheduleCreate) ([]models.DutySchedule, error) {
+func (dms dutyCalendarService) generateDutySchedule(dutyInfo types.RequestDutyCalendarCreate) ([]models.DutySchedule, error) {
 	curYear, curMonth, _ := tools.ParseTime(dutyInfo.Month)
 	dutyDays := dms.calculateDutyDays(dutyInfo.DateType, dutyInfo.DutyPeriod)
 	timeC := dms.generateDutyDates(curYear, curMonth)
@@ -122,7 +129,7 @@ func (dms dutyCalendarService) generateDutyDates(year int, startMonth time.Month
 }
 
 // 创建值班表
-func (dms dutyCalendarService) createDutyScheduleList(dutyInfo models.DutyScheduleCreate, timeC <-chan string, dutyDays int) []models.DutySchedule {
+func (dms dutyCalendarService) createDutyScheduleList(dutyInfo types.RequestDutyCalendarCreate, timeC <-chan string, dutyDays int) []models.DutySchedule {
 	var dutyScheduleList []models.DutySchedule
 	var count int
 

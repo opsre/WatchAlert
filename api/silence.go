@@ -3,45 +3,46 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 	middleware "watchAlert/internal/middleware"
-	"watchAlert/internal/models"
 	"watchAlert/internal/services"
+	"watchAlert/internal/types"
 	jwtUtils "watchAlert/pkg/tools"
 )
 
-type SilenceController struct{}
+type silenceController struct{}
+
+var SilenceController = new(silenceController)
 
 /*
 告警静默 API
 /api/w8t/silence
 */
-func (sc SilenceController) API(gin *gin.RouterGroup) {
-	silenceA := gin.Group("silence")
-	silenceA.Use(
+func (silenceController silenceController) API(gin *gin.RouterGroup) {
+	a := gin.Group("silence")
+	a.Use(
 		middleware.Auth(),
 		middleware.Permission(),
 		middleware.ParseTenant(),
 		middleware.AuditingLog(),
 	)
 	{
-		silenceA.POST("silenceCreate", sc.Create)
-		silenceA.POST("silenceUpdate", sc.Update)
-		silenceA.POST("silenceDelete", sc.Delete)
+		a.POST("silenceCreate", silenceController.Create)
+		a.POST("silenceUpdate", silenceController.Update)
+		a.POST("silenceDelete", silenceController.Delete)
 	}
 
-	silenceB := gin.Group("silence")
-	silenceB.Use(
+	b := gin.Group("silence")
+	b.Use(
 		middleware.Auth(),
 		middleware.Permission(),
 		middleware.ParseTenant(),
 	)
 	{
-		silenceB.GET("silenceList", sc.List)
-
+		b.GET("silenceList", silenceController.List)
 	}
 }
 
-func (sc SilenceController) Create(ctx *gin.Context) {
-	r := new(models.AlertSilences)
+func (silenceController silenceController) Create(ctx *gin.Context) {
+	r := new(types.RequestSilenceCreate)
 	BindJson(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -55,8 +56,8 @@ func (sc SilenceController) Create(ctx *gin.Context) {
 	})
 }
 
-func (sc SilenceController) Update(ctx *gin.Context) {
-	r := new(models.AlertSilences)
+func (silenceController silenceController) Update(ctx *gin.Context) {
+	r := new(types.RequestSilenceUpdate)
 	BindJson(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -70,8 +71,8 @@ func (sc SilenceController) Update(ctx *gin.Context) {
 	})
 }
 
-func (sc SilenceController) Delete(ctx *gin.Context) {
-	r := new(models.AlertSilenceQuery)
+func (silenceController silenceController) Delete(ctx *gin.Context) {
+	r := new(types.RequestSilenceQuery)
 	BindJson(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -82,8 +83,8 @@ func (sc SilenceController) Delete(ctx *gin.Context) {
 	})
 }
 
-func (sc SilenceController) List(ctx *gin.Context) {
-	r := new(models.AlertSilenceQuery)
+func (silenceController silenceController) List(ctx *gin.Context) {
+	r := new(types.RequestSilenceQuery)
 	BindQuery(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")

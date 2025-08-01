@@ -7,22 +7,24 @@ import (
 	"watchAlert/internal/types"
 )
 
-type AuditLogController struct{}
+type auditLogController struct{}
 
-func (ac AuditLogController) API(gin *gin.RouterGroup) {
-	auditLog := gin.Group("auditLog")
-	auditLog.Use(
+var AuditLogController = new(auditLogController)
+
+func (auditLogController auditLogController) API(gin *gin.RouterGroup) {
+	a := gin.Group("auditLog")
+	a.Use(
 		middleware.Cors(),
 		middleware.Auth(),
 		middleware.ParseTenant(),
 	)
 	{
-		auditLog.GET("listAuditLog", ac.List)
-		auditLog.GET("searchAuditLog", ac.Search)
+		a.GET("listAuditLog", auditLogController.List)
+		a.GET("searchAuditLog", auditLogController.Search)
 	}
 }
 
-func (ac AuditLogController) List(ctx *gin.Context) {
+func (auditLogController auditLogController) List(ctx *gin.Context) {
 	r := new(types.RequestAuditLogQuery)
 	BindQuery(ctx, r)
 	tid, _ := ctx.Get("TenantID")
@@ -32,7 +34,7 @@ func (ac AuditLogController) List(ctx *gin.Context) {
 	})
 }
 
-func (ac AuditLogController) Search(ctx *gin.Context) {
+func (auditLogController auditLogController) Search(ctx *gin.Context) {
 	r := new(types.RequestAuditLogQuery)
 	BindQuery(ctx, r)
 

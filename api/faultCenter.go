@@ -3,13 +3,15 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 	"watchAlert/internal/middleware"
-	"watchAlert/internal/models"
 	"watchAlert/internal/services"
+	"watchAlert/internal/types"
 )
 
-type FaultCenterController struct{}
+type faultCenterController struct{}
 
-func (fcc FaultCenterController) API(gin *gin.RouterGroup) {
+var FaultCenterController = new(faultCenterController)
+
+func (faultCenterController faultCenterController) API(gin *gin.RouterGroup) {
 	faultCenterA := gin.Group("faultCenter")
 	faultCenterA.Use(
 		middleware.Auth(),
@@ -18,10 +20,10 @@ func (fcc FaultCenterController) API(gin *gin.RouterGroup) {
 		middleware.AuditingLog(),
 	)
 	{
-		faultCenterA.POST("faultCenterCreate", fcc.Create)
-		faultCenterA.POST("faultCenterUpdate", fcc.Update)
-		faultCenterA.POST("faultCenterDelete", fcc.Delete)
-		faultCenterA.POST("faultCenterReset", fcc.Reset)
+		faultCenterA.POST("faultCenterCreate", faultCenterController.Create)
+		faultCenterA.POST("faultCenterUpdate", faultCenterController.Update)
+		faultCenterA.POST("faultCenterDelete", faultCenterController.Delete)
+		faultCenterA.POST("faultCenterReset", faultCenterController.Reset)
 	}
 
 	faultCenterB := gin.Group("faultCenter")
@@ -31,13 +33,13 @@ func (fcc FaultCenterController) API(gin *gin.RouterGroup) {
 		middleware.ParseTenant(),
 	)
 	{
-		faultCenterB.GET("faultCenterList", fcc.List)
-		faultCenterB.GET("faultCenterSearch", fcc.Search)
+		faultCenterB.GET("faultCenterList", faultCenterController.List)
+		faultCenterB.GET("faultCenterSearch", faultCenterController.Search)
 	}
 }
 
-func (fcc FaultCenterController) Create(ctx *gin.Context) {
-	r := new(models.FaultCenter)
+func (faultCenterController faultCenterController) Create(ctx *gin.Context) {
+	r := new(types.RequestFaultCenterCreate)
 	BindJson(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -48,8 +50,8 @@ func (fcc FaultCenterController) Create(ctx *gin.Context) {
 	})
 }
 
-func (fcc FaultCenterController) Update(ctx *gin.Context) {
-	r := new(models.FaultCenter)
+func (faultCenterController faultCenterController) Update(ctx *gin.Context) {
+	r := new(types.RequestFaultCenterUpdate)
 	BindJson(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -60,8 +62,8 @@ func (fcc FaultCenterController) Update(ctx *gin.Context) {
 	})
 }
 
-func (fcc FaultCenterController) Delete(ctx *gin.Context) {
-	r := new(models.FaultCenterQuery)
+func (faultCenterController faultCenterController) Delete(ctx *gin.Context) {
+	r := new(types.RequestFaultCenterQuery)
 	BindJson(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -72,8 +74,8 @@ func (fcc FaultCenterController) Delete(ctx *gin.Context) {
 	})
 }
 
-func (fcc FaultCenterController) List(ctx *gin.Context) {
-	r := new(models.FaultCenterQuery)
+func (faultCenterController faultCenterController) List(ctx *gin.Context) {
+	r := new(types.RequestFaultCenterQuery)
 	BindQuery(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -84,8 +86,8 @@ func (fcc FaultCenterController) List(ctx *gin.Context) {
 	})
 }
 
-func (fcc FaultCenterController) Search(ctx *gin.Context) {
-	r := new(models.FaultCenterQuery)
+func (faultCenterController faultCenterController) Search(ctx *gin.Context) {
+	r := new(types.RequestFaultCenterQuery)
 	BindQuery(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -96,8 +98,8 @@ func (fcc FaultCenterController) Search(ctx *gin.Context) {
 	})
 }
 
-func (fcc FaultCenterController) Reset(ctx *gin.Context) {
-	r := new(models.FaultCenter)
+func (faultCenterController faultCenterController) Reset(ctx *gin.Context) {
+	r := new(types.RequestFaultCenterReset)
 	BindJson(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")

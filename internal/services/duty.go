@@ -2,8 +2,11 @@ package services
 
 import (
 	"fmt"
+	"time"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
+	"watchAlert/internal/types"
+	"watchAlert/pkg/tools"
 )
 
 type dutyManageService struct {
@@ -25,8 +28,8 @@ func newInterDutyManageService(ctx *ctx.Context) InterDutyManageService {
 }
 
 func (dms *dutyManageService) List(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.DutyManagementQuery)
-	data, err := dms.ctx.DB.Duty().List(*r)
+	r := req.(*types.RequestDutyManagementQuery)
+	data, err := dms.ctx.DB.Duty().List(r.TenantId)
 	if err != nil {
 		return nil, err
 	}
@@ -34,13 +37,22 @@ func (dms *dutyManageService) List(req interface{}) (interface{}, interface{}) {
 }
 
 func (dms *dutyManageService) Create(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.DutyManagement)
+	r := req.(*types.RequestDutyManagementCreate)
 	ok := dms.ctx.DB.Duty().GetQuota(r.TenantId)
 	if !ok {
-		return models.DutyManagement{}, fmt.Errorf("创建失败, 配额不足")
+		return nil, fmt.Errorf("创建失败, 配额不足")
 	}
 
-	err := dms.ctx.DB.Duty().Create(*r)
+	err := dms.ctx.DB.Duty().Create(models.DutyManagement{
+		TenantId:    r.TenantId,
+		ID:          "dt-" + tools.RandId(),
+		Name:        r.Name,
+		Manager:     r.Manager,
+		Description: r.Description,
+		CurDutyUser: r.CurDutyUser,
+		CreateBy:    r.CreateBy,
+		CreateAt:    time.Now().Unix(),
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -48,8 +60,17 @@ func (dms *dutyManageService) Create(req interface{}) (interface{}, interface{})
 }
 
 func (dms *dutyManageService) Update(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.DutyManagement)
-	err := dms.ctx.DB.Duty().Update(*r)
+	r := req.(*types.RequestDutyManagementUpdate)
+	err := dms.ctx.DB.Duty().Update(models.DutyManagement{
+		TenantId:    r.TenantId,
+		ID:          r.ID,
+		Name:        r.Name,
+		Manager:     r.Manager,
+		Description: r.Description,
+		CurDutyUser: r.CurDutyUser,
+		CreateBy:    r.CreateBy,
+		CreateAt:    r.CreateAt,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -57,8 +78,8 @@ func (dms *dutyManageService) Update(req interface{}) (interface{}, interface{})
 }
 
 func (dms *dutyManageService) Delete(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.DutyManagementQuery)
-	err := dms.ctx.DB.Duty().Delete(*r)
+	r := req.(*types.RequestDutyManagementQuery)
+	err := dms.ctx.DB.Duty().Delete(r.TenantId, r.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -67,8 +88,8 @@ func (dms *dutyManageService) Delete(req interface{}) (interface{}, interface{})
 }
 
 func (dms *dutyManageService) Get(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.DutyManagementQuery)
-	data, err := dms.ctx.DB.Duty().Get(*r)
+	r := req.(*types.RequestDutyManagementQuery)
+	data, err := dms.ctx.DB.Duty().Get(r.TenantId, r.ID)
 	if err != nil {
 		return nil, err
 	}

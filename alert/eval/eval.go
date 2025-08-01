@@ -115,7 +115,7 @@ func (t *AlertRule) executeTask(rule models.AlertRule, taskChan chan struct{}) {
 		}
 
 		if !*instance.Enabled {
-			logc.Error(t.ctx.Ctx, fmt.Sprintf("datasource is not enable, id: %s", instance.Id))
+			logc.Error(t.ctx.Ctx, fmt.Sprintf("datasource is not enable, id: %s", instance.ID))
 			continue
 		}
 

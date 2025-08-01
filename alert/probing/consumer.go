@@ -109,11 +109,7 @@ func (m *ConsumeProbing) filterEvent(event models.ProbingEvent) bool {
 
 // 推送告警
 func (m *ConsumeProbing) sendAlert(alert models.ProbingEvent) {
-	r := models.NoticeQuery{
-		TenantId: alert.TenantId,
-		Uuid:     alert.NoticeId,
-	}
-	noticeData, err := m.ctx.DB.Notice().Get(r)
+	noticeData, err := m.ctx.DB.Notice().Get(alert.TenantId, alert.NoticeId)
 	if err != nil {
 		logc.Error(m.ctx.Ctx, "获取通知对象失败, ", err.Error())
 		return

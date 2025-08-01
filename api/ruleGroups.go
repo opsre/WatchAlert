@@ -3,42 +3,44 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 	middleware "watchAlert/internal/middleware"
-	"watchAlert/internal/models"
 	"watchAlert/internal/services"
+	"watchAlert/internal/types"
 )
 
-type RuleGroupController struct{}
+type ruleGroupController struct{}
+
+var RuleGroupController = new(ruleGroupController)
 
 /*
-	规则组 API
-	/api/w8t/ruleGroup
+规则组 API
+/api/w8t/ruleGroup
 */
-func (rc RuleGroupController) API(gin *gin.RouterGroup) {
-	ruleGroupA := gin.Group("ruleGroup")
-	ruleGroupA.Use(
+func (ruleGroupController ruleGroupController) API(gin *gin.RouterGroup) {
+	a := gin.Group("ruleGroup")
+	a.Use(
 		middleware.Auth(),
 		middleware.Permission(),
 		middleware.ParseTenant(),
 		middleware.AuditingLog(),
 	)
 	{
-		ruleGroupA.POST("ruleGroupCreate", rc.Create)
-		ruleGroupA.POST("ruleGroupUpdate", rc.Update)
-		ruleGroupA.POST("ruleGroupDelete", rc.Delete)
+		a.POST("ruleGroupCreate", ruleGroupController.Create)
+		a.POST("ruleGroupUpdate", ruleGroupController.Update)
+		a.POST("ruleGroupDelete", ruleGroupController.Delete)
 	}
-	ruleGroupB := gin.Group("ruleGroup")
-	ruleGroupB.Use(
+	b := gin.Group("ruleGroup")
+	b.Use(
 		middleware.Auth(),
 		middleware.Permission(),
 		middleware.ParseTenant(),
 	)
 	{
-		ruleGroupB.GET("ruleGroupList", rc.List)
+		b.GET("ruleGroupList", ruleGroupController.List)
 	}
 }
 
-func (rc RuleGroupController) Create(ctx *gin.Context) {
-	r := new(models.RuleGroups)
+func (ruleGroupController ruleGroupController) Create(ctx *gin.Context) {
+	r := new(types.RequestRuleGroupCreate)
 	BindJson(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -49,8 +51,8 @@ func (rc RuleGroupController) Create(ctx *gin.Context) {
 	})
 }
 
-func (rc RuleGroupController) Update(ctx *gin.Context) {
-	r := new(models.RuleGroups)
+func (ruleGroupController ruleGroupController) Update(ctx *gin.Context) {
+	r := new(types.RequestRuleGroupUpdate)
 	BindJson(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -61,8 +63,8 @@ func (rc RuleGroupController) Update(ctx *gin.Context) {
 	})
 }
 
-func (rc RuleGroupController) List(ctx *gin.Context) {
-	r := new(models.RuleGroupQuery)
+func (ruleGroupController ruleGroupController) List(ctx *gin.Context) {
+	r := new(types.RequestRuleGroupQuery)
 	BindQuery(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -73,8 +75,8 @@ func (rc RuleGroupController) List(ctx *gin.Context) {
 	})
 }
 
-func (rc RuleGroupController) Delete(ctx *gin.Context) {
-	r := new(models.RuleGroupQuery)
+func (ruleGroupController ruleGroupController) Delete(ctx *gin.Context) {
+	r := new(types.RequestRuleGroupQuery)
 	BindJson(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")

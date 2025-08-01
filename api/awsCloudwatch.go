@@ -7,9 +7,11 @@ import (
 	"watchAlert/pkg/community/aws/cloudwatch/types"
 )
 
-type AWSCloudWatchController struct{}
+type awsCloudWatchController struct{}
 
-func (cwc AWSCloudWatchController) API(gin *gin.RouterGroup) {
+var AWSCloudWatchController = new(awsCloudWatchController)
+
+func (awsCloudWatchController awsCloudWatchController) API(gin *gin.RouterGroup) {
 	community := gin.Group("community")
 	community.Use(
 		middleware.Cors(),
@@ -19,21 +21,21 @@ func (cwc AWSCloudWatchController) API(gin *gin.RouterGroup) {
 	{
 		cloudwatch := community.Group("cloudwatch")
 		{
-			cloudwatch.GET("metricTypes", cwc.GetMetricTypes)
-			cloudwatch.GET("metricNames", cwc.GetMetricNames)
-			cloudwatch.GET("statistics", cwc.GetStatistics)
-			cloudwatch.GET("dimensions", cwc.GetDimensions)
+			cloudwatch.GET("metricTypes", awsCloudWatchController.GetMetricTypes)
+			cloudwatch.GET("metricNames", awsCloudWatchController.GetMetricNames)
+			cloudwatch.GET("statistics", awsCloudWatchController.GetStatistics)
+			cloudwatch.GET("dimensions", awsCloudWatchController.GetDimensions)
 		}
 	}
 }
 
-func (cwc AWSCloudWatchController) GetMetricTypes(ctx *gin.Context) {
+func (awsCloudWatchController awsCloudWatchController) GetMetricTypes(ctx *gin.Context) {
 	Service(ctx, func() (interface{}, interface{}) {
 		return services.AWSCloudWatchService.GetMetricTypes()
 	})
 }
 
-func (cwc AWSCloudWatchController) GetMetricNames(ctx *gin.Context) {
+func (awsCloudWatchController awsCloudWatchController) GetMetricNames(ctx *gin.Context) {
 	q := new(types.MetricNamesQuery)
 	BindQuery(ctx, q)
 	Service(ctx, func() (interface{}, interface{}) {
@@ -41,13 +43,13 @@ func (cwc AWSCloudWatchController) GetMetricNames(ctx *gin.Context) {
 	})
 }
 
-func (cwc AWSCloudWatchController) GetStatistics(ctx *gin.Context) {
+func (awsCloudWatchController awsCloudWatchController) GetStatistics(ctx *gin.Context) {
 	Service(ctx, func() (interface{}, interface{}) {
 		return services.AWSCloudWatchService.GetStatistics()
 	})
 }
 
-func (cwc AWSCloudWatchController) GetDimensions(ctx *gin.Context) {
+func (awsCloudWatchController awsCloudWatchController) GetDimensions(ctx *gin.Context) {
 	q := new(types.RdsDimensionReq)
 	BindQuery(ctx, q)
 	Service(ctx, func() (interface{}, interface{}) {
