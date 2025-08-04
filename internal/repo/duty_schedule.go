@@ -109,8 +109,10 @@ func (dc DutyCalendarRepo) Search(tenantId, dutyId, time string) ([]models.DutyS
 // GetCalendarUsers 获取值班用户
 // 只获取当前月份到月底正在值班的用户，避免已经移除过的用户仍存在值班用户列表当中；
 func (dc DutyCalendarRepo) GetCalendarUsers(tenantId, dutyId string) ([][]models.DutyUser, error) {
-	var entries []models.DutySchedule
-	var groupedUsers [][]models.DutyUser
+	var (
+		entries      []models.DutySchedule
+		groupedUsers [][]models.DutyUser
+	)
 
 	// 获取当前年月日
 	now := time.Now().UTC()
@@ -119,8 +121,7 @@ func (dc DutyCalendarRepo) GetCalendarUsers(tenantId, dutyId string) ([][]models
 	endOfYear := time.Date(now.Year(), 12, 31, 0, 0, 0, 0, time.UTC)
 
 	db := dc.db.Model(&models.DutySchedule{})
-	db.Where("tenant_id = ? AND duty_id = ?", tenantId, dutyId)
-	db.Where("status = ?", models.CalendarFormalStatus)
+	db.Where("tenant_id = ? AND duty_id = ? AND status = ?", tenantId, dutyId, models.CalendarFormalStatus)
 	db.Where("time >= ? AND time <= ?", currentDate, endOfYear)
 
 	if err := db.Find(&entries).Error; err != nil {
@@ -130,14 +131,15 @@ func (dc DutyCalendarRepo) GetCalendarUsers(tenantId, dutyId string) ([][]models
 		return nil, fmt.Errorf("failed to get calendar users: %w", err)
 	}
 
-	users := make(map[string][]models.DutyUser)
+	user := make(map[string]struct{})
 	for _, entry := range entries {
 		key := tools.JsonMarshal(entry.Users)
-		users[key] = entry.Users
-	}
+		if _, ok := user[key]; ok {
+			continue
+		}
 
-	for _, userList := range users {
-		groupedUsers = append(groupedUsers, userList)
+		groupedUsers = append(groupedUsers, entry.Users)
+		user[key] = struct{}{}
 	}
 
 	return groupedUsers, nil
