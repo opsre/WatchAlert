@@ -66,7 +66,7 @@ func (rgs ruleGroupService) Delete(req interface{}) (interface{}, interface{}) {
 
 func (rgs ruleGroupService) List(req interface{}) (interface{}, interface{}) {
 	r := req.(*types.RequestRuleGroupQuery)
-	data, err := rgs.ctx.DB.RuleGroup().List(r.TenantId, r.Query, r.Page)
+	data, count, err := rgs.ctx.DB.RuleGroup().List(r.TenantId, r.Query, r.Page)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +76,7 @@ func (rgs ruleGroupService) List(req interface{}) (interface{}, interface{}) {
 		Page: models.Page{
 			Index: r.Page.Index,
 			Size:  r.Page.Size,
-			Total: int64(len(data)),
+			Total: count,
 		},
 	}, nil
 }

@@ -1,11 +1,14 @@
 package services
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/zeromicro/go-zero/core/logc"
+	"gopkg.in/yaml.v3"
+	"time"
 	"watchAlert/alert"
 	"watchAlert/internal/ctx"
-	models "watchAlert/internal/models"
+	"watchAlert/internal/models"
 	"watchAlert/internal/types"
 	"watchAlert/pkg/tools"
 )
@@ -21,6 +24,7 @@ type InterRuleService interface {
 	List(req interface{}) (interface{}, interface{})
 	Get(req interface{}) (interface{}, interface{})
 	ChangeStatus(req interface{}) (interface{}, interface{})
+	Import(req interface{}) (interface{}, interface{})
 }
 
 func newInterRuleService(ctx *ctx.Context) InterRuleService {
@@ -179,7 +183,7 @@ func (rs ruleService) Delete(req interface{}) (interface{}, interface{}) {
 
 func (rs ruleService) List(req interface{}) (interface{}, interface{}) {
 	r := req.(*types.RequestRuleQuery)
-	data, err := rs.ctx.DB.Rule().List(r.TenantId, r.RuleGroupId, r.DatasourceType, r.Query, r.Status, r.Page)
+	data, count, err := rs.ctx.DB.Rule().List(r.TenantId, r.RuleGroupId, r.DatasourceType, r.Query, r.Status, r.Page)
 	if err != nil {
 		return nil, err
 	}
@@ -187,7 +191,7 @@ func (rs ruleService) List(req interface{}) (interface{}, interface{}) {
 	return types.ResponseRuleList{
 		List: data,
 		Page: models.Page{
-			Total: int64(len(data)),
+			Total: count,
 			Index: r.Page.Index,
 			Size:  r.Page.Size,
 		},
@@ -226,4 +230,103 @@ func (rs ruleService) ChangeStatus(req interface{}) (interface{}, interface{}) {
 	}
 
 	return nil, rs.ctx.DB.Rule().ChangeStatus(r.TenantId, r.RuleGroupId, r.RuleId, r.GetEnabled())
+}
+
+func (rs ruleService) Import(req interface{}) (interface{}, interface{}) {
+	r := req.(*types.RequestRuleImport)
+	var rules []types.RequestRuleCreate
+
+	switch r.ImportType {
+	case types.WithPrometheusRuleImport:
+		var alerts types.PrometheusAlerts
+		err := yaml.Unmarshal([]byte(r.Rules), &alerts)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, alert := range alerts.Rules {
+			var forDuration int64
+			d, err := time.ParseDuration(alert.For)
+			if err != nil {
+				forDuration = 1
+				logc.Error(rs.ctx.Ctx, err.Error())
+			}
+			forDuration = int64(d.Seconds())
+
+			rule := types.RequestRuleCreate{
+				TenantId:         r.TenantId,
+				RuleGroupId:      r.RuleGroupId,
+				ExternalLabels:   alert.Labels,
+				DatasourceType:   r.DatasourceType,
+				DatasourceIdList: r.DatasourceIdList,
+				RuleName:         alert.Alert,
+				EvalInterval:     15,
+				EvalTimeType:     "second",
+				PrometheusConfig: models.PrometheusConfig{
+					PromQL:      alert.Expr,
+					Annotations: alert.Annotations.Description,
+					Rules: []models.Rules{
+						{
+							ForDuration: forDuration,
+							Severity:    "P1",
+							Expr:        ">= 0",
+						},
+					},
+				},
+				FaultCenterId: r.FaultCenterId,
+				Enabled:       alert.GetEnable(),
+			}
+			rules = append(rules, rule)
+		}
+
+	case types.WithWatchAlertJsonImport:
+		err := json.Unmarshal([]byte(r.Rules), &rules)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if len(rules) == 0 {
+		return nil, fmt.Errorf("导入失败, 识别到 0 条规则")
+	}
+
+	for _, rule := range rules {
+		if len(rule.RuleGroupId) == 0 {
+			continue
+		}
+
+		err := rs.ctx.DB.Rule().Create(models.AlertRule{
+			TenantId:             r.TenantId,
+			RuleId:               "a-" + tools.RandId(),
+			RuleGroupId:          rule.RuleGroupId,
+			ExternalLabels:       rule.ExternalLabels,
+			DatasourceType:       rule.DatasourceType,
+			DatasourceIdList:     rule.DatasourceIdList,
+			RuleName:             rule.RuleName,
+			EvalInterval:         rule.EvalInterval,
+			EvalTimeType:         rule.EvalTimeType,
+			RepeatNoticeInterval: rule.RepeatNoticeInterval,
+			Description:          rule.Description,
+			EffectiveTime:        rule.EffectiveTime,
+			Severity:             rule.Severity,
+			PrometheusConfig:     rule.PrometheusConfig,
+			AliCloudSLSConfig:    rule.AliCloudSLSConfig,
+			LokiConfig:           rule.LokiConfig,
+			VictoriaLogsConfig:   rule.VictoriaLogsConfig,
+			ClickHouseConfig:     rule.ClickHouseConfig,
+			JaegerConfig:         rule.JaegerConfig,
+			CloudWatchConfig:     rule.CloudWatchConfig,
+			KubernetesConfig:     rule.KubernetesConfig,
+			ElasticSearchConfig:  rule.ElasticSearchConfig,
+			LogEvalCondition:     rule.LogEvalCondition,
+			FaultCenterId:        rule.FaultCenterId,
+			Enabled:              rule.Enabled,
+		})
+		if err != nil {
+			logc.Errorf(rs.ctx.Ctx, err.Error())
+			continue
+		}
+	}
+
+	return nil, nil
 }

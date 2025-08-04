@@ -11,7 +11,7 @@ type (
 	}
 
 	InterSilenceRepo interface {
-		List(tenantId, faultCenterId, query string, page models.Page) ([]models.AlertSilences, error)
+		List(tenantId, faultCenterId, query string, page models.Page) ([]models.AlertSilences, int64, error)
 		Create(r models.AlertSilences) error
 		Update(r models.AlertSilences) error
 		Delete(tenantId, id string) error
@@ -27,9 +27,10 @@ func newSilenceInterface(db *gorm.DB, g InterGormDBCli) InterSilenceRepo {
 	}
 }
 
-func (sr SilenceRepo) List(tenantId, faultCenterId, query string, page models.Page) ([]models.AlertSilences, error) {
+func (sr SilenceRepo) List(tenantId, faultCenterId, query string, page models.Page) ([]models.AlertSilences, int64, error) {
 	var (
 		silenceList []models.AlertSilences
+		count       int64
 	)
 	db := sr.db.Model(models.AlertSilences{})
 	db.Where("tenant_id = ?", tenantId)
@@ -39,13 +40,14 @@ func (sr SilenceRepo) List(tenantId, faultCenterId, query string, page models.Pa
 		db.Where("id LIKE ? OR comment LIKE ?", "%"+query+"%", "%"+query+"%")
 	}
 
+	db.Count(&count)
 	db.Limit(int(page.Size)).Offset(int((page.Index - 1) * page.Size))
 	err := db.Find(&silenceList).Error
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	return silenceList, nil
+	return silenceList, count, nil
 }
 
 func (sr SilenceRepo) Create(r models.AlertSilences) error {

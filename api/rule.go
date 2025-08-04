@@ -44,6 +44,7 @@ func (ruleController ruleController) API(gin *gin.RouterGroup) {
 		middleware.ParseTenant(),
 	)
 	{
+		c.POST("import", ruleController.Import)
 		c.POST("ruleChangeStatus", ruleController.ChangeStatus)
 	}
 }
@@ -117,5 +118,17 @@ func (ruleController ruleController) ChangeStatus(ctx *gin.Context) {
 
 	Service(ctx, func() (interface{}, interface{}) {
 		return services.RuleService.ChangeStatus(r)
+	})
+}
+
+func (ruleController ruleController) Import(ctx *gin.Context) {
+	r := new(types.RequestRuleImport)
+	BindJson(ctx, r)
+
+	tid, _ := ctx.Get("TenantID")
+	r.TenantId = tid.(string)
+
+	Service(ctx, func() (interface{}, interface{}) {
+		return services.RuleService.Import(r)
 	})
 }

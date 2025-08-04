@@ -12,7 +12,7 @@ type (
 	}
 
 	InterRuleGroupRepo interface {
-		List(tenantId, query string, page models.Page) ([]models.RuleGroups, error)
+		List(tenantId, query string, page models.Page) ([]models.RuleGroups, int64, error)
 		Create(req models.RuleGroups) error
 		Update(req models.RuleGroups) error
 		Delete(tenantId, id string) error
@@ -28,7 +28,7 @@ func newRuleGroupInterface(db *gorm.DB, g InterGormDBCli) InterRuleGroupRepo {
 	}
 }
 
-func (r RuleGroupRepo) List(tenantId, query string, page models.Page) ([]models.RuleGroups, error) {
+func (r RuleGroupRepo) List(tenantId, query string, page models.Page) ([]models.RuleGroups, int64, error) {
 	var (
 		data  []models.RuleGroups
 		db    = r.db.Model(&models.RuleGroups{})
@@ -51,7 +51,7 @@ func (r RuleGroupRepo) List(tenantId, query string, page models.Page) ([]models.
 
 	err := db.Find(&data).Error
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	for k, v := range data {
@@ -59,7 +59,7 @@ func (r RuleGroupRepo) List(tenantId, query string, page models.Page) ([]models.
 		r.db.Model(&models.AlertRule{}).Where("tenant_id = ? AND rule_group_id = ?", tenantId, v.ID).Find(&resRules)
 		data[k].Number = len(resRules)
 	}
-	return data, nil
+	return data, count, nil
 }
 
 func (r RuleGroupRepo) Create(req models.RuleGroups) error {

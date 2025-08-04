@@ -51,7 +51,7 @@ func (dashboardInfoController dashboardInfoController) GetDashboardInfo(context 
 }
 
 func getRuleNumber(ctx *ctx.Context, tenantId string) int64 {
-	list, err := ctx.DB.Rule().List(tenantId, "", "", "", "", models.Page{
+	list, _, err := ctx.DB.Rule().List(tenantId, "", "", "", "", models.Page{
 		Index: 0,
 		Size:  10000,
 	})

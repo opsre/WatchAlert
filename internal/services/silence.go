@@ -100,7 +100,7 @@ func (ass alertSilenceService) Delete(req interface{}) (interface{}, interface{}
 
 func (ass alertSilenceService) List(req interface{}) (interface{}, interface{}) {
 	r := req.(*types.RequestSilenceQuery)
-	data, err := ass.ctx.DB.Silence().List(r.TenantId, r.FaultCenterId, r.Query, r.Page)
+	data, count, err := ass.ctx.DB.Silence().List(r.TenantId, r.FaultCenterId, r.Query, r.Page)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +108,7 @@ func (ass alertSilenceService) List(req interface{}) (interface{}, interface{}) 
 	return types.ResponseSilenceList{
 		List: data,
 		Page: models.Page{
-			Total: int64(len(data)),
+			Total: count,
 			Index: r.Page.Index,
 			Size:  r.Page.Size,
 		},

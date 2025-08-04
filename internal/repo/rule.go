@@ -13,7 +13,7 @@ type (
 	InterRuleRepo interface {
 		GetQuota(id string) bool
 		Get(tenantId, ruleGroupId, ruleId string) (models.AlertRule, error)
-		List(tenantId, ruleGroupId, datasourceType, query, status string, page models.Page) ([]models.AlertRule, error)
+		List(tenantId, ruleGroupId, datasourceType, query, status string, page models.Page) ([]models.AlertRule, int64, error)
 		Create(r models.AlertRule) error
 		Update(r models.AlertRule) error
 		Delete(tenantId, ruleId string) error
@@ -64,7 +64,7 @@ func (rr RuleRepo) Get(tenantId, ruleGroupId, ruleId string) (models.AlertRule, 
 	return data, nil
 }
 
-func (rr RuleRepo) List(tenantId, ruleGroupId, datasourceType, query, status string, page models.Page) ([]models.AlertRule, error) {
+func (rr RuleRepo) List(tenantId, ruleGroupId, datasourceType, query, status string, page models.Page) ([]models.AlertRule, int64, error) {
 	var (
 		data  []models.AlertRule
 		count int64
@@ -101,10 +101,10 @@ func (rr RuleRepo) List(tenantId, ruleGroupId, datasourceType, query, status str
 	err := db.Find(&data).Error
 
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	return data, nil
+	return data, count, nil
 }
 
 func (rr RuleRepo) Create(r models.AlertRule) error {

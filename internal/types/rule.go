@@ -106,3 +106,39 @@ func (r *RequestRuleChangeStatus) GetEnabled() *bool {
 	}
 	return r.Enabled
 }
+
+const (
+	WithPrometheusRuleImport int = 0
+	WithWatchAlertJsonImport int = 1
+)
+
+type RequestRuleImport struct {
+	TenantId         string   `json:"tenantId"`
+	RuleGroupId      string   `json:"ruleGroupId"`
+	DatasourceType   string   `json:"datasourceType"`
+	DatasourceIdList []string `json:"datasourceIdList"`
+	FaultCenterId    string   `json:"faultCenterId"`
+	ImportType       int      `json:"importType"`
+	Rules            string   `json:"rules"`
+}
+
+type PrometheusAlerts struct {
+	Rules []Rule `yaml:"rules"`
+}
+
+type Rule struct {
+	Alert       string            `yaml:"alert"`
+	Expr        string            `yaml:"expr"`
+	For         string            `yaml:"for"`
+	Labels      map[string]string `yaml:"labels"`
+	Annotations Annotations       `yaml:"annotations"`
+}
+
+type Annotations struct {
+	Description string `yaml:"description"`
+}
+
+func (r Rule) GetEnable() *bool {
+	var enable = false
+	return &enable
+}
