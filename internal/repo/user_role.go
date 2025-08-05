@@ -28,8 +28,12 @@ func newUserRoleInterface(db *gorm.DB, g InterGormDBCli) InterUserRoleRepo {
 }
 
 func (ur UserRoleRepo) List() ([]models.UserRole, error) {
-	var data []models.UserRole
-	err := ur.db.Find(&data).Error
+	var (
+		data []models.UserRole
+		db   = ur.DB().Model(&models.UserRole{})
+	)
+
+	err := db.Where("id != ?", "admin").Find(&data).Error
 	if err != nil {
 		return data, err
 	}
