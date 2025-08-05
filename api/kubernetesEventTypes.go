@@ -14,7 +14,6 @@ func (kubernetesTypesController kubernetesTypesController) API(gin *gin.RouterGr
 	k8s := gin.Group("kubernetes")
 	k8s.Use(
 		middleware.Auth(),
-		middleware.Permission(),
 		middleware.ParseTenant(),
 	)
 	{

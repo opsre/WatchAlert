@@ -38,7 +38,15 @@ func (noticeController noticeController) API(gin *gin.RouterGroup) {
 	{
 		b.GET("noticeList", noticeController.List)
 		b.GET("noticeRecordList", noticeController.ListRecord)
-		b.GET("noticeRecordMetric", noticeController.GetRecordMetric)
+	}
+
+	c := gin.Group("notice")
+	c.Use(
+		middleware.Auth(),
+		middleware.ParseTenant(),
+	)
+	{
+		c.GET("noticeRecordMetric", noticeController.GetRecordMetric)
 	}
 }
 

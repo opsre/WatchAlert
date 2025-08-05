@@ -15,7 +15,6 @@ func (clientController clientController) API(gin *gin.RouterGroup) {
 	a := gin.Group("c")
 	a.Use(
 		middleware.Auth(),
-		middleware.Permission(),
 		middleware.ParseTenant(),
 	)
 	{
