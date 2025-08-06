@@ -234,7 +234,11 @@ func (rs ruleService) ChangeStatus(req interface{}) (interface{}, interface{}) {
 
 func (rs ruleService) Import(req interface{}) (interface{}, interface{}) {
 	r := req.(*types.RequestRuleImport)
-	var rules []types.RequestRuleCreate
+	var (
+		rules []types.RequestRuleCreate
+		// 导入的规则默认为关闭状态
+		disable bool
+	)
 
 	switch r.ImportType {
 	case types.WithPrometheusRuleImport:
@@ -298,7 +302,7 @@ func (rs ruleService) Import(req interface{}) (interface{}, interface{}) {
 		err := rs.ctx.DB.Rule().Create(models.AlertRule{
 			TenantId:             r.TenantId,
 			RuleId:               "a-" + tools.RandId(),
-			RuleGroupId:          rule.RuleGroupId,
+			RuleGroupId:          r.RuleGroupId,
 			ExternalLabels:       rule.ExternalLabels,
 			DatasourceType:       rule.DatasourceType,
 			DatasourceIdList:     rule.DatasourceIdList,
@@ -320,7 +324,7 @@ func (rs ruleService) Import(req interface{}) (interface{}, interface{}) {
 			ElasticSearchConfig:  rule.ElasticSearchConfig,
 			LogEvalCondition:     rule.LogEvalCondition,
 			FaultCenterId:        rule.FaultCenterId,
-			Enabled:              rule.Enabled,
+			Enabled:              &disable,
 		})
 		if err != nil {
 			logc.Errorf(rs.ctx.Ctx, err.Error())
