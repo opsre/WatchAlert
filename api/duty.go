@@ -3,7 +3,6 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 	middleware "watchAlert/internal/middleware"
-	"watchAlert/internal/models"
 	"watchAlert/internal/services"
 	"watchAlert/internal/types"
 	jwtUtils "watchAlert/pkg/tools"
@@ -55,7 +54,7 @@ func (dutyController dutyController) List(ctx *gin.Context) {
 }
 
 func (dutyController dutyController) Create(ctx *gin.Context) {
-	r := new(models.DutyManagement)
+	r := new(types.RequestDutyManagementCreate)
 	BindJson(ctx, r)
 
 	userName := jwtUtils.GetUser(ctx.Request.Header.Get("Authorization"))
@@ -70,7 +69,7 @@ func (dutyController dutyController) Create(ctx *gin.Context) {
 }
 
 func (dutyController dutyController) Update(ctx *gin.Context) {
-	r := new(models.DutyManagement)
+	r := new(types.RequestDutyManagementUpdate)
 	BindJson(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
