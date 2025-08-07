@@ -110,14 +110,12 @@ mysql:
   persistence:
     enabled:  true
     storageClass: "openebs-hostpath"
-    accessModes:
-      - ReadWriteOnce
+    accessModes: "ReadWriteOnce"
     size: 5Gi
 
 redis:
   persistence:
     enabled:  true
     storageClass: "openebs-hostpath"
-    accessModes:
-      - ReadWriteOnce
+    accessModes: "ReadWriteOnce"
     size: 1Gi

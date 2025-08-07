@@ -15,6 +15,7 @@ spec:
       containers:
         - name: w8t-mysql
           image: mysql:8.0
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
             - name: MYSQL_ROOT_PASSWORD
               value: w8t.123
