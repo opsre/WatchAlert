@@ -18,6 +18,7 @@ spec:
       containers:
         - name: w8t-service
           image: docker.io/cairry/watchalert:latest
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: 9001
           volumeMounts:

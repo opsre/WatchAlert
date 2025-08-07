@@ -8,6 +8,7 @@ spec:
       containers:
         - name: init-mysql
           image: mysql:8.0
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
             - name: MYSQL_HOST
               value: w8t-mysql.{{ .Release.Namespace }}
