@@ -1,8 +1,7 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: w8t-mysql
-  namespace: default
 spec:
   replicas: 1
   selector:
@@ -25,21 +24,29 @@ spec:
               value: Asia/Shanghai
           ports:
             - containerPort: 3306
+          {{- if .Values.mysql.persistence.enabled }}
           volumeMounts:
             - name: mysql-data
               mountPath: /var/lib/mysql
-      volumes:
-        - name: mysql-data
-          hostPath:
-            path: /data/w8t/mysql
-            type: DirectoryOrCreate
+          {{- end }}
+
+  {{- if .Values.mysql.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: mysql-data
+      spec:
+        accessModes: ["{{ .Values.mysql.persistence.accessModes }}"]
+        storageClassName: "{{ .Values.mysql.persistence.storageClass }}"
+        resources:
+          requests:
+            storage: "{{ .Values.mysql.persistence.size }}"
+  {{- end }}
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: w8t-mysql
-  namespace: default
 spec:
   selector:
     app: w8t-mysql

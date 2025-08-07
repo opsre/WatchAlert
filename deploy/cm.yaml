@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Chart.Name }}
+  labels:
+    app: nginx
+data:
+  nginx.conf: |-
+    {{-  .Values.nginxconf  | nindent 4 }}
+  aibase.conf: |-
+    {{-  .Values.aibaseconf  | nindent 4 }}

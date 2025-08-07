@@ -2,7 +2,6 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: init-mysql
-  namespace: default
 spec:
   template:
     spec:
@@ -11,7 +10,7 @@ spec:
           image: mysql:8.0
           env:
             - name: MYSQL_HOST
-              value: w8t-mysql
+              value: w8t-mysql.{{ .Release.Namespace }}
             - name: MYSQL_ROOT_PASSWORD
               value: w8t.123
             - name: MYSQL_DATABASE

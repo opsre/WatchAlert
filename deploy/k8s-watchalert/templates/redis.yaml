@@ -1,8 +1,7 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: w8t-redis
-  namespace: default
 spec:
   replicas: 1
   selector:
@@ -20,8 +19,10 @@ spec:
           ports:
             - containerPort: 6379
           volumeMounts:
+            {{- if .Values.redis.persistence.enabled }}
             - name: redis-data
-              mountPath: /data
+              mountPath: /data/w8t/redis
+            {{- end }}
             - name: redis-config
               mountPath: /usr/local/etc/redis/redis.conf
               subPath: redis.conf
@@ -29,30 +30,38 @@ spec:
             - name: TZ
               value: Asia/Shanghai
       volumes:
-        - name: redis-data
-          hostPath:
-            path: /data/w8t/redis
-            type: DirectoryOrCreate
         - name: redis-config
           configMap:
             name: redis-config
+  {{- if .Values.redis.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: redis-data
+      spec:
+        accessModes: ["{{ .Values.redis.persistence.accessModes }}"]
+        storageClassName: "{{ .Values.redis.persistence.storageClass }}"
+        resources:
+          requests:
+            storage: "{{ .Values.redis.persistence.size }}"
+  {{- end }}
+
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: redis-config
-  namespace: default
 data:
   redis.conf: |
     # Redis configuration
     appendonly yes
     ignore-warnings ARM64-COW-BUG
+    dir /data/w8t/redis
+
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: w8t-redis
-  namespace: default
 spec:
   selector:
     app: w8t-redis
