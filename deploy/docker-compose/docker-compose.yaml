@@ -6,7 +6,7 @@ services:
     environment:
       - TZ=Asia/Shanghai
     volumes:
-      - ../../config:/app/config
+      - ../k8s-watchalert/files/config.yaml:/app/config/config.yaml
     restart: always
     privileged: true
     ports:
