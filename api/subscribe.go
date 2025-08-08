@@ -3,7 +3,6 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 	"watchAlert/internal/middleware"
-	"watchAlert/internal/models"
 	"watchAlert/internal/services"
 	"watchAlert/internal/types"
 )
@@ -62,7 +61,7 @@ func (subscribeController subscribeController) Get(ctx *gin.Context) {
 }
 
 func (subscribeController subscribeController) Create(ctx *gin.Context) {
-	r := new(models.AlertSubscribe)
+	r := new(types.RequestSubscribeCreate)
 	BindJson(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
