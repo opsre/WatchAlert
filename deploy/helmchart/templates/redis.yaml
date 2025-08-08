@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: w8t-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: w8t-redis
+  template:
+    metadata:
+      labels:
+        app: w8t-redis
+    spec:
+      containers:
+        - name: w8t-redis
+          command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+          image: redis:latest
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 6379
+          volumeMounts:
+            {{- if .Values.redis.persistence.enabled }}
+            - name: redis-data
+              mountPath: /data/w8t/redis
+            {{- end }}
+            - name: redis-config
+              mountPath: /usr/local/etc/redis/redis.conf
+              subPath: redis.conf
+          env:
+            - name: TZ
+              value: Asia/Shanghai
+      volumes:
+        - name: redis-config
+          configMap:
+            name: redis-config
+  {{- if .Values.redis.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: redis-data
+      spec:
+        accessModes: ["{{ .Values.redis.persistence.accessModes }}"]
+        storageClassName: "{{ .Values.redis.persistence.storageClass }}"
+        resources:
+          requests:
+            storage: "{{ .Values.redis.persistence.size }}"
+  {{- end }}
+
+
+
+
