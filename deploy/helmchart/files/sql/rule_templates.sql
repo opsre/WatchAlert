@@ -44,6 +44,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -77,6 +81,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -110,6 +118,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -143,6 +155,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -176,6 +192,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -209,6 +229,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -242,6 +266,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -275,6 +303,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -308,6 +340,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -341,6 +377,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -356,6 +396,10 @@ INSERT ignore INTO watchalert.rule_templates (
     type,
     repeat_notice_interval,
     description,
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+    
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
     jaeger_config,
     kubernetes_config,
     elastic_search_config
@@ -389,6 +433,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -422,6 +470,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -455,6 +507,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -488,6 +544,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -521,6 +581,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -554,6 +618,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -587,6 +655,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -620,6 +692,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -653,6 +729,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -686,6 +766,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -701,6 +785,10 @@ INSERT ignore INTO watchalert.rule_templates (
     type,
     repeat_notice_interval,
     description,
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+    
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
     jaeger_config,
     kubernetes_config,
     elastic_search_config
@@ -734,6 +822,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -767,6 +859,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -800,6 +896,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -833,6 +933,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -866,6 +970,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -899,6 +1007,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -932,6 +1044,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -965,6 +1081,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -996,6 +1116,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Events',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', 'HPA', 'reason', 'FailedGetExternalMetric', 'value', 1, 'filter', NULL, 'scope', 10),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -1027,6 +1151,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Events',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', 'HPA', 'reason', 'FailedGetResourceMetric', 'value', 1, 'filter', NULL, 'scope', 10),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -1042,6 +1170,10 @@ INSERT ignore INTO watchalert.rule_templates (
     type,
     repeat_notice_interval,
     description,
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+    
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
     jaeger_config,
     kubernetes_config,
     elastic_search_config
@@ -1073,6 +1205,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Events',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', 'HPA', 'reason', 'FailedRescale', 'value', 1, 'filter', NULL, 'scope', 10),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -1104,6 +1240,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Events',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', 'Nodes', 'reason', 'NodeUnderMemoryPressure', 'value', 1, 'filter', NULL, 'scope', 10),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -1135,6 +1275,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Events',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', 'Nodes', 'reason', 'NodeUnderDiskPressure', 'value', 1, 'filter', NULL, 'scope', 10),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -1166,6 +1310,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Events',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', 'Nodes', 'reason', 'NodeNotReady', 'value', 1, 'filter', NULL, 'scope', 10),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -1197,6 +1345,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Events',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', 'Pods', 'reason', 'Unhealthy', 'value', 1, 'filter', NULL, 'scope', 10),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -1228,6 +1380,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Events',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', 'Pods', 'reason', 'CrashLoopBackOff', 'value', 1, 'filter', NULL, 'scope', 10),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -1259,6 +1415,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Events',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', 'Pods', 'reason', 'Failed', 'value', 1, 'filter', NULL, 'scope', 10),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -1290,6 +1450,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Events',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', 'Pods', 'reason', 'FailedMount', 'value', 1, 'filter', NULL, 'scope', 10),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -1321,6 +1485,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Events',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', 'Pods', 'reason', 'FailedScheduling', 'value', 1, 'filter', NULL, 'scope', 10),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -1352,6 +1520,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Events',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', 'Pods', 'reason', 'DeadlineExceeded', 'value', 1, 'filter', NULL, 'scope', 10),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -1367,6 +1539,10 @@ INSERT ignore INTO watchalert.rule_templates (
     type,
     repeat_notice_interval,
     description,
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+    
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
     jaeger_config,
     kubernetes_config,
     elastic_search_config
@@ -1398,6 +1574,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Events',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', 'Pods', 'reason', 'FailedAttachVolume', 'value', 1, 'filter', NULL, 'scope', 10),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -1429,6 +1609,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Events',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', 'PVC/PV', 'reason', 'FailedBinding', 'value', 1, 'filter', NULL, 'scope', 10),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -1462,6 +1646,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -1495,6 +1683,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -1528,6 +1720,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -1561,6 +1757,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -1594,6 +1794,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -1627,6 +1831,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -1660,6 +1868,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -1693,6 +1905,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -1708,6 +1924,10 @@ INSERT ignore INTO watchalert.rule_templates (
     type,
     repeat_notice_interval,
     description,
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+    
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
     jaeger_config,
     kubernetes_config,
     elastic_search_config
@@ -1741,6 +1961,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -1774,6 +1998,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -1807,6 +2035,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -1840,6 +2072,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -1873,6 +2109,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -1906,6 +2146,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -1939,6 +2183,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -1972,6 +2220,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -2005,6 +2257,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -2038,6 +2294,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -2053,6 +2313,10 @@ INSERT ignore INTO watchalert.rule_templates (
     type,
     repeat_notice_interval,
     description,
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+    
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
     jaeger_config,
     kubernetes_config,
     elastic_search_config
@@ -2086,6 +2350,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -2119,6 +2387,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -2152,6 +2424,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -2185,6 +2461,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
@@ -2218,6 +2498,10 @@ INSERT ignore INTO watchalert.rule_templates (
         'Metrics',
         0,
         '',
+<<<<<<< HEAD:deploy/helmchart/files/sql/rule_templates.sql
+        
+=======
+>>>>>>> master:deploy/sql/rule_templates.sql
         JSON_OBJECT('service', '', 'scope', 0, 'tags', ''),
         JSON_OBJECT('resource', '', 'reason', '', 'value', 0, 'filter', NULL, 'scope', 0),
         JSON_OBJECT('index', '', 'scope', 0, 'filter', NULL)
