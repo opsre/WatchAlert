@@ -46,6 +46,29 @@ spec:
             storage: "{{ .Values.redis.persistence.size }}"
   {{- end }}
 
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-config
+data:
+  redis.conf: |
+    # Redis configuration
+    appendonly yes
+    ignore-warnings ARM64-COW-BUG
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: w8t-redis
+spec:
+  selector:
+    app: w8t-redis
+  ports:
+    - protocol: TCP
+      port: 6379
+      targetPort: 6379
 
 
 
