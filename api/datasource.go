@@ -195,7 +195,7 @@ func (datasourceController datasourceController) SearchViewLogsContent(ctx *gin.
 	BindJson(ctx, r)
 
 	Service(ctx, func() (interface{}, interface{}) {
-		data, err := services.DatasourceService.Get(r.DatasourceId)
+		data, err := services.DatasourceService.Get(&types.RequestDatasourceQuery{ID: r.DatasourceId})
 		if err != nil {
 			return nil, err
 		}
