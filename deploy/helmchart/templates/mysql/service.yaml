@@ -1,0 +1,19 @@
+{{- if .Values.mysql.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "watchalert.componentName" (dict "root" . "component" "mysql") }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "watchalert.labels" . | nindent 4 }}
+spec:
+  ports:
+    - name: tcp
+      port: 3306
+      protocol: TCP
+      targetPort: 3306
+  selector:
+    app: {{ include "watchalert.componentName" (dict "root" . "component" "mysql") }}
+  sessionAffinity: None
+  type: ClusterIP
+{{- end }}

@@ -1,6 +1,5 @@
-{{- if .Values.ingress.enabled -}}
-{{- $fullName := include "watchalert.fullname" . -}}
-{{- $svcPort := .Values.service.port -}}
+{{- if .Values.web.ingress.enabled -}}
+{{- $fullName := include "watchalert.componentName" (dict "root" . "component" "web") -}}
 {{- if and .Values.ingress.className (not (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion)) }}
   {{- if not (hasKey .Values.ingress.annotations "kubernetes.io/ingress.class") }}
   {{- $_ := set .Values.ingress.annotations "kubernetes.io/ingress.class" .Values.ingress.className}}
@@ -16,6 +15,7 @@ apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
   name: {{ $fullName }}-{{ .Release.Namespace }}
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "watchalert.labels" . | nindent 4 }}
   {{- with .Values.ingress.annotations }}
@@ -54,7 +54,7 @@ spec:
                   number: 80
               {{- else }}
               serviceName: {{ $fullName }}
-              servicePort: {{ $svcPort }}
+              servicePort: 80
               {{- end }}
           {{- end }}
     {{- end }}

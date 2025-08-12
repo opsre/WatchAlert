@@ -1,0 +1,17 @@
+{{- if .Values.mysql.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "watchalert.componentName" (dict "root" . "component" "redis") }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  ports:
+    - name: tcp
+      port: 6379
+      protocol: TCP
+      targetPort: 6379
+  selector:
+    app: {{ include "watchalert.componentName" (dict "root" . "component" "redis") }}
+  sessionAffinity: None
+  type: ClusterIP
+{{- end }}

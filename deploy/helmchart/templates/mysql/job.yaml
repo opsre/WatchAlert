@@ -1,0 +1,39 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "watchalert.componentName" (dict "root" . "component" "init-job") }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  template:
+    spec:
+      initContainers:
+        - name: wait-for-service
+          image: {{ .Values.initContainers.wait.image.repository }}:{{ .Values.initContainers.wait.image.tag }}
+          command:
+            - sh
+            - -c
+            - until nc -z -v -w 30 {{ include "watchalert.componentName" (dict "root" . "component" "service") }} 9001; do echo "Waiting for service..."; sleep 3; done;
+
+      containers:
+        - name: {{ include "watchalert.componentName" (dict "root" . "component" "init-job") }}
+          image: {{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          env:
+            - name: MYSQL_HOST
+              value: {{ printf "%s-mysql" .Release.Name }}
+            - name: MYSQL_USERNAME
+              value: {{ .Values.job.mysql.username | quote }}
+            - name: MYSQL_PASSWORD
+              value: {{ .Values.job.mysql.password | quote }}
+            - name: MYSQL_DATABASE
+              value: {{ .Values.job.mysql.database | quote }}
+          volumeMounts:
+            - name: config
+              mountPath: /sql
+
+          command: ["sh", "-c", "sh /sql/auto_import.sh"]
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "watchalert.componentName" (dict "root" . "component" "init-config") }}
+      restartPolicy: OnFailure

@@ -1,0 +1,50 @@
+{{- if .Values.mysql.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "watchalert.componentName" (dict "root" . "component" "mysql") }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ include "watchalert.componentName" (dict "root" . "component" "mysql") }}
+spec:
+  serviceName: {{ include "watchalert.componentName" (dict "root" . "component" "mysql") }}
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ include "watchalert.componentName" (dict "root" . "component" "mysql") }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "watchalert.componentName" (dict "root" . "component" "mysql") }}
+    spec:
+      containers:
+        - name: {{ include "watchalert.componentName" (dict "root" . "component" "mysql") }}
+          image: {{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: {{ .Values.mysql.auth.password | quote }}
+            - name: MYSQL_DATABASE
+              value: {{ .Values.mysql.auth.database | quote }}
+            - name: TZ
+              value: Asia/Shanghai
+          ports:
+            - containerPort: 3306
+          {{- if .Values.mysql.persistence.enabled }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/mysql
+          {{- end }}
+
+  {{- if .Values.mysql.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["{{ .Values.mysql.persistence.accessModes }}"]
+        storageClassName: "{{ .Values.mysql.persistence.storageClass }}"
+        resources:
+          requests:
+            storage: "{{ .Values.mysql.persistence.size }}"
+  {{- end }}
+{{- end }}

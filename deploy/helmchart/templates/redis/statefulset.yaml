@@ -1,22 +1,27 @@
+{{- if .Values.mysql.enabled }}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: w8t-redis
+  name: {{ include "watchalert.componentName" (dict "root" . "component" "redis") }}
+  namespace: {{ .Release.Namespace }}
 spec:
+  serviceName: {{ include "watchalert.componentName" (dict "root" . "component" "redis") }}
   replicas: 1
   selector:
     matchLabels:
-      app: w8t-redis
+      app: {{ include "watchalert.componentName" (dict "root" . "component" "redis") }}
   template:
     metadata:
       labels:
-        app: w8t-redis
+        app: {{ include "watchalert.componentName" (dict "root" . "component" "redis") }}
     spec:
       containers:
-        - name: w8t-redis
-          command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
-          image: redis:latest
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+        - name: {{ include "watchalert.componentName" (dict "root" . "component" "redis") }}
+          command:
+            - redis-server
+            - /usr/local/etc/redis/redis.conf
+          image: {{ .Values.redis.image.repository }}:{{ .Values.redis.image.tag }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
           ports:
             - containerPort: 6379
           volumeMounts:
@@ -33,7 +38,7 @@ spec:
       volumes:
         - name: redis-config
           configMap:
-            name: redis-config
+            name: {{ include "watchalert.componentName" (dict "root" . "component" "redis-config") }}
   {{- if .Values.redis.persistence.enabled }}
   volumeClaimTemplates:
     - metadata:
@@ -45,30 +50,4 @@ spec:
           requests:
             storage: "{{ .Values.redis.persistence.size }}"
   {{- end }}
-
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: redis-config
-data:
-  redis.conf: |
-    # Redis configuration
-    appendonly yes
-    ignore-warnings ARM64-COW-BUG
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: w8t-redis
-spec:
-  selector:
-    app: w8t-redis
-  ports:
-    - protocol: TCP
-      port: 6379
-      targetPort: 6379
-
-
-
+{{- end}}

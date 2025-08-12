@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "watchalert.componentName" (dict "root" . "component" "web") }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "watchalert.labels" . | nindent 4 }}
+spec:
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 80
+  selector:
+    app: {{ include "watchalert.componentName" (dict "root" . "component" "web") }}
+  sessionAffinity: None
+  type: {{ .Values.web.service.type }}

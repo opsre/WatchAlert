@@ -1,7 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: w8t-config
-data:
-  config.yaml: |
-{{.Files.Get "files/config.yaml"  | indent 4}}
