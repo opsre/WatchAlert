@@ -49,9 +49,11 @@ kind: Service
 metadata:
   name: w8t-mysql
 spec:
+  type: NodePort
   selector:
     app: w8t-mysql
   ports:
     - protocol: TCP
       port: 3306
       targetPort: 3306
+      nodePort: 24540
