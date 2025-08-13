@@ -46,11 +46,11 @@ type (
 )
 
 func (ag *AlertGroups) AddAlert(stateId string, alert *models.AlertCurEvent, faultCenter models.FaultCenter) {
-	// 获取通知对象 ID 列表 用于事件分组
-	noticeObjIds := ag.getNoticeId(alert, faultCenter)
-
 	ag.lock.Lock()
 	defer ag.lock.Unlock()
+
+	// 获取通知对象 ID 列表 用于事件分组
+	noticeObjIds := ag.getNoticeId(alert, faultCenter)
 
 	for _, noticeObjId := range noticeObjIds {
 		// 查找 Rule 位置
@@ -73,7 +73,7 @@ func (ag *AlertGroups) AddAlert(stateId string, alert *models.AlertCurEvent, fau
 					Events: []*models.AlertCurEvent{alert},
 				})
 			}
-			return
+			continue
 		}
 
 		// 插入新Rule
