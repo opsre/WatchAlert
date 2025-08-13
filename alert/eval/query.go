@@ -108,12 +108,16 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 					event.Status = models.StatePreAlert
 					highestPriorityEvents[fingerprint] = event
 					curFingerprints = append(curFingerprints, fingerprint)
-					if _, e := event.Labels["recover_value"]; e {
-						delete(event.Labels, "recover_value")
-					}
 				}
 				// 找到符合条件的规则后，跳过该指标的其他规则
 				break
+			} else {
+				// 更新恢复时最新值
+				_, err := ctx.Redis.Alert().GetEventFromCache(event.TenantId, event.FaultCenterId, event.Fingerprint)
+				if err == nil {
+					event.Labels["value"] = v.GetValue()
+					process.PushEventToFaultCenter(ctx, &event)
+				}
 			}
 		}
 	}
