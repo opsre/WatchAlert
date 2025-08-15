@@ -65,9 +65,13 @@ func (us userService) Login(req interface{}) (interface{}, interface{}) {
 		return nil, err
 	}
 
+	setting, err := us.ctx.DB.Setting().Get()
+	if err != nil {
+		return nil, err
+	}
 	switch data.CreateBy {
 	case "LDAP":
-		if global.Config.Ldap.Enabled {
+		if *setting.AuthType == models.SettingLdapAuth {
 			err := LdapService.Login(r.UserName, originalPassword)
 			if err != nil {
 				logc.Error(us.ctx.Ctx, fmt.Sprintf("LDAP 用户登陆失败, err: %s", err.Error()))

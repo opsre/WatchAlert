@@ -10,6 +10,7 @@ import (
 	"watchAlert/internal/cache"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/global"
+	"watchAlert/internal/models"
 	"watchAlert/internal/repo"
 	"watchAlert/internal/services"
 	"watchAlert/pkg/ai"
@@ -42,15 +43,17 @@ func InitBasic() {
 	// 定时任务，清理历史通知记录和历史拨测数据
 	go gcHistoryData(ctx)
 
-	if global.Config.Ldap.Enabled {
-		// 定时同步LDAP用户任务
-		go services.LdapService.SyncUsersCronjob()
-	}
-
 	r, err := ctx.DB.Setting().Get()
 	if err != nil {
 		logc.Error(ctx.Ctx, fmt.Sprintf("加载系统设置失败: %s", err.Error()))
 		return
+	}
+
+	if *r.AuthType == models.SettingLdapAuth {
+		const mark = "SyncLdapUserJob"
+		c, cancel := context.WithCancel(context.Background())
+		ctx.ContextMap[mark] = cancel
+		go services.LdapService.SyncUsersCronjob(c)
 	}
 
 	if r.AiConfig.GetEnable() {

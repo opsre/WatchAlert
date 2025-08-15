@@ -1,10 +1,10 @@
 package services
 
 import (
+	"context"
 	"fmt"
 	"time"
 	"watchAlert/internal/ctx"
-	"watchAlert/internal/global"
 	"watchAlert/internal/models"
 	"watchAlert/pkg/tools"
 
@@ -14,30 +14,37 @@ import (
 )
 
 type ldapService struct {
-	ctx *ctx.Context
+	ldapConfig models.LdapConfig
+	ctx        *ctx.Context
 }
 
 type InterLdapService interface {
 	ListUsers() ([]ldapUser, error)
 	SyncUserToW8t()
 	Login(username, password string) error
-	SyncUsersCronjob()
+	SyncUsersCronjob(ctx context.Context)
 }
 
 func newInterLdapService(ctx *ctx.Context) InterLdapService {
+	setting, err := ctx.DB.Setting().Get()
+	if err != nil {
+		return nil
+	}
+
 	return &ldapService{
-		ctx: ctx,
+		ctx:        ctx,
+		ldapConfig: setting.LdapConfig,
 	}
 }
 
 func (l ldapService) getAdminAuth() (*ldap.Conn, error) {
-	ls, err := ldap.Dial("tcp", global.Config.Ldap.Address)
+	ls, err := ldap.Dial("tcp", l.ldapConfig.Address)
 	if err != nil {
-		logc.Errorf(l.ctx.Ctx, fmt.Sprintf("无法连接 LDAP 服务器, Address: %s, err: %s", global.Config.Ldap.Address, err.Error()))
+		logc.Errorf(l.ctx.Ctx, fmt.Sprintf("无法连接 LDAP 服务器, Address: %s, err: %s", l.ldapConfig.Address, err.Error()))
 		return nil, err
 	}
 
-	err = ls.Bind(global.Config.Ldap.AdminUser, global.Config.Ldap.AdminPass)
+	err = ls.Bind(l.ldapConfig.AdminUser, l.ldapConfig.AdminPass)
 	if err != nil {
 		logc.Errorf(l.ctx.Ctx, fmt.Sprintf("LDAP 管理员绑定失败 err: %s", err.Error()))
 		return nil, err
@@ -53,8 +60,6 @@ type ldapUser struct {
 }
 
 func (l ldapService) ListUsers() ([]ldapUser, error) {
-	lc := global.Config.Ldap
-
 	auth, err := l.getAdminAuth()
 	if err != nil {
 		return nil, err
@@ -70,11 +75,10 @@ func (l ldapService) ListUsers() ([]ldapUser, error) {
 
 	for {
 		pages++
-		logc.Infof(l.ctx.Ctx, "正在查询第 %d 页，页面大小: %d", pages, pageSize)
 
 		// 创建搜索请求
 		searchRequest := ldap.NewSearchRequest(
-			lc.BaseDN,
+			l.ldapConfig.BaseDN,
 			ldap.ScopeWholeSubtree,
 			ldap.NeverDerefAliases,
 			0, 0, false,
@@ -107,8 +111,6 @@ func (l ldapService) ListUsers() ([]ldapUser, error) {
 			pageUserCount++
 		}
 
-		logc.Infof(l.ctx.Ctx, "第 %d 页完成，获取到 %d 个用户，总计: %d", pages, pageUserCount, len(totalResults))
-
 		var nextPageControl *ldap.ControlPaging
 		for _, control := range searchResult.Controls {
 			if control.GetControlType() == ldap.ControlTypePaging {
@@ -118,7 +120,6 @@ func (l ldapService) ListUsers() ([]ldapUser, error) {
 		}
 
 		if nextPageControl == nil || len(nextPageControl.Cookie) == 0 {
-			logc.Infof(l.ctx.Ctx, "没有更多页面，查询完成")
 			break
 		}
 
@@ -127,10 +128,7 @@ func (l ldapService) ListUsers() ([]ldapUser, error) {
 			Cookie:     nextPageControl.Cookie,
 		}
 
-		logc.Infof(l.ctx.Ctx, "找到下一页Cookie，长度: %d", len(nextPageControl.Cookie))
-
 		if pages >= 50 {
-			logc.Errorf(l.ctx.Ctx, "查询页数超过50页，停止查询")
 			break
 		}
 	}
@@ -174,7 +172,7 @@ func (l ldapService) SyncUserToW8t() {
 					UserName: u.Mail,
 				},
 			},
-			global.Config.Ldap.DefaultUserRole,
+			l.ldapConfig.DefaultUserRole,
 		)
 		if err != nil {
 			logc.Errorf(l.ctx.Ctx, err.Error())
@@ -190,7 +188,7 @@ func (l ldapService) Login(username, password string) error {
 		return err
 	}
 
-	userDn := fmt.Sprintf("%s=%s,%s", global.Config.Ldap.UserPrefix, username, global.Config.Ldap.UserDN)
+	userDn := fmt.Sprintf("%s=%s,%s", l.ldapConfig.UserPrefix, username, l.ldapConfig.UserDN)
 	err = auth.Bind(userDn, password)
 	if err != nil {
 		logc.Errorf(l.ctx.Ctx, fmt.Sprintf("LDAP 用户登陆失败, err: %s", err.Error()))
@@ -200,17 +198,21 @@ func (l ldapService) Login(username, password string) error {
 	return nil
 }
 
-func (l ldapService) SyncUsersCronjob() {
+func (l ldapService) SyncUsersCronjob(ctx context.Context) {
 	c := cron.New()
-	_, err := c.AddFunc(global.Config.Ldap.Cronjob, func() {
+	_, err := c.AddFunc(l.ldapConfig.Cronjob, func() {
 		l.SyncUserToW8t()
 	})
 	if err != nil {
-		logc.Errorf(ctx.Ctx, err.Error())
+		logc.Errorf(ctx, err.Error())
 		return
 	}
 	c.Start()
 	defer c.Stop()
 
-	select {}
+	select {
+	case <-ctx.Done():
+		logc.Infof(ctx, "停止 LDAP 用户同步!")
+		return
+	}
 }
