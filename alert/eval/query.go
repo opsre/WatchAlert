@@ -91,6 +91,17 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 				for ek, ev := range rule.ExternalLabels {
 					metric[ek] = ev
 				}
+
+				// 获取初次触发值
+				data, err := ctx.Redis.Alert().GetEventFromCache(rule.TenantId, rule.FaultCenterId, fingerprint)
+				if err == nil {
+					if data.Labels["first_value"] != nil {
+						metric["first_value"] = data.Labels["first_value"]
+					} else {
+						metric["first_value"] = v.Value
+					}
+				}
+
 				return metric
 			})
 			event.DatasourceId = datasourceId
