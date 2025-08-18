@@ -49,7 +49,7 @@ func InitBasic() {
 		return
 	}
 
-	if *r.AuthType == models.SettingLdapAuth {
+	if r.AuthType != nil && *r.AuthType == models.SettingLdapAuth {
 		const mark = "SyncLdapUserJob"
 		c, cancel := context.WithCancel(context.Background())
 		ctx.ContextMap[mark] = cancel
