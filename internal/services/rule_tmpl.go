@@ -25,12 +25,19 @@ func newInterRuleTmplService(ctx *ctx.Context) InterRuleTmplService {
 
 func (rt ruleTmplService) List(req interface{}) (interface{}, interface{}) {
 	r := req.(*types.RequestRuleTemplateQuery)
-	data, err := rt.ctx.DB.RuleTmpl().List(r.RuleGroupName, r.Type, r.Query)
+	data, count, err := rt.ctx.DB.RuleTmpl().List(r.RuleGroupName, r.Type, r.Query, r.Page)
 	if err != nil {
 		return nil, err
 	}
 
-	return data, nil
+	return types.ResponseRuleTemplateList{
+		List: data,
+		Page: models.Page{
+			Total: count,
+			Index: r.Page.Index,
+			Size:  r.Page.Size,
+		},
+	}, nil
 }
 
 func (rt ruleTmplService) Create(req interface{}) (interface{}, interface{}) {

@@ -11,7 +11,7 @@ type (
 	}
 
 	InterRuleTmplGroupRepo interface {
-		List(groupType, query string) ([]models.RuleTemplateGroup, error)
+		List(groupType, query string, page models.Page) ([]models.RuleTemplateGroup, int64, error)
 		Create(r models.RuleTemplateGroup) error
 		Update(r models.RuleTemplateGroup) error
 		Delete(groupName string) error
@@ -27,17 +27,27 @@ func newRuleTmplGroupInterface(db *gorm.DB, g InterGormDBCli) InterRuleTmplGroup
 	}
 }
 
-func (rtg RuleTmplGroupRepo) List(groupType, query string) ([]models.RuleTemplateGroup, error) {
-	var data []models.RuleTemplateGroup
+func (rtg RuleTmplGroupRepo) List(groupType, query string, page models.Page) ([]models.RuleTemplateGroup, int64, error) {
+	var (
+		data  []models.RuleTemplateGroup
+		count int64
+	)
+
 	db := rtg.db.Model(&models.RuleTemplateGroup{})
 	db.Where("type = ?", groupType)
 	if query != "" {
 		db.Where("name LIKE ? OR description LIKE ?",
 			"%"+query+"%", "%"+query+"%")
 	}
+
+	db.Count(&count)
+
+	db.Limit(int(page.Size)).Offset(int((page.Index - 1) * page.Size))
+
 	err := db.Find(&data).Error
+
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	for k, v := range data {
@@ -48,7 +58,7 @@ func (rtg RuleTmplGroupRepo) List(groupType, query string) ([]models.RuleTemplat
 		data[k].Number = int(ruleCount)
 	}
 
-	return data, nil
+	return data, count, nil
 }
 
 func (rtg RuleTmplGroupRepo) Create(r models.RuleTemplateGroup) error {
