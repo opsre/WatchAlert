@@ -48,4 +48,10 @@ type RequestRuleTemplateQuery struct {
 	Severity       int64  `json:"severity" form:"severity"`
 	Annotations    string `json:"annotations" form:"annotations"`
 	Query          string `json:"query" form:"query"`
+	models.Page
+}
+
+type ResponseRuleTemplateList struct {
+	List []models.RuleTemplate `json:"list"`
+	models.Page
 }

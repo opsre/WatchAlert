@@ -25,12 +25,19 @@ func newInterRuleTmplGroupService(ctx *ctx.Context) InterRuleTmplGroupService {
 
 func (rtg ruleTmplGroupService) List(req interface{}) (interface{}, interface{}) {
 	r := req.(*types.RequestRuleTemplateGroupQuery)
-	data, err := rtg.ctx.DB.RuleTmplGroup().List(r.Type, r.Query)
+	data, count, err := rtg.ctx.DB.RuleTmplGroup().List(r.Type, r.Query, r.Page)
 	if err != nil {
 		return nil, err
 	}
 
-	return data, nil
+	return types.ResponseRuleTemplateGroupList{
+		List: data,
+		Page: models.Page{
+			Total: count,
+			Index: r.Page.Index,
+			Size:  r.Page.Size,
+		},
+	}, nil
 }
 
 func (rtg ruleTmplGroupService) Create(req interface{}) (interface{}, interface{}) {
