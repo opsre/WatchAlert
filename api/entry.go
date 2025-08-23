@@ -1,45 +1,16 @@
 package api
 
 import (
+	"context"
 	"github.com/gin-gonic/gin"
+	"github.com/zeromicro/go-zero/core/logc"
 	"watchAlert/pkg/response"
 )
-
-type ApiGroup struct {
-	NoticeController
-	DutyController
-	DutyCalendarController
-	DatasourceController
-	SilenceController
-	RuleController
-	UserController
-	AlertEventController
-	UserRoleController
-	UserPermissionsController
-	NoticeTemplateController
-	RuleGroupController
-	RuleTmplGroupController
-	RuleTmplController
-	DashboardInfoController
-	TenantController
-	DashboardController
-	AuditLogController
-	ClientController
-	AWSCloudWatchController
-	AWSCloudWatchRDSController
-	SettingsController
-	KubernetesTypesController
-	SubscribeController
-	ProbingController
-	FaultCenterController
-	AiController
-}
-
-var ApiGroupApp = new(ApiGroup)
 
 func Service(ctx *gin.Context, fu func() (interface{}, interface{})) {
 	data, err := fu()
 	if err != nil {
+		logc.Error(context.Background(), err)
 		response.Fail(ctx, err.(error).Error(), "failed")
 		ctx.Abort()
 		return

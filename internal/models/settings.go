@@ -1,11 +1,19 @@
 package models
 
+const (
+	SettingSystemAuth = 0
+	SettingLdapAuth   = 1
+)
+
 type Settings struct {
-	IsInit          int             `json:"isInit"`
+	IsInit int `json:"isInit"`
+	// 0 = 系统认证，1 = LDAP 认证
+	AuthType        *int            `json:"authType"`
 	EmailConfig     emailConfig     `json:"emailConfig" gorm:"emailConfig;serializer:json"`
 	AppVersion      string          `json:"appVersion" gorm:"-"`
 	PhoneCallConfig phoneCallConfig `json:"phoneCallConfig" gorm:"phoneCallConfig;serializer:json"`
 	AiConfig        AiConfig        `json:"aiConfig" gorm:"aiConfig;serializer:json"`
+	LdapConfig      LdapConfig      `json:"ldapConfig" gorm:"ldapConfig;serializer:json"`
 }
 
 type emailConfig struct {
@@ -33,6 +41,17 @@ type AiConfig struct {
 	Timeout   int    `json:"timeout"`
 	MaxTokens int    `json:"maxTokens"`
 	Prompt    string `json:"prompt"`
+}
+
+type LdapConfig struct {
+	Address         string `json:"address"`
+	BaseDN          string `json:"baseDN"`
+	AdminUser       string `json:"adminUser"`
+	AdminPass       string `json:"adminPass"`
+	UserDN          string `json:"userDN"`
+	UserPrefix      string `json:"userPrefix"`
+	DefaultUserRole string `json:"defaultUserRole"`
+	Cronjob         string `json:"cronjob"`
 }
 
 func (a AiConfig) GetEnable() bool {

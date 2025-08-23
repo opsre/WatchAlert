@@ -3,47 +3,49 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 	middleware "watchAlert/internal/middleware"
-	"watchAlert/internal/models"
 	"watchAlert/internal/services"
+	"watchAlert/internal/types"
 	jwtUtils "watchAlert/pkg/tools"
 )
 
-type TenantController struct{}
+type tenantController struct{}
+
+var TenantController = new(tenantController)
 
 /*
 租户 API
 /api/w8t/tenant
 */
-func (tc TenantController) API(gin *gin.RouterGroup) {
-	tenantA := gin.Group("tenant")
-	tenantA.Use(
+func (tenantController tenantController) API(gin *gin.RouterGroup) {
+	a := gin.Group("tenant")
+	a.Use(
 		middleware.Auth(),
 		middleware.Permission(),
 		middleware.AuditingLog(),
 	)
 	{
-		tenantA.POST("createTenant", tc.Create)
-		tenantA.POST("updateTenant", tc.Update)
-		tenantA.POST("deleteTenant", tc.Delete)
-		tenantA.POST("addUsersToTenant", tc.AddUsersToTenant)
-		tenantA.POST("delUsersOfTenant", tc.DelUsersOfTenant)
-		tenantA.POST("changeTenantUserRole", tc.ChangeTenantUserRole)
+		a.POST("createTenant", tenantController.Create)
+		a.POST("updateTenant", tenantController.Update)
+		a.POST("deleteTenant", tenantController.Delete)
+		a.POST("addUsersToTenant", tenantController.AddUsersToTenant)
+		a.POST("delUsersOfTenant", tenantController.DelUsersOfTenant)
+		a.POST("changeTenantUserRole", tenantController.ChangeTenantUserRole)
 	}
 
-	tenantB := gin.Group("tenant")
-	tenantB.Use(
+	b := gin.Group("tenant")
+	b.Use(
 		middleware.Auth(),
 		middleware.Permission(),
 	)
 	{
-		tenantB.GET("getTenantList", tc.List)
-		tenantB.GET("getTenant", tc.Get)
-		tenantB.GET("getUsersForTenant", tc.GetUsersForTenant)
+		b.GET("getTenantList", tenantController.List)
+		b.GET("getTenant", tenantController.Get)
+		b.GET("getUsersForTenant", tenantController.GetUsersForTenant)
 	}
 }
 
-func (tc TenantController) Create(ctx *gin.Context) {
-	r := new(models.Tenant)
+func (tenantController tenantController) Create(ctx *gin.Context) {
+	r := new(types.RequestTenantCreate)
 	BindJson(ctx, r)
 
 	token := ctx.Request.Header.Get("Authorization")
@@ -58,8 +60,8 @@ func (tc TenantController) Create(ctx *gin.Context) {
 	})
 }
 
-func (tc TenantController) Update(ctx *gin.Context) {
-	r := new(models.Tenant)
+func (tenantController tenantController) Update(ctx *gin.Context) {
+	r := new(types.RequestTenantUpdate)
 	BindJson(ctx, r)
 
 	Service(ctx, func() (interface{}, interface{}) {
@@ -67,8 +69,8 @@ func (tc TenantController) Update(ctx *gin.Context) {
 	})
 }
 
-func (tc TenantController) Delete(ctx *gin.Context) {
-	r := new(models.TenantQuery)
+func (tenantController tenantController) Delete(ctx *gin.Context) {
+	r := new(types.RequestTenantQuery)
 	BindJson(ctx, r)
 
 	Service(ctx, func() (interface{}, interface{}) {
@@ -76,8 +78,8 @@ func (tc TenantController) Delete(ctx *gin.Context) {
 	})
 }
 
-func (tc TenantController) List(ctx *gin.Context) {
-	r := new(models.TenantQuery)
+func (tenantController tenantController) List(ctx *gin.Context) {
+	r := new(types.RequestTenantQuery)
 	BindQuery(ctx, r)
 
 	Service(ctx, func() (interface{}, interface{}) {
@@ -85,8 +87,8 @@ func (tc TenantController) List(ctx *gin.Context) {
 	})
 }
 
-func (tc TenantController) Get(ctx *gin.Context) {
-	r := new(models.TenantQuery)
+func (tenantController tenantController) Get(ctx *gin.Context) {
+	r := new(types.RequestTenantQuery)
 	BindQuery(ctx, r)
 
 	Service(ctx, func() (interface{}, interface{}) {
@@ -94,12 +96,12 @@ func (tc TenantController) Get(ctx *gin.Context) {
 	})
 }
 
-func (tc TenantController) Search(ctx *gin.Context) {
+func (tenantController tenantController) Search(ctx *gin.Context) {
 	// TODO
 }
 
-func (tc TenantController) AddUsersToTenant(ctx *gin.Context) {
-	r := new(models.TenantLinkedUsers)
+func (tenantController tenantController) AddUsersToTenant(ctx *gin.Context) {
+	r := new(types.RequestTenantAddUsers)
 	BindJson(ctx, r)
 
 	Service(ctx, func() (interface{}, interface{}) {
@@ -107,8 +109,8 @@ func (tc TenantController) AddUsersToTenant(ctx *gin.Context) {
 	})
 }
 
-func (tc TenantController) DelUsersOfTenant(ctx *gin.Context) {
-	r := new(models.TenantQuery)
+func (tenantController tenantController) DelUsersOfTenant(ctx *gin.Context) {
+	r := new(types.RequestTenantQuery)
 	BindJson(ctx, r)
 
 	Service(ctx, func() (interface{}, interface{}) {
@@ -116,8 +118,8 @@ func (tc TenantController) DelUsersOfTenant(ctx *gin.Context) {
 	})
 }
 
-func (tc TenantController) GetUsersForTenant(ctx *gin.Context) {
-	r := new(models.TenantQuery)
+func (tenantController tenantController) GetUsersForTenant(ctx *gin.Context) {
+	r := new(types.RequestTenantQuery)
 	BindQuery(ctx, r)
 
 	Service(ctx, func() (interface{}, interface{}) {
@@ -125,8 +127,8 @@ func (tc TenantController) GetUsersForTenant(ctx *gin.Context) {
 	})
 }
 
-func (tc TenantController) ChangeTenantUserRole(ctx *gin.Context) {
-	r := new(models.ChangeTenantUserRole)
+func (tenantController tenantController) ChangeTenantUserRole(ctx *gin.Context) {
+	r := new(types.RequestTenantChangeUserRole)
 	BindJson(ctx, r)
 
 	Service(ctx, func() (interface{}, interface{}) {

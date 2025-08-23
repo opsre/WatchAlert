@@ -14,15 +14,6 @@ type Member struct {
 	Tenants    []string `json:"tenants" gorm:"tenants;serializer:json"`
 }
 
-type MemberQuery struct {
-	UserId   string `json:"userid" form:"userid"`
-	UserName string `json:"username" form:"username"`
-	Email    string `json:"email" form:"email"`
-	Phone    string `json:"phone" form:"phone"`
-	Query    string `json:"query" form:"query"`
-	JoinDuty string `json:"joinDuty" form:"joinDuty"`
-}
-
 type ResponseLoginInfo struct {
 	Token    string `json:"token"`
 	Username string `json:"username"`

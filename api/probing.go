@@ -3,36 +3,38 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 	middleware "watchAlert/internal/middleware"
-	"watchAlert/internal/models"
 	"watchAlert/internal/services"
+	"watchAlert/internal/types"
 )
 
-type ProbingController struct{}
+type probingController struct{}
 
-func (e ProbingController) API(gin *gin.RouterGroup) {
-	eventA := gin.Group("probing")
-	eventA.Use(
+var ProbingController = new(probingController)
+
+func (probingController probingController) API(gin *gin.RouterGroup) {
+	a := gin.Group("probing")
+	a.Use(
 		middleware.Auth(),
 		middleware.Permission(),
 		middleware.ParseTenant(),
 		middleware.AuditingLog(),
 	)
 	{
-		eventA.POST("createProbing", e.Create)
-		eventA.POST("updateProbing", e.Update)
-		eventA.POST("deleteProbing", e.Delete)
+		a.POST("createProbing", probingController.Create)
+		a.POST("updateProbing", probingController.Update)
+		a.POST("deleteProbing", probingController.Delete)
 	}
 
-	eventB := gin.Group("probing")
-	eventB.Use(
+	b := gin.Group("probing")
+	b.Use(
 		middleware.Auth(),
 		middleware.Permission(),
 		middleware.ParseTenant(),
 	)
 	{
-		eventB.GET("listProbing", e.List)
-		eventB.GET("searchProbing", e.Search)
-		eventB.GET("getProbingHistory", e.GetHistory)
+		b.GET("listProbing", probingController.List)
+		b.GET("searchProbing", probingController.Search)
+		b.GET("getProbingHistory", probingController.GetHistory)
 	}
 
 	c := gin.Group("probing")
@@ -41,13 +43,13 @@ func (e ProbingController) API(gin *gin.RouterGroup) {
 		middleware.ParseTenant(),
 	)
 	{
-		c.POST("onceProbing", e.Once)
-		c.POST("changeState", e.ChangeState)
+		c.POST("onceProbing", probingController.Once)
+		c.POST("changeState", probingController.ChangeState)
 	}
 }
 
-func (e ProbingController) List(ctx *gin.Context) {
-	r := new(models.ProbingRuleQuery)
+func (probingController probingController) List(ctx *gin.Context) {
+	r := new(types.RequestProbingRuleQuery)
 	BindQuery(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -58,8 +60,8 @@ func (e ProbingController) List(ctx *gin.Context) {
 	})
 }
 
-func (e ProbingController) Search(ctx *gin.Context) {
-	r := new(models.ProbingRuleQuery)
+func (probingController probingController) Search(ctx *gin.Context) {
+	r := new(types.RequestProbingRuleQuery)
 	BindQuery(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -70,8 +72,8 @@ func (e ProbingController) Search(ctx *gin.Context) {
 	})
 }
 
-func (e ProbingController) Create(ctx *gin.Context) {
-	r := new(models.ProbingRule)
+func (probingController probingController) Create(ctx *gin.Context) {
+	r := new(types.RequestProbingRuleCreate)
 	BindJson(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -82,8 +84,8 @@ func (e ProbingController) Create(ctx *gin.Context) {
 	})
 }
 
-func (e ProbingController) Update(ctx *gin.Context) {
-	r := new(models.ProbingRule)
+func (probingController probingController) Update(ctx *gin.Context) {
+	r := new(types.RequestProbingRuleUpdate)
 	BindJson(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -94,8 +96,8 @@ func (e ProbingController) Update(ctx *gin.Context) {
 	})
 }
 
-func (e ProbingController) Delete(ctx *gin.Context) {
-	r := new(models.ProbingRuleQuery)
+func (probingController probingController) Delete(ctx *gin.Context) {
+	r := new(types.RequestProbingRuleQuery)
 	BindJson(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -106,8 +108,8 @@ func (e ProbingController) Delete(ctx *gin.Context) {
 	})
 }
 
-func (e ProbingController) Once(ctx *gin.Context) {
-	r := new(models.OnceProbing)
+func (probingController probingController) Once(ctx *gin.Context) {
+	r := new(types.RequestProbingOnce)
 	BindJson(ctx, r)
 
 	Service(ctx, func() (interface{}, interface{}) {
@@ -115,8 +117,8 @@ func (e ProbingController) Once(ctx *gin.Context) {
 	})
 }
 
-func (e ProbingController) GetHistory(ctx *gin.Context) {
-	r := new(models.ReqProbingHistory)
+func (probingController probingController) GetHistory(ctx *gin.Context) {
+	r := new(types.RequestProbingHistoryRecord)
 	BindQuery(ctx, r)
 
 	Service(ctx, func() (interface{}, interface{}) {
@@ -124,8 +126,8 @@ func (e ProbingController) GetHistory(ctx *gin.Context) {
 	})
 }
 
-func (e ProbingController) ChangeState(ctx *gin.Context) {
-	r := new(models.RequestProbeChangeState)
+func (probingController probingController) ChangeState(ctx *gin.Context) {
+	r := new(types.RequestProbeChangeState)
 	BindJson(ctx, r)
 
 	Service(ctx, func() (interface{}, interface{}) {

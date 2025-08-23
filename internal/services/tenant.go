@@ -5,6 +5,7 @@ import (
 	"time"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
+	"watchAlert/internal/types"
 	"watchAlert/pkg/tools"
 )
 
@@ -31,10 +32,9 @@ func newInterTenantService(ctx *ctx.Context) InterTenantService {
 }
 
 func (ts tenantService) Create(req interface{}) (data interface{}, err interface{}) {
-	r := req.(*models.Tenant)
-	tid := "tid-" + tools.RandId()
-	nt := models.Tenant{
-		ID:               tid,
+	r := req.(*types.RequestTenantCreate)
+	tenant := models.Tenant{
+		ID:               "tid-" + tools.RandId(),
 		Name:             r.Name,
 		UserId:           r.UserId,
 		CreateAt:         time.Now().Unix(),
@@ -48,7 +48,7 @@ func (ts tenantService) Create(req interface{}) (data interface{}, err interface
 		RemoveProtection: r.GetRemoveProtection(),
 	}
 
-	err = ts.ctx.DB.Tenant().Create(nt)
+	err = ts.ctx.DB.Tenant().Create(tenant)
 	if err != nil {
 		return nil, err
 	}
@@ -56,10 +56,23 @@ func (ts tenantService) Create(req interface{}) (data interface{}, err interface
 }
 
 func (ts tenantService) Update(req interface{}) (data interface{}, err interface{}) {
-	r := req.(*models.Tenant)
-	nt := *r
+	r := req.(*types.RequestTenantUpdate)
+	tenant := models.Tenant{
+		ID:               r.ID,
+		Name:             r.Name,
+		UserId:           r.UserId,
+		CreateAt:         r.CreateAt,
+		CreateBy:         r.CreateBy,
+		Manager:          r.Manager,
+		Description:      r.Description,
+		RuleNumber:       r.RuleNumber,
+		UserNumber:       r.UserNumber,
+		DutyNumber:       r.DutyNumber,
+		NoticeNumber:     r.NoticeNumber,
+		RemoveProtection: r.GetRemoveProtection(),
+	}
 
-	err = ts.ctx.DB.Tenant().Update(nt)
+	err = ts.ctx.DB.Tenant().Update(tenant)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +80,7 @@ func (ts tenantService) Update(req interface{}) (data interface{}, err interface
 }
 
 func (ts tenantService) Delete(req interface{}) (data interface{}, err interface{}) {
-	r := req.(*models.TenantQuery)
+	r := req.(*types.RequestTenantQuery)
 
 	var t models.Tenant
 	ts.ctx.DB.DB().Model(&models.Tenant{}).Where("id = ?", r.ID).Find(&t)
@@ -76,7 +89,7 @@ func (ts tenantService) Delete(req interface{}) (data interface{}, err interface
 		return nil, fmt.Errorf("删除失败, 删除保护已开启 关闭后再删除")
 	}
 
-	err = ts.ctx.DB.Tenant().Delete(*r)
+	err = ts.ctx.DB.Tenant().Delete(r.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -84,8 +97,8 @@ func (ts tenantService) Delete(req interface{}) (data interface{}, err interface
 }
 
 func (ts tenantService) List(req interface{}) (data interface{}, err interface{}) {
-	r := req.(*models.TenantQuery)
-	data, err = ts.ctx.DB.Tenant().List(*r)
+	r := req.(*types.RequestTenantQuery)
+	data, err = ts.ctx.DB.Tenant().List(r.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -93,8 +106,8 @@ func (ts tenantService) List(req interface{}) (data interface{}, err interface{}
 }
 
 func (ts tenantService) Get(req interface{}) (data interface{}, err interface{}) {
-	r := req.(*models.TenantQuery)
-	data, err = ts.ctx.DB.Tenant().Get(*r)
+	r := req.(*types.RequestTenantQuery)
+	data, err = ts.ctx.DB.Tenant().Get(r.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -102,8 +115,8 @@ func (ts tenantService) Get(req interface{}) (data interface{}, err interface{})
 }
 
 func (ts tenantService) AddUsersToTenant(req interface{}) (data interface{}, err interface{}) {
-	r := req.(*models.TenantLinkedUsers)
-	err = ts.ctx.DB.Tenant().AddTenantLinkedUsers(*r)
+	r := req.(*types.RequestTenantAddUsers)
+	err = ts.ctx.DB.Tenant().AddTenantLinkedUsers(r.ID, r.Users, r.UserRole)
 	if err != nil {
 		return nil, err
 	}
@@ -111,8 +124,8 @@ func (ts tenantService) AddUsersToTenant(req interface{}) (data interface{}, err
 }
 
 func (ts tenantService) DelUsersOfTenant(req interface{}) (data interface{}, err interface{}) {
-	r := req.(*models.TenantQuery)
-	err = ts.ctx.DB.Tenant().RemoveTenantLinkedUsers(*r)
+	r := req.(*types.RequestTenantQuery)
+	err = ts.ctx.DB.Tenant().RemoveTenantLinkedUsers(r.ID, r.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -120,8 +133,8 @@ func (ts tenantService) DelUsersOfTenant(req interface{}) (data interface{}, err
 }
 
 func (ts tenantService) GetUsersForTenant(req interface{}) (data interface{}, err interface{}) {
-	r := req.(*models.TenantQuery)
-	data, err = ts.ctx.DB.Tenant().GetTenantLinkedUsers(*r)
+	r := req.(*types.RequestTenantQuery)
+	data, err = ts.ctx.DB.Tenant().GetTenantLinkedUsers(r.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -129,8 +142,8 @@ func (ts tenantService) GetUsersForTenant(req interface{}) (data interface{}, er
 }
 
 func (ts tenantService) ChangeTenantUserRole(req interface{}) (data interface{}, err interface{}) {
-	r := req.(*models.ChangeTenantUserRole)
-	err = ts.ctx.DB.Tenant().ChangeTenantUserRole(*r)
+	r := req.(*types.RequestTenantChangeUserRole)
+	err = ts.ctx.DB.Tenant().ChangeTenantUserRole(r.ID, r.UserID, r.UserRole)
 	if err != nil {
 		return nil, err
 	}

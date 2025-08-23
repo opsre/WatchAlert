@@ -1,0 +1,53 @@
+{{- if .Values.mysql.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "watchalert.componentName" (dict "root" . "component" "redis") }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  serviceName: {{ include "watchalert.componentName" (dict "root" . "component" "redis") }}
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ include "watchalert.componentName" (dict "root" . "component" "redis") }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "watchalert.componentName" (dict "root" . "component" "redis") }}
+    spec:
+      containers:
+        - name: {{ include "watchalert.componentName" (dict "root" . "component" "redis") }}
+          command:
+            - redis-server
+            - /usr/local/etc/redis/redis.conf
+          image: {{ .Values.redis.image.repository }}:{{ .Values.redis.image.tag }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          ports:
+            - containerPort: 6379
+          volumeMounts:
+            {{- if .Values.redis.persistence.enabled }}
+            - name: redis-data
+              mountPath: /data/w8t/redis
+            {{- end }}
+            - name: redis-config
+              mountPath: /usr/local/etc/redis/redis.conf
+              subPath: redis.conf
+          env:
+            - name: TZ
+              value: Asia/Shanghai
+      volumes:
+        - name: redis-config
+          configMap:
+            name: {{ include "watchalert.componentName" (dict "root" . "component" "redis-config") }}
+  {{- if .Values.redis.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: redis-data
+      spec:
+        accessModes: ["{{ .Values.redis.persistence.accessModes }}"]
+        storageClassName: "{{ .Values.redis.persistence.storageClass }}"
+        resources:
+          requests:
+            storage: "{{ .Values.redis.persistence.size }}"
+  {{- end }}
+{{- end}}

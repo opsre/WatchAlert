@@ -17,14 +17,13 @@ type (
 	}
 
 	InterUserRepo interface {
-		Search(r models.MemberQuery) ([]models.Member, error)
-		List() ([]models.Member, error)
-		Get(r models.MemberQuery) (models.Member, bool, error)
+		List(query, joinDuty string) ([]models.Member, error)
+		Get(userId, username, query string) (models.Member, bool, error)
 		Create(r models.Member) error
 		Update(r models.Member) error
-		Delete(r models.MemberQuery) error
+		Delete(userId string) error
 		ChangeCache(userId string)
-		ChangePass(r models.Member) error
+		ChangePass(userId, password string) error
 	}
 )
 
@@ -37,13 +36,16 @@ func newUserInterface(db *gorm.DB, g InterGormDBCli) InterUserRepo {
 	}
 }
 
-func (ur UserRepo) Search(r models.MemberQuery) ([]models.Member, error) {
-	var data []models.Member
-	var db = ur.db.Model(&models.Member{})
-	if r.Query != "" {
-		db.Where("user_name LIKE ? OR email Like ? OR phone LIKE ?", "%"+r.Query+"%", "%"+r.Query+"%", "%"+r.Query+"%")
+func (ur UserRepo) List(query, joinDuty string) ([]models.Member, error) {
+	var (
+		data []models.Member
+		db   = ur.db.Model(&models.Member{})
+	)
+
+	if query != "" {
+		db.Where("user_name LIKE ? OR email Like ? OR phone LIKE ?", "%"+query+"%", "%"+query+"%", "%"+query+"%")
 	}
-	if r.JoinDuty == "true" {
+	if joinDuty == "true" {
 		db.Where("join_duty = ?", "true")
 	}
 	err := db.Find(&data).Error
@@ -54,30 +56,20 @@ func (ur UserRepo) Search(r models.MemberQuery) ([]models.Member, error) {
 	return data, nil
 }
 
-func (ur UserRepo) List() ([]models.Member, error) {
-	var data []models.Member
-	var db = ur.db.Model(&models.Member{})
-	err := db.Find(&data).Error
-	if err != nil {
-		return nil, err
+func (ur UserRepo) Get(userId, username, query string) (models.Member, bool, error) {
+	var (
+		data models.Member
+		db   = ur.db.Model(models.Member{})
+	)
+
+	if userId != "" {
+		db.Where("user_id = ?", userId)
 	}
-
-	return data, nil
-}
-
-func (ur UserRepo) Get(r models.MemberQuery) (models.Member, bool, error) {
-	var data models.Member
-	db := ur.db.Model(models.Member{})
-	if r.UserId != "" {
-		db.Where("user_id = ?", r.UserId)
+	if username != "" {
+		db.Where("user_name = ?", username)
 	}
-
-	if r.UserName != "" {
-		db.Where("user_name = ?", r.UserName)
-	}
-
-	if r.Query != "" {
-		db.Where("user_id LIKE ? or user_name LIKE ? or email LIKE ? or phone LIKE ?", "%"+r.Query+"%", "%"+r.Query+"%", "%"+r.Query+"%", "%"+r.Query+"%")
+	if query != "" {
+		db.Where("user_id LIKE ? or user_name LIKE ? or email LIKE ? or phone LIKE ?", "%"+query+"%", "%"+query+"%", "%"+query+"%", "%"+query+"%")
 	}
 
 	err := db.First(&data).Error
@@ -128,14 +120,14 @@ func (ur UserRepo) Update(r models.Member) error {
 	return nil
 }
 
-func (ur UserRepo) Delete(r models.MemberQuery) error {
-	userInfo, _, err := ur.User().Get(models.MemberQuery{UserId: r.UserId})
+func (ur UserRepo) Delete(userId string) error {
+	userInfo, _, err := ur.User().Get(userId, "", "")
 	if err != nil {
 		return err
 	}
 
 	for _, tid := range userInfo.Tenants {
-		err = ur.Tenant().RemoveTenantLinkedUsers(models.TenantQuery{ID: tid, UserID: r.UserId})
+		err = ur.Tenant().RemoveTenantLinkedUsers(tid, userId)
 		if err != nil {
 			return err
 		}
@@ -144,7 +136,7 @@ func (ur UserRepo) Delete(r models.MemberQuery) error {
 	d := Delete{
 		Table: models.Member{},
 		Where: map[string]interface{}{
-			"user_id = ?": r.UserId,
+			"user_id = ?": userId,
 		},
 	}
 	err = ur.g.Delete(d)
@@ -170,13 +162,13 @@ func (ur UserRepo) ChangeCache(userId string) {
 	client.Redis.Set("uid-"+userId, tools.JsonMarshal(dbUser), duration)
 }
 
-func (ur UserRepo) ChangePass(r models.Member) error {
+func (ur UserRepo) ChangePass(userId, password string) error {
 	u := Update{
 		Table: models.Member{},
 		Where: map[string]interface{}{
-			"user_id = ?": r.UserId,
+			"user_id = ?": userId,
 		},
-		Update: []string{"password", r.Password},
+		Update: []string{"password", password},
 	}
 
 	err := ur.g.Update(u)

@@ -8,6 +8,7 @@ import (
 	"time"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
+	"watchAlert/internal/types"
 	"watchAlert/pkg/tools"
 )
 
@@ -31,7 +32,7 @@ func newInterEventService(ctx *ctx.Context) InterEventService {
 }
 
 func (e eventService) ProcessAlertEvent(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.ProcessAlertEvent)
+	r := req.(*types.RequestProcessAlertEvent)
 
 	var wg sync.WaitGroup
 	wg.Add(len(r.Fingerprints))
@@ -71,7 +72,7 @@ func (e eventService) ProcessAlertEvent(req interface{}) (interface{}, interface
 }
 
 func (e eventService) ListCurrentEvent(req interface{}) (interface{}, interface{}) {
-	r, ok := req.(*models.AlertCurEventQuery)
+	r, ok := req.(*types.RequestAlertCurEventQuery)
 	if !ok {
 		return nil, fmt.Errorf("invalid request type: expected *models.AlertCurEventQuery")
 	}
@@ -161,7 +162,7 @@ func (e eventService) ListCurrentEvent(req interface{}) (interface{}, interface{
 	})
 
 	paginatedList := pageSlice(filteredEvents, int(r.Page.Index), int(r.Page.Size))
-	return models.CurEventResponse{
+	return types.ResponseAlertCurEventList{
 		List: paginatedList,
 		Page: models.Page{
 			Total: int64(len(filteredEvents)),
@@ -172,7 +173,7 @@ func (e eventService) ListCurrentEvent(req interface{}) (interface{}, interface{
 }
 
 func (e eventService) ListHistoryEvent(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.AlertHisEventQuery)
+	r := req.(*types.RequestAlertHisEventQuery)
 	data, err := e.ctx.DB.Event().GetHistoryEvent(*r)
 	if err != nil {
 		return nil, err
@@ -210,7 +211,7 @@ func pageSlice(data []models.AlertCurEvent, index, size int) []models.AlertCurEv
 }
 
 func (e eventService) ListComments(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.RequestListEventComments)
+	r := req.(*types.RequestListEventComments)
 	comment := e.ctx.DB.Comment()
 	data, err := comment.List(*r)
 	if err != nil {
@@ -221,7 +222,7 @@ func (e eventService) ListComments(req interface{}) (interface{}, interface{}) {
 }
 
 func (e eventService) AddComment(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.RequestAddEventComment)
+	r := req.(*types.RequestAddEventComment)
 	comment := e.ctx.DB.Comment()
 	err := comment.Add(*r)
 	if err != nil {
@@ -232,7 +233,7 @@ func (e eventService) AddComment(req interface{}) (interface{}, interface{}) {
 }
 
 func (e eventService) DeleteComment(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.RequestDeleteEventComment)
+	r := req.(*types.RequestDeleteEventComment)
 	comment := e.ctx.DB.Comment()
 	err := comment.Delete(*r)
 	if err != nil {

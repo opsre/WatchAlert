@@ -16,6 +16,14 @@ import (
 	"watchAlert/internal/models"
 )
 
+const (
+	// 任务通道缓冲区大小
+	TaskChannelBufferSize = 1
+
+	// 默认处理时间间隔
+	DefaultProcessTime = 1
+)
+
 type (
 	ConsumeInterface interface {
 		Submit(faultCenter models.FaultCenter)
@@ -30,8 +38,8 @@ type (
 	}
 
 	EventsGroup struct {
-		ID     string // 事件组 ID
-		Events []*models.AlertCurEvent
+		NoticeID string // 通知组 ID
+		Events   []*models.AlertCurEvent
 	}
 
 	RulesGroup struct {
@@ -45,12 +53,13 @@ type (
 	}
 )
 
+// AddAlert 添加告警
 func (ag *AlertGroups) AddAlert(stateId string, alert *models.AlertCurEvent, faultCenter models.FaultCenter) {
-	// 获取通知对象 ID 列表 用于事件分组
-	noticeObjIds := ag.getNoticeId(alert, faultCenter)
-
 	ag.lock.Lock()
 	defer ag.lock.Unlock()
+
+	// 获取通知对象 ID 列表 用于事件分组
+	noticeObjIds := ag.getNoticeId(alert, faultCenter)
 
 	for _, noticeObjId := range noticeObjIds {
 		// 查找 Rule 位置
@@ -63,29 +72,29 @@ func (ag *AlertGroups) AddAlert(stateId string, alert *models.AlertCurEvent, fau
 			// 查找 Group 位置
 			groupPos := ag.getGroupNodePos(rule, noticeObjId)
 
-			if groupPos < len(rule.Groups) && (rule.Groups)[groupPos].ID == noticeObjId {
+			if groupPos < len(rule.Groups) && (rule.Groups)[groupPos].NoticeID == noticeObjId {
 				// 追加事件
 				(rule.Groups)[groupPos].Events = append((rule.Groups)[groupPos].Events, alert)
 			} else {
-				// 插入新数据
+				// 实例化新的 EventGroup
 				rule.Groups = append(rule.Groups, EventsGroup{
-					ID:     noticeObjId,
-					Events: []*models.AlertCurEvent{alert},
+					NoticeID: noticeObjId,
+					Events:   []*models.AlertCurEvent{alert},
 				})
 			}
-			return
-		}
-
-		// 插入新Rule
-		ag.Rules = append(ag.Rules, RulesGroup{
-			RuleID: stateId,
-			Groups: []EventsGroup{
-				{
-					ID:     noticeObjId,
-					Events: []*models.AlertCurEvent{alert},
+			continue
+		} else {
+			// 实例化新的 RuleGroup
+			ag.Rules = append(ag.Rules, RulesGroup{
+				RuleID: stateId,
+				Groups: []EventsGroup{
+					{
+						NoticeID: noticeObjId,
+						Events:   []*models.AlertCurEvent{alert},
+					},
 				},
-			},
-		})
+			})
+		}
 	}
 }
 
@@ -122,15 +131,16 @@ func (ag *AlertGroups) getRuleNodePos(ruleId string) int {
 	})
 }
 
+// getGroupNodePos 获取 Event 点位
 func (ag *AlertGroups) getGroupNodePos(rule *RulesGroup, groupId string) int {
 	// Groups 切片排序
 	sort.Slice(rule.Groups, func(i, j int) bool {
-		return rule.Groups[i].ID < rule.Groups[j].ID
+		return rule.Groups[i].NoticeID < rule.Groups[j].NoticeID
 	})
 
 	// 查找Group位置
 	return sort.Search(len(rule.Groups), func(i int) bool {
-		return (rule.Groups)[i].ID >= groupId
+		return (rule.Groups)[i].NoticeID >= groupId
 	})
 }
 
@@ -166,8 +176,8 @@ func (c *Consume) Restart(faultCenter models.FaultCenter) {
 
 // Watch 启动 Consumer Watch 进程
 func (c *Consume) Watch(ctx context.Context, faultCenter models.FaultCenter) {
-	taskChan := make(chan struct{}, 1)
-	timer := time.NewTicker(time.Second * time.Duration(1))
+	taskChan := make(chan struct{}, TaskChannelBufferSize)
+	timer := time.NewTicker(time.Second * time.Duration(DefaultProcessTime))
 	defer func() {
 		timer.Stop()
 		if r := recover(); r != nil {
@@ -301,7 +311,7 @@ func (c *Consume) sendAlerts(faultCenter models.FaultCenter, aggEvents *AlertGro
 
 	for _, rule := range aggEvents.Rules {
 		for _, groups := range rule.Groups {
-			c.processAlertGroup(faultCenter, groups.ID, groups.Events)
+			c.processAlertGroup(faultCenter, groups.NoticeID, groups.Events)
 		}
 	}
 }
@@ -341,7 +351,7 @@ func (c *Consume) removeAlertFromCache(alert *models.AlertCurEvent) {
 
 // RestartAllConsumers 重启消费进程
 func (c *Consume) RestartAllConsumers() {
-	list, err := ctx.DB.FaultCenter().List(models.FaultCenterQuery{})
+	list, err := ctx.DB.FaultCenter().List("", "")
 	if err != nil {
 		logc.Error(ctx.Ctx, fmt.Sprintf("获取故障中心列表错误, err: %s", err.Error()))
 		return

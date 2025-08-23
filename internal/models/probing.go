@@ -36,11 +36,6 @@ func (n *ProbingRule) GetEnabled() *bool {
 	return n.Enabled
 }
 
-type OnceProbing struct {
-	RuleType              string                `json:"ruleType"`
-	ProbingEndpointConfig ProbingEndpointConfig `json:"probingEndpointConfig"`
-}
-
 type ProbingEndpointValues struct {
 	PHTTP Phttp `json:"pHttp"`
 	PICMP Picmp `json:"pIcmp"`
@@ -76,14 +71,6 @@ type Pssl struct {
 	ResponseTime  string `json:"responseTime"`
 	StartTime     string `json:"startTime"`
 	TimeRemaining string `json:"timeRemaining"`
-}
-
-type ProbingRuleQuery struct {
-	TenantId string `json:"tenantId" form:"tenantId"`
-	RuleId   string `json:"ruleId" form:"ruleId"`
-	RuleType string `json:"ruleType" form:"ruleType"`
-	Enabled  *bool  `json:"enabled" form:"enabled"`
-	Query    string `json:"query" form:"query"`
 }
 
 type ProbingEndpointConfig struct {
@@ -165,11 +152,6 @@ func BuildProbingValueCacheKey(tenantId, ruleId string) ProbingValueCacheKey {
 	return ProbingValueCacheKey(fmt.Sprintf("w8t:%s:probing:%s.value", tenantId, ruleId))
 }
 
-type ReqProbingHistory struct {
-	RuleId    string `json:"ruleId" form:"ruleId"`
-	DateRange int64  `json:"dateRange" form:"dateRange"`
-}
-
 type ProbingHistory struct {
 	Timestamp int64          `json:"timestamp"`
 	RuleId    string         `json:"ruleId"`
@@ -178,18 +160,4 @@ type ProbingHistory struct {
 
 func (p *ProbingHistory) TableName() string {
 	return "w8t_probing_history"
-}
-
-type RequestProbeChangeState struct {
-	TenantId string `json:"tenantId"`
-	RuleId   string `json:"ruleId"`
-	Enabled  *bool  `json:"enabled"`
-}
-
-func (r *RequestProbeChangeState) GetEnabled() *bool {
-	if r.Enabled == nil {
-		isOk := false
-		return &isOk
-	}
-	return r.Enabled
 }

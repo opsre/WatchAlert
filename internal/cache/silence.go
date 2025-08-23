@@ -38,7 +38,7 @@ func (sc *SilenceCache) PushAlertMute(mute models.AlertSilences) {
 	defer sc.Unlock()
 
 	key := models.BuildAlertMuteCacheKey(mute.TenantId, mute.FaultCenterId)
-	sc.setRedisHash(key, mute.Id, tools.JsonMarshal(mute))
+	sc.setRedisHash(key, mute.ID, tools.JsonMarshal(mute))
 }
 
 // RemoveAlertMute 从故障中心的缓存中移除静默规则

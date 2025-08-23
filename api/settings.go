@@ -7,30 +7,32 @@ import (
 	"watchAlert/internal/services"
 )
 
-type SettingsController struct{}
+type settingsController struct{}
 
-func (a SettingsController) API(gin *gin.RouterGroup) {
-	settingA := gin.Group("setting")
-	settingA.Use(
+var SettingsController = new(settingsController)
+
+func (settingsController settingsController) API(gin *gin.RouterGroup) {
+	a := gin.Group("setting")
+	a.Use(
 		middleware.Auth(),
 		middleware.Permission(),
 		middleware.AuditingLog(),
 	)
 	{
-		settingA.POST("saveSystemSetting", a.Save)
+		a.POST("saveSystemSetting", settingsController.Save)
 	}
 
-	settingB := gin.Group("setting")
-	settingB.Use(
+	b := gin.Group("setting")
+	b.Use(
 		middleware.Auth(),
 		middleware.Permission(),
 	)
 	{
-		settingB.GET("getSystemSetting", a.Get)
+		b.GET("getSystemSetting", settingsController.Get)
 	}
 }
 
-func (a SettingsController) Save(ctx *gin.Context) {
+func (settingsController settingsController) Save(ctx *gin.Context) {
 	r := new(models.Settings)
 	BindJson(ctx, r)
 
@@ -39,7 +41,7 @@ func (a SettingsController) Save(ctx *gin.Context) {
 	})
 }
 
-func (a SettingsController) Get(ctx *gin.Context) {
+func (settingsController settingsController) Get(ctx *gin.Context) {
 	Service(ctx, func() (interface{}, interface{}) {
 		return services.SettingService.Get()
 	})

@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: {{ include "watchalert.componentName" (dict "root" . "component" "web") }}
+    {{- include "watchalert.labels" . | nindent 4 }}
+  name: {{ include "watchalert.componentName" (dict "root" . "component" "web") }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ include "watchalert.componentName" (dict "root" . "component" "web") }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "watchalert.componentName" (dict "root" . "component" "web") }}
+        {{- include "watchalert.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      {{- with .Values.web.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      {{- with .Values.web.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      serviceAccountName: {{ include "watchalert.serviceAccountName" . }}
+
+      containers:
+        - name: {{ include "watchalert.componentName" (dict "root" . "component" "web") }}
+          image: "{{ .Values.web.image.repository }}:{{ .Values.web.image.tag }}"
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          command:
+            - bash
+            - -c
+          args:
+            - "nginx -g 'daemon off;'"
+
+          env:
+            - name: TZ
+              value: Asia/Shanghai
+
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+
+          volumeMounts:
+            - mountPath: /etc/nginx/conf.d/w8t.conf
+              name: nginx
+              subPath: nginx.conf
+
+          resources:
+            {{- toYaml .Values.web.resources | nindent 12 }}
+
+          livenessProbe:
+            {{- toYaml .Values.web.livenessProbe | nindent 12 }}
+
+          readinessProbe:
+            {{- toYaml .Values.web.readinessProbe | nindent 12 }}
+
+      volumes:
+        - name: nginx
+          configMap:
+            name: {{ include "watchalert.componentName" (dict "root" . "component" "web-config") }}

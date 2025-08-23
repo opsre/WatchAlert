@@ -3,6 +3,8 @@ package services
 import (
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
+	"watchAlert/internal/types"
+	"watchAlert/pkg/tools"
 )
 
 type ruleGroupService struct {
@@ -23,8 +25,13 @@ func newInterRuleGroupService(ctx *ctx.Context) InterRuleGroupService {
 }
 
 func (rgs ruleGroupService) Create(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.RuleGroups)
-	err := rgs.ctx.DB.RuleGroup().Create(*r)
+	r := req.(*types.RequestRuleGroupCreate)
+	err := rgs.ctx.DB.RuleGroup().Create(models.RuleGroups{
+		TenantId:    r.TenantId,
+		ID:          "rg-" + tools.RandId(),
+		Name:        r.Name,
+		Description: r.Description,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -33,8 +40,13 @@ func (rgs ruleGroupService) Create(req interface{}) (interface{}, interface{}) {
 }
 
 func (rgs ruleGroupService) Update(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.RuleGroups)
-	err := rgs.ctx.DB.RuleGroup().Update(*r)
+	r := req.(*types.RequestRuleGroupUpdate)
+	err := rgs.ctx.DB.RuleGroup().Update(models.RuleGroups{
+		TenantId:    r.TenantId,
+		ID:          r.ID,
+		Name:        r.Name,
+		Description: r.Description,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -43,8 +55,8 @@ func (rgs ruleGroupService) Update(req interface{}) (interface{}, interface{}) {
 }
 
 func (rgs ruleGroupService) Delete(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.RuleGroupQuery)
-	err := rgs.ctx.DB.RuleGroup().Delete(*r)
+	r := req.(*types.RequestRuleGroupQuery)
+	err := rgs.ctx.DB.RuleGroup().Delete(r.TenantId, r.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -53,15 +65,18 @@ func (rgs ruleGroupService) Delete(req interface{}) (interface{}, interface{}) {
 }
 
 func (rgs ruleGroupService) List(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.RuleGroupQuery)
-	data, err := rgs.ctx.DB.RuleGroup().List(*r)
+	r := req.(*types.RequestRuleGroupQuery)
+	data, count, err := rgs.ctx.DB.RuleGroup().List(r.TenantId, r.Query, r.Page)
 	if err != nil {
 		return nil, err
 	}
 
-	return data, nil
-}
-
-func (rgs ruleGroupService) Search() {
-
+	return types.ResponseRuleGroupList{
+		List: data,
+		Page: models.Page{
+			Index: r.Page.Index,
+			Size:  r.Page.Size,
+			Total: count,
+		},
+	}, nil
 }

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"gorm.io/gorm"
 	"watchAlert/internal/models"
-	"watchAlert/pkg/tools"
 )
 
 type (
@@ -13,10 +12,10 @@ type (
 	}
 
 	InterRuleGroupRepo interface {
-		List(req models.RuleGroupQuery) (models.RuleGroupResponse, error)
+		List(tenantId, query string, page models.Page) ([]models.RuleGroups, int64, error)
 		Create(req models.RuleGroups) error
 		Update(req models.RuleGroups) error
-		Delete(req models.RuleGroupQuery) error
+		Delete(tenantId, id string) error
 	}
 )
 
@@ -29,21 +28,21 @@ func newRuleGroupInterface(db *gorm.DB, g InterGormDBCli) InterRuleGroupRepo {
 	}
 }
 
-func (r RuleGroupRepo) List(req models.RuleGroupQuery) (models.RuleGroupResponse, error) {
+func (r RuleGroupRepo) List(tenantId, query string, page models.Page) ([]models.RuleGroups, int64, error) {
 	var (
 		data  []models.RuleGroups
 		db    = r.db.Model(&models.RuleGroups{})
 		count int64
 	)
 
-	pageIndexInt := req.Page.Index
-	pageSizeInt := req.Page.Size
+	pageIndexInt := page.Index
+	pageSizeInt := page.Size
 
-	db.Where("tenant_id = ?", req.TenantId)
+	db.Where("tenant_id = ?", tenantId)
 
-	if req.Query != "" {
+	if query != "" {
 		db.Where("id LIKE ? OR name LIKE ? OR description LIKE ?",
-			"%"+req.Query+"%", "%"+req.Query+"%", "%"+req.Query+"%")
+			"%"+query+"%", "%"+query+"%", "%"+query+"%")
 	}
 
 	db.Count(&count)
@@ -52,22 +51,15 @@ func (r RuleGroupRepo) List(req models.RuleGroupQuery) (models.RuleGroupResponse
 
 	err := db.Find(&data).Error
 	if err != nil {
-		return models.RuleGroupResponse{}, err
+		return nil, 0, err
 	}
 
 	for k, v := range data {
 		var resRules []models.AlertRule
-		r.db.Model(&models.AlertRule{}).Where("tenant_id = ? AND rule_group_id = ?", req.TenantId, v.ID).Find(&resRules)
+		r.db.Model(&models.AlertRule{}).Where("tenant_id = ? AND rule_group_id = ?", tenantId, v.ID).Find(&resRules)
 		data[k].Number = len(resRules)
 	}
-	return models.RuleGroupResponse{
-		List: data,
-		Page: models.Page{
-			Index: pageIndexInt,
-			Size:  pageSizeInt,
-			Total: count,
-		},
-	}, nil
+	return data, count, nil
 }
 
 func (r RuleGroupRepo) Create(req models.RuleGroups) error {
@@ -77,9 +69,7 @@ func (r RuleGroupRepo) Create(req models.RuleGroups) error {
 		return fmt.Errorf("规则组名称已存在")
 	}
 
-	nr := req
-	nr.ID = "rg-" + tools.RandId()
-	err := r.g.Create(models.RuleGroups{}, nr)
+	err := r.g.Create(models.RuleGroups{}, req)
 	if err != nil {
 		return err
 	}
@@ -105,19 +95,19 @@ func (r RuleGroupRepo) Update(req models.RuleGroups) error {
 	return nil
 }
 
-func (r RuleGroupRepo) Delete(req models.RuleGroupQuery) error {
+func (r RuleGroupRepo) Delete(tenantId, id string) error {
 	var ruleNum int64
-	r.db.Model(&models.AlertRule{}).Where("tenant_id = ? AND rule_group_id = ?", req.TenantId, req.ID).
+	r.db.Model(&models.AlertRule{}).Where("tenant_id = ? AND rule_group_id = ?", tenantId, id).
 		Count(&ruleNum)
 	if ruleNum != 0 {
-		return fmt.Errorf("无法删除规则组 %s, 因为规则组不为空", req.ID)
+		return fmt.Errorf("无法删除规则组 %s, 因为规则组不为空", id)
 	}
 
 	d := Delete{
 		Table: models.RuleGroups{},
 		Where: map[string]interface{}{
-			"tenant_id = ?": req.TenantId,
-			"id = ?":        req.ID,
+			"tenant_id = ?": tenantId,
+			"id = ?":        id,
 		},
 	}
 

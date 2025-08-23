@@ -1,9 +1,5 @@
 package models
 
-import (
-	"gorm.io/gorm"
-)
-
 type AlertNotice struct {
 	TenantId     string   `json:"tenantId"`
 	Uuid         string   `json:"uuid"`
@@ -18,11 +14,11 @@ type AlertNotice struct {
 	PhoneNumber  []string `json:"phoneNumber" gorm:"phoneNumber;serializer:json"`
 }
 
-func (an *AlertNotice) GetDutyId() *string {
-	if an.DutyId == nil {
+func (alertNotice *AlertNotice) GetDutyId() *string {
+	if alertNotice.DutyId == nil {
 		return new(string)
 	}
-	return an.DutyId
+	return alertNotice.DutyId
 }
 
 type Route struct {
@@ -42,44 +38,6 @@ type Email struct {
 	Subject string   `json:"subject"`
 	To      []string `json:"to" gorm:"column:to;serializer:json"`
 	CC      []string `json:"cc" gorm:"column:cc;serializer:json"`
-}
-
-type AlertRecord struct {
-	gorm.Model
-	AlertName   string `json:"alertName"`
-	Description string `json:"description"`
-	Metric      string `json:"metric"`
-	Severity    string `json:"severity"`
-	Status      string `json:"status"`
-}
-
-type NoticeTemplateExample struct {
-	Id                   string `json:"id"`
-	Name                 string `json:"name"`
-	NoticeType           string `json:"noticeType"`
-	Description          string `json:"description"`
-	Template             string `json:"template"`
-	TemplateFiring       string `json:"templateFiring"`
-	TemplateRecover      string `json:"templateRecover"`
-	EnableFeiShuJsonCard *bool  `json:"enableFeiShuJsonCard"`
-}
-
-type NoticeQuery struct {
-	TenantId     string `json:"tenantId" form:"tenantId"`
-	Uuid         string `json:"uuid" form:"uuid"`
-	Name         string `json:"name" form:"name"`
-	NoticeTmplId string `json:"noticeTmplId" form:"noticeTmplId"`
-	Status       string `json:"status" form:"status"`
-	Severity     string `json:"severity" form:"severity"`
-	Query        string `json:"query" form:"query"`
-	Page
-}
-
-type NoticeTemplateExampleQuery struct {
-	Id         string `json:"id" form:"id"`
-	Name       string `json:"name" form:"name"`
-	NoticeType string `json:"noticeType" form:"noticeType"`
-	Query      string `json:"query" form:"query"`
 }
 
 type NoticeRecord struct {

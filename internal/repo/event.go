@@ -3,6 +3,7 @@ package repo
 import (
 	"gorm.io/gorm"
 	"watchAlert/internal/models"
+	"watchAlert/internal/types"
 )
 
 type (
@@ -11,7 +12,7 @@ type (
 	}
 
 	InterEventRepo interface {
-		GetHistoryEvent(r models.AlertHisEventQuery) (models.HistoryEventResponse, error)
+		GetHistoryEvent(r types.RequestAlertHisEventQuery) (types.ResponseHistoryEventList, error)
 		CreateHistoryEvent(r models.AlertHisEvent) error
 	}
 )
@@ -25,7 +26,7 @@ func newEventInterface(db *gorm.DB, g InterGormDBCli) InterEventRepo {
 	}
 }
 
-func (e EventRepo) GetHistoryEvent(r models.AlertHisEventQuery) (models.HistoryEventResponse, error) {
+func (e EventRepo) GetHistoryEvent(r types.RequestAlertHisEventQuery) (types.ResponseHistoryEventList, error) {
 	var data []models.AlertHisEvent
 	var count int64
 
@@ -50,7 +51,7 @@ func (e EventRepo) GetHistoryEvent(r models.AlertHisEventQuery) (models.HistoryE
 	}
 
 	if err := db.Count(&count).Error; err != nil {
-		return models.HistoryEventResponse{}, err
+		return types.ResponseHistoryEventList{}, err
 	}
 
 	switch r.SortOrder {
@@ -63,10 +64,10 @@ func (e EventRepo) GetHistoryEvent(r models.AlertHisEventQuery) (models.HistoryE
 	}
 
 	if err := db.Limit(int(r.Page.Size)).Offset(int((r.Page.Index - 1) * r.Page.Size)).Find(&data).Error; err != nil {
-		return models.HistoryEventResponse{}, err
+		return types.ResponseHistoryEventList{}, err
 	}
 
-	return models.HistoryEventResponse{
+	return types.ResponseHistoryEventList{
 		List: data,
 		Page: models.Page{
 			Index: r.Page.Index,

@@ -3,7 +3,6 @@ package repo
 import (
 	"gorm.io/gorm"
 	"watchAlert/internal/models"
-	"watchAlert/pkg/tools"
 )
 
 type (
@@ -12,12 +11,11 @@ type (
 	}
 
 	InterNoticeTmplRepo interface {
-		List(r models.NoticeTemplateExampleQuery) ([]models.NoticeTemplateExample, error)
-		Search(r models.NoticeTemplateExampleQuery) ([]models.NoticeTemplateExample, error)
+		List(id, noticeType, query string) ([]models.NoticeTemplateExample, error)
 		Create(r models.NoticeTemplateExample) error
 		Update(r models.NoticeTemplateExample) error
-		Delete(r models.NoticeTemplateExampleQuery) error
-		Get(r models.NoticeTemplateExampleQuery) models.NoticeTemplateExample
+		Delete(id string) error
+		Get(id string) models.NoticeTemplateExample
 	}
 )
 
@@ -30,34 +28,22 @@ func newNoticeTmplInterface(db *gorm.DB, g InterGormDBCli) InterNoticeTmplRepo {
 	}
 }
 
-func (nr NoticeTmplRepo) List(r models.NoticeTemplateExampleQuery) ([]models.NoticeTemplateExample, error) {
+func (nr NoticeTmplRepo) List(id, noticeType, query string) ([]models.NoticeTemplateExample, error) {
 	var (
 		data []models.NoticeTemplateExample
 		db   = nr.db.Model(&models.NoticeTemplateExample{})
 	)
-	err := db.Find(&data).Error
-	if err != nil {
-		return nil, err
-	}
-	return data, nil
-}
 
-func (nr NoticeTmplRepo) Search(r models.NoticeTemplateExampleQuery) ([]models.NoticeTemplateExample, error) {
-	var (
-		data []models.NoticeTemplateExample
-		db   = nr.db.Model(&models.NoticeTemplateExample{})
-	)
-	if r.Id != "" {
-		db.Where("id = ?", r.Id)
+	if id != "" {
+		db.Where("id = ?", id)
+	}
+	if noticeType != "" {
+		db.Where("notice_type = ?", noticeType)
+	}
+	if query != "" {
+		db.Where("name LIKE ? OR description LIKE ?", "%"+query+"%", "%"+query+"%")
 	}
 
-	if r.NoticeType != "" {
-		db.Where("notice_type = ?", r.NoticeType)
-	}
-
-	if r.Query != "" {
-		db.Where("name LIKE ? OR description LIKE ?", "%"+r.Query+"%", "%"+r.Query+"%")
-	}
 	err := db.Find(&data).Error
 	if err != nil {
 		return nil, err
@@ -66,9 +52,7 @@ func (nr NoticeTmplRepo) Search(r models.NoticeTemplateExampleQuery) ([]models.N
 }
 
 func (nr NoticeTmplRepo) Create(r models.NoticeTemplateExample) error {
-	nt := r
-	nt.Id = "nt-" + tools.RandId()
-	err := nr.g.Create(models.NoticeTemplateExample{}, nt)
+	err := nr.g.Create(models.NoticeTemplateExample{}, r)
 	if err != nil {
 		return err
 	}
@@ -80,7 +64,7 @@ func (nr NoticeTmplRepo) Update(r models.NoticeTemplateExample) error {
 	u := Updates{
 		Table: models.NoticeTemplateExample{},
 		Where: map[string]interface{}{
-			"id = ?": r.Id,
+			"id = ?": r.ID,
 		},
 		Updates: r,
 	}
@@ -93,11 +77,11 @@ func (nr NoticeTmplRepo) Update(r models.NoticeTemplateExample) error {
 	return nil
 }
 
-func (nr NoticeTmplRepo) Delete(r models.NoticeTemplateExampleQuery) error {
+func (nr NoticeTmplRepo) Delete(id string) error {
 	d := Delete{
 		Table: models.NoticeTemplateExample{},
 		Where: map[string]interface{}{
-			"id = ?": r.Id,
+			"id = ?": id,
 		},
 	}
 
@@ -109,13 +93,13 @@ func (nr NoticeTmplRepo) Delete(r models.NoticeTemplateExampleQuery) error {
 	return nil
 }
 
-func (nr NoticeTmplRepo) Get(r models.NoticeTemplateExampleQuery) models.NoticeTemplateExample {
+func (nr NoticeTmplRepo) Get(id string) models.NoticeTemplateExample {
 	var (
 		data models.NoticeTemplateExample
 		db   = nr.db.Model(&models.NoticeTemplateExample{})
 	)
-	if r.Id != "" {
-		db.Where("id = ?", r.Id)
+	if id != "" {
+		db.Where("id = ?", id)
 	}
 
 	err := db.First(&data).Error

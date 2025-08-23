@@ -87,7 +87,7 @@ func CheckDatasourceHealth(datasource models.AlertDataSource) (bool, error) {
 func logDatasourceError(ds models.AlertDataSource, err error) {
 	logc.Errorf(context.Background(), "Datasource error",
 		map[string]interface{}{
-			"id":   ds.Id,
+			"id":   ds.ID,
 			"name": ds.Name,
 			"type": ds.Type,
 			"err":  err.Error(),

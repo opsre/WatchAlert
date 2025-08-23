@@ -3,20 +3,22 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 	"time"
-	middleware "watchAlert/internal/middleware"
-	"watchAlert/internal/models"
+	"watchAlert/internal/middleware"
 	"watchAlert/internal/services"
+	"watchAlert/internal/types"
 	"watchAlert/pkg/response"
 	utils "watchAlert/pkg/tools"
 )
 
-type AlertEventController struct{}
+type alertEventController struct{}
+
+var AlertEventController = new(alertEventController)
 
 /*
 告警事件 API
 /api/w8t/event
 */
-func (e AlertEventController) API(gin *gin.RouterGroup) {
+func (alertEventController alertEventController) API(gin *gin.RouterGroup) {
 	a := gin.Group("event")
 	a.Use(
 		middleware.Auth(),
@@ -24,10 +26,10 @@ func (e AlertEventController) API(gin *gin.RouterGroup) {
 		middleware.ParseTenant(),
 	)
 	{
-		a.POST("processAlertEvent", e.ProcessAlertEvent)
-		a.POST("addComment", e.AddComment)
-		a.GET("listComments", e.ListComment)
-		a.POST("deleteComment", e.DeleteComment)
+		a.POST("processAlertEvent", alertEventController.ProcessAlertEvent)
+		a.POST("addComment", alertEventController.AddComment)
+		a.GET("listComments", alertEventController.ListComment)
+		a.POST("deleteComment", alertEventController.DeleteComment)
 	}
 
 	b := gin.Group("event")
@@ -36,13 +38,13 @@ func (e AlertEventController) API(gin *gin.RouterGroup) {
 		middleware.ParseTenant(),
 	)
 	{
-		b.GET("curEvent", e.ListCurrentEvent)
-		b.GET("hisEvent", e.ListHistoryEvent)
+		b.GET("curEvent", alertEventController.ListCurrentEvent)
+		b.GET("hisEvent", alertEventController.ListHistoryEvent)
 	}
 }
 
-func (e AlertEventController) ProcessAlertEvent(ctx *gin.Context) {
-	r := new(models.ProcessAlertEvent)
+func (alertEventController alertEventController) ProcessAlertEvent(ctx *gin.Context) {
+	r := new(types.RequestProcessAlertEvent)
 	BindJson(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -62,8 +64,8 @@ func (e AlertEventController) ProcessAlertEvent(ctx *gin.Context) {
 	})
 }
 
-func (e AlertEventController) ListCurrentEvent(ctx *gin.Context) {
-	r := new(models.AlertCurEventQuery)
+func (alertEventController alertEventController) ListCurrentEvent(ctx *gin.Context) {
+	r := new(types.RequestAlertCurEventQuery)
 	BindQuery(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -74,8 +76,8 @@ func (e AlertEventController) ListCurrentEvent(ctx *gin.Context) {
 	})
 }
 
-func (e AlertEventController) ListHistoryEvent(ctx *gin.Context) {
-	r := new(models.AlertHisEventQuery)
+func (alertEventController alertEventController) ListHistoryEvent(ctx *gin.Context) {
+	r := new(types.RequestAlertHisEventQuery)
 	BindQuery(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -86,8 +88,8 @@ func (e AlertEventController) ListHistoryEvent(ctx *gin.Context) {
 	})
 }
 
-func (e AlertEventController) ListComment(ctx *gin.Context) {
-	r := new(models.RequestListEventComments)
+func (alertEventController alertEventController) ListComment(ctx *gin.Context) {
+	r := new(types.RequestListEventComments)
 	BindQuery(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -98,8 +100,8 @@ func (e AlertEventController) ListComment(ctx *gin.Context) {
 	})
 }
 
-func (e AlertEventController) AddComment(ctx *gin.Context) {
-	r := new(models.RequestAddEventComment)
+func (alertEventController alertEventController) AddComment(ctx *gin.Context) {
+	r := new(types.RequestAddEventComment)
 	BindJson(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -114,8 +116,8 @@ func (e AlertEventController) AddComment(ctx *gin.Context) {
 	})
 }
 
-func (e AlertEventController) DeleteComment(ctx *gin.Context) {
-	r := new(models.RequestDeleteEventComment)
+func (alertEventController alertEventController) DeleteComment(ctx *gin.Context) {
+	r := new(types.RequestDeleteEventComment)
 	BindJson(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")

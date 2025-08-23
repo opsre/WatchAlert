@@ -91,6 +91,17 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 				for ek, ev := range rule.ExternalLabels {
 					metric[ek] = ev
 				}
+
+				// 获取初次触发值
+				data, err := ctx.Redis.Alert().GetEventFromCache(rule.TenantId, rule.FaultCenterId, fingerprint)
+				if err == nil {
+					if data.Labels["first_value"] != nil {
+						metric["first_value"] = data.Labels["first_value"]
+					} else {
+						metric["first_value"] = v.Value
+					}
+				}
+
 				return metric
 			})
 			event.DatasourceId = datasourceId
@@ -108,12 +119,18 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 					event.Status = models.StatePreAlert
 					highestPriorityEvents[fingerprint] = event
 					curFingerprints = append(curFingerprints, fingerprint)
-					if _, e := event.Labels["recover_value"]; e {
-						delete(event.Labels, "recover_value")
-					}
 				}
 				// 找到符合条件的规则后，跳过该指标的其他规则
 				break
+			} else {
+				// 更新恢复时最新值
+				cache, err := ctx.Redis.Alert().GetEventFromCache(event.TenantId, event.FaultCenterId, event.Fingerprint)
+				if err == nil {
+					if !cache.IsRecovered || cache.Status != models.StateRecovered {
+						event.Labels["value"] = v.GetValue()
+						process.PushEventToFaultCenter(ctx, &event)
+					}
+				}
 			}
 		}
 	}
@@ -439,7 +456,7 @@ func traces(ctx *ctx.Context, datasourceId, datasourceType string, rule models.A
 	return curFingerprints
 }
 
-func cloudWatch(ctx *ctx.Context, datasourceId string, rule models.AlertRule) []string {
+func cloudWatch(ctx *ctx.Context, datasourceId, datasourceType string, rule models.AlertRule) []string {
 	var externalLabels map[string]interface{}
 	pools := ctx.Redis.ProviderPools()
 	cfg, err := pools.GetClient(datasourceId)
@@ -502,7 +519,7 @@ func cloudWatch(ctx *ctx.Context, datasourceId string, rule models.AlertRule) []
 	return curFingerprints
 }
 
-func kubernetesEvent(ctx *ctx.Context, datasourceId string, rule models.AlertRule) []string {
+func kubernetesEvent(ctx *ctx.Context, datasourceId, datasourceType string, rule models.AlertRule) []string {
 	var externalLabels map[string]interface{}
 	datasourceObj, err := ctx.DB.Datasource().GetInstance(datasourceId)
 	if err != nil {

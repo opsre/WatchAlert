@@ -6,7 +6,7 @@ services:
     environment:
       - TZ=Asia/Shanghai
     volumes:
-      - ../../config:/app/config
+      - ../../config/config.yaml:/app/config/config.yaml
     restart: always
     privileged: true
     ports:
@@ -70,11 +70,12 @@ services:
     container_name: init-mysql
     image: mysql:8.0
     volumes:
-      - ../sql:/sql
+      -  ../helmchart/files/sql:/sql
     environment:
       - TZ=Asia/Shanghai
       - MYSQL_HOST=w8t-mysql
-      - MYSQL_ROOT_PASSWORD=w8t.123
+      - MYSQL_USERNAME=root
+      - MYSQL_PASSWORD=w8t.123
       - MYSQL_DATABASE=watchalert
     restart: on-failure
     command: ["sh", "-c", "chmod +x /sql/auto_import.sh; /sql/auto_import.sh"]

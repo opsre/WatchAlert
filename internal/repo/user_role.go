@@ -11,10 +11,10 @@ type (
 	}
 
 	InterUserRoleRepo interface {
-		List(r models.UserRoleQuery) ([]models.UserRole, error)
+		List() ([]models.UserRole, error)
 		Create(r models.UserRole) error
 		Update(r models.UserRole) error
-		Delete(r models.UserRoleQuery) error
+		Delete(id string) error
 	}
 )
 
@@ -27,9 +27,13 @@ func newUserRoleInterface(db *gorm.DB, g InterGormDBCli) InterUserRoleRepo {
 	}
 }
 
-func (ur UserRoleRepo) List(r models.UserRoleQuery) ([]models.UserRole, error) {
-	var data []models.UserRole
-	err := ur.db.Find(&data).Error
+func (ur UserRoleRepo) List() ([]models.UserRole, error) {
+	var (
+		data []models.UserRole
+		db   = ur.DB().Model(&models.UserRole{})
+	)
+
+	err := db.Where("id != ?", "admin").Find(&data).Error
 	if err != nil {
 		return data, err
 	}
@@ -63,11 +67,11 @@ func (ur UserRoleRepo) Update(r models.UserRole) error {
 	return nil
 }
 
-func (ur UserRoleRepo) Delete(r models.UserRoleQuery) error {
+func (ur UserRoleRepo) Delete(id string) error {
 	d := Delete{
 		Table: models.UserRole{},
 		Where: map[string]interface{}{
-			"id = ?": r.ID,
+			"id = ?": id,
 		},
 	}
 

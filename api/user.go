@@ -3,48 +3,48 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 	middleware "watchAlert/internal/middleware"
-	"watchAlert/internal/models"
 	"watchAlert/internal/services"
+	"watchAlert/internal/types"
 	jwtUtils "watchAlert/pkg/tools"
 )
 
-type UserController struct{}
+type userController struct{}
+
+var UserController = new(userController)
 
 /*
 用户 API
 /api/w8t/user
 */
-func (uc UserController) API(gin *gin.RouterGroup) {
+func (userController userController) API(gin *gin.RouterGroup) {
 
-	userA := gin.Group("user")
-	userA.Use(
+	a := gin.Group("user")
+	a.Use(
 		middleware.Auth(),
 		middleware.Permission(),
 		middleware.ParseTenant(),
 		middleware.AuditingLog(),
 	)
 	{
-		userA.POST("userUpdate", uc.Update)
-		userA.POST("userDelete", uc.Delete)
-		userA.POST("userChangePass", uc.ChangePass)
+		a.POST("userUpdate", userController.Update)
+		a.POST("userDelete", userController.Delete)
+		a.POST("userChangePass", userController.ChangePass)
 	}
 
-	userB := gin.Group("user")
-	userB.Use(
+	b := gin.Group("user")
+	b.Use(
 		middleware.Auth(),
 		middleware.Permission(),
 		middleware.ParseTenant(),
 	)
 	{
-		userB.GET("userList", uc.List)
-		userB.GET("searchDutyUser", uc.Search)
-		userB.GET("searchUser", uc.Search)
+		b.GET("userList", userController.List)
 	}
 
 }
 
-func (uc UserController) List(ctx *gin.Context) {
-	r := new(models.MemberQuery)
+func (userController userController) List(ctx *gin.Context) {
+	r := new(types.RequestUserQuery)
 	BindQuery(ctx, r)
 
 	Service(ctx, func() (interface{}, interface{}) {
@@ -52,17 +52,10 @@ func (uc UserController) List(ctx *gin.Context) {
 	})
 }
 
-func (uc UserController) Search(ctx *gin.Context) {
-	r := new(models.MemberQuery)
+func (userController userController) GetUserInfo(ctx *gin.Context) {
+	r := new(types.RequestUserQuery)
 	BindQuery(ctx, r)
 
-	Service(ctx, func() (interface{}, interface{}) {
-		return services.UserService.Search(r)
-	})
-}
-
-func (uc UserController) Get(ctx *gin.Context) {
-	r := new(models.MemberQuery)
 	token := ctx.Request.Header.Get("Authorization")
 	username := jwtUtils.GetUser(token)
 	r.UserName = username
@@ -72,8 +65,8 @@ func (uc UserController) Get(ctx *gin.Context) {
 	})
 }
 
-func (uc UserController) Login(ctx *gin.Context) {
-	r := new(models.Member)
+func (userController userController) Login(ctx *gin.Context) {
+	r := new(types.RequestUserLogin)
 	BindJson(ctx, r)
 
 	Service(ctx, func() (interface{}, interface{}) {
@@ -81,8 +74,8 @@ func (uc UserController) Login(ctx *gin.Context) {
 	})
 }
 
-func (uc UserController) Register(ctx *gin.Context) {
-	r := new(models.Member)
+func (userController userController) Register(ctx *gin.Context) {
+	r := new(types.RequestUserCreate)
 	BindJson(ctx, r)
 
 	createUser := jwtUtils.GetUser(ctx.Request.Header.Get("Authorization"))
@@ -93,8 +86,8 @@ func (uc UserController) Register(ctx *gin.Context) {
 	})
 }
 
-func (uc UserController) Update(ctx *gin.Context) {
-	r := new(models.Member)
+func (userController userController) Update(ctx *gin.Context) {
+	r := new(types.RequestUserUpdate)
 	BindJson(ctx, r)
 
 	Service(ctx, func() (interface{}, interface{}) {
@@ -102,8 +95,8 @@ func (uc UserController) Update(ctx *gin.Context) {
 	})
 }
 
-func (uc UserController) Delete(ctx *gin.Context) {
-	r := new(models.MemberQuery)
+func (userController userController) Delete(ctx *gin.Context) {
+	r := new(types.RequestUserQuery)
 	BindJson(ctx, r)
 
 	Service(ctx, func() (interface{}, interface{}) {
@@ -111,8 +104,8 @@ func (uc UserController) Delete(ctx *gin.Context) {
 	})
 }
 
-func (uc UserController) CheckUser(ctx *gin.Context) {
-	r := new(models.MemberQuery)
+func (userController userController) CheckUser(ctx *gin.Context) {
+	r := new(types.RequestUserQuery)
 	BindQuery(ctx, r)
 
 	Service(ctx, func() (interface{}, interface{}) {
@@ -120,8 +113,8 @@ func (uc UserController) CheckUser(ctx *gin.Context) {
 	})
 }
 
-func (uc UserController) ChangePass(ctx *gin.Context) {
-	r := new(models.Member)
+func (userController userController) ChangePass(ctx *gin.Context) {
+	r := new(types.RequestUserChangePassword)
 	BindJson(ctx, r)
 
 	Service(ctx, func() (interface{}, interface{}) {

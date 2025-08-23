@@ -5,7 +5,6 @@ import (
 	"gorm.io/gorm"
 	"time"
 	models "watchAlert/internal/models"
-	"watchAlert/pkg/tools"
 )
 
 type (
@@ -14,11 +13,11 @@ type (
 	}
 	InterDutyRepo interface {
 		GetQuota(id string) bool
-		List(r models.DutyManagementQuery) ([]models.DutyManagement, error)
+		List(tenantId string) ([]models.DutyManagement, error)
 		Create(r models.DutyManagement) error
 		Update(r models.DutyManagement) error
-		Delete(r models.DutyManagementQuery) error
-		Get(r models.DutyManagementQuery) (models.DutyManagement, error)
+		Delete(tenantId, id string) error
+		Get(tenantId, id string) (models.DutyManagement, error)
 	}
 )
 
@@ -50,11 +49,11 @@ func (d DutyRepo) GetQuota(id string) bool {
 	return false
 }
 
-func (d DutyRepo) List(r models.DutyManagementQuery) ([]models.DutyManagement, error) {
+func (d DutyRepo) List(tenantId string) ([]models.DutyManagement, error) {
 	var data []models.DutyManagement
 
 	db := d.db.Model(&models.DutyManagement{})
-	db.Where("tenant_id = ?", r.TenantId)
+	db.Where("tenant_id = ?", tenantId)
 	err := db.Find(&data).Error
 	if err != nil {
 		return nil, err
@@ -70,10 +69,7 @@ func (d DutyRepo) List(r models.DutyManagementQuery) ([]models.DutyManagement, e
 }
 
 func (d DutyRepo) Create(r models.DutyManagement) error {
-	nr := r
-	nr.ID = "dt-" + tools.RandId()
-	nr.CreateAt = time.Now().Unix()
-	err := d.g.Create(&models.DutyManagement{}, nr)
+	err := d.g.Create(&models.DutyManagement{}, r)
 	if err != nil {
 		return err
 	}
@@ -96,19 +92,19 @@ func (d DutyRepo) Update(r models.DutyManagement) error {
 	return nil
 }
 
-func (d DutyRepo) Delete(r models.DutyManagementQuery) error {
+func (d DutyRepo) Delete(tenantId, id string) error {
 	var noticeNum int64
 	db := d.db.Model(&models.AlertNotice{})
-	db.Where("tenant_id = ? AND duty_id = ?", r.TenantId, r.ID).Count(&noticeNum)
+	db.Where("tenant_id = ? AND duty_id = ?", tenantId, id).Count(&noticeNum)
 	if noticeNum != 0 {
-		return fmt.Errorf("无法删除值班表 %s, 因为已有通知对象绑定", r.ID)
+		return fmt.Errorf("无法删除值班表 %s, 因为已有通知对象绑定", id)
 	}
 
 	delDuty := Delete{
 		Table: models.DutyManagement{},
 		Where: map[string]interface{}{
-			"tenant_id = ?": r.TenantId,
-			"id = ?":        r.ID,
+			"tenant_id = ?": tenantId,
+			"id = ?":        id,
 		},
 	}
 	err := d.g.Delete(delDuty)
@@ -119,8 +115,8 @@ func (d DutyRepo) Delete(r models.DutyManagementQuery) error {
 	delCalendar := Delete{
 		Table: models.DutySchedule{},
 		Where: map[string]interface{}{
-			"tenant_id = ?": r.TenantId,
-			"duty_id = ?":   r.ID,
+			"tenant_id = ?": tenantId,
+			"duty_id = ?":   id,
 		},
 	}
 	err = d.g.Delete(delCalendar)
@@ -131,10 +127,10 @@ func (d DutyRepo) Delete(r models.DutyManagementQuery) error {
 	return nil
 }
 
-func (d DutyRepo) Get(r models.DutyManagementQuery) (models.DutyManagement, error) {
+func (d DutyRepo) Get(tenantId, id string) (models.DutyManagement, error) {
 	var data models.DutyManagement
 	db := d.db.Model(&models.DutyManagement{})
-	db.Where("tenant_id = ? AND id = ?", r.TenantId, r.ID)
+	db.Where("tenant_id = ? AND id = ?", tenantId, id)
 	err := db.First(&data).Error
 	if err != nil {
 		return models.DutyManagement{}, err

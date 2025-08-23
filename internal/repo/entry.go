@@ -2,6 +2,7 @@ package repo
 
 import (
 	"gorm.io/gorm"
+	"watchAlert/internal/global"
 	"watchAlert/pkg/client"
 )
 
@@ -40,7 +41,15 @@ type (
 )
 
 func NewRepoEntry() InterEntryRepo {
-	db := client.InitDB()
+	sql := global.Config.MySQL
+	db := client.NewDBClient(client.DBConfig{
+		Host:    sql.Host,
+		Port:    sql.Port,
+		User:    sql.User,
+		Pass:    sql.Pass,
+		DBName:  sql.DBName,
+		Timeout: sql.Timeout,
+	})
 	g := NewInterGormDBCli(db)
 	return &entryRepo{
 		g:  g,

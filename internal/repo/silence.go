@@ -11,10 +11,10 @@ type (
 	}
 
 	InterSilenceRepo interface {
-		List(r models.AlertSilenceQuery) (models.SilenceResponse, error)
+		List(tenantId, faultCenterId, query string, page models.Page) ([]models.AlertSilences, int64, error)
 		Create(r models.AlertSilences) error
 		Update(r models.AlertSilences) error
-		Delete(r models.AlertSilenceQuery) error
+		Delete(tenantId, id string) error
 	}
 )
 
@@ -27,34 +27,27 @@ func newSilenceInterface(db *gorm.DB, g InterGormDBCli) InterSilenceRepo {
 	}
 }
 
-func (sr SilenceRepo) List(r models.AlertSilenceQuery) (models.SilenceResponse, error) {
+func (sr SilenceRepo) List(tenantId, faultCenterId, query string, page models.Page) ([]models.AlertSilences, int64, error) {
 	var (
 		silenceList []models.AlertSilences
 		count       int64
 	)
 	db := sr.db.Model(models.AlertSilences{})
-	db.Where("tenant_id = ?", r.TenantId)
-	db.Where("fault_center_id = ?", r.FaultCenterId)
+	db.Where("tenant_id = ?", tenantId)
+	db.Where("fault_center_id = ?", faultCenterId)
 
-	if r.Query != "" {
-		db.Where("id LIKE ? OR comment LIKE ?", "%"+r.Query+"%", "%"+r.Query+"%")
+	if query != "" {
+		db.Where("id LIKE ? OR comment LIKE ?", "%"+query+"%", "%"+query+"%")
 	}
 
 	db.Count(&count)
-	db.Limit(int(r.Page.Size)).Offset(int((r.Page.Index - 1) * r.Page.Size))
+	db.Limit(int(page.Size)).Offset(int((page.Index - 1) * page.Size))
 	err := db.Find(&silenceList).Error
 	if err != nil {
-		return models.SilenceResponse{}, err
+		return nil, 0, err
 	}
 
-	return models.SilenceResponse{
-		List: silenceList,
-		Page: models.Page{
-			Total: count,
-			Index: r.Page.Index,
-			Size:  r.Page.Size,
-		},
-	}, nil
+	return silenceList, count, nil
 }
 
 func (sr SilenceRepo) Create(r models.AlertSilences) error {
@@ -71,7 +64,7 @@ func (sr SilenceRepo) Update(r models.AlertSilences) error {
 		Table: models.AlertSilences{},
 		Where: map[string]interface{}{
 			"tenant_id = ?": r.TenantId,
-			"id = ?":        r.Id,
+			"id = ?":        r.ID,
 		},
 		Updates: r,
 	}
@@ -84,10 +77,10 @@ func (sr SilenceRepo) Update(r models.AlertSilences) error {
 	return nil
 }
 
-func (sr SilenceRepo) Delete(r models.AlertSilenceQuery) error {
+func (sr SilenceRepo) Delete(tenantId, id string) error {
 	var silence models.AlertSilences
-	db := sr.db.Where("tenant_id = ? AND id = ?", r.TenantId, r.Id)
-	err := db.Find(&silence).Error
+	db := sr.db.Where("tenant_id = ? AND id = ?", tenantId, id)
+	err := db.First(&silence).Error
 	if err != nil {
 		return err
 	}
@@ -95,8 +88,8 @@ func (sr SilenceRepo) Delete(r models.AlertSilenceQuery) error {
 	del := Delete{
 		Table: models.AlertSilences{},
 		Where: map[string]interface{}{
-			"tenant_id = ?": r.TenantId,
-			"id = ?":        r.Id,
+			"tenant_id = ?": tenantId,
+			"id = ?":        id,
 		},
 	}
 	err = sr.g.Delete(del)

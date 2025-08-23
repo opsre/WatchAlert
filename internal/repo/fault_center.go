@@ -1,8 +1,6 @@
 package repo
 
 import (
-	"context"
-	"github.com/zeromicro/go-zero/core/logc"
 	"gorm.io/gorm"
 	"watchAlert/internal/models"
 )
@@ -15,10 +13,10 @@ type (
 	InterFaultCenterRepo interface {
 		Create(params models.FaultCenter) error
 		Update(params models.FaultCenter) error
-		Delete(params models.FaultCenterQuery) error
-		List(params models.FaultCenterQuery) ([]models.FaultCenter, error)
-		Get(params models.FaultCenterQuery) (models.FaultCenter, error)
-		Reset(params models.FaultCenter) error
+		Delete(tenantId, id string) error
+		List(tenantId, query string) ([]models.FaultCenter, error)
+		Get(tenantId, id, name string) (models.FaultCenter, error)
+		Reset(tenantId, id, name, description, aggregationType string) error
 	}
 )
 
@@ -34,7 +32,6 @@ func newInterFaultCenterRepo(db *gorm.DB, g InterGormDBCli) InterFaultCenterRepo
 func (f faultCenterRepo) Create(params models.FaultCenter) error {
 	err := f.g.Create(&models.FaultCenter{}, params)
 	if err != nil {
-		logc.Error(context.Background(), err)
 		return err
 	}
 	return nil
@@ -51,37 +48,37 @@ func (f faultCenterRepo) Update(params models.FaultCenter) error {
 	}
 	err := f.g.Updates(u)
 	if err != nil {
-		logc.Error(context.Background(), err)
 		return err
 	}
 	return nil
 }
 
-func (f faultCenterRepo) Delete(params models.FaultCenterQuery) error {
+func (f faultCenterRepo) Delete(tenantId, id string) error {
 	del := Delete{
 		Table: &models.FaultCenter{},
 		Where: map[string]interface{}{
-			"tenant_id = ?": params.TenantId,
-			"id = ?":        params.ID,
+			"tenant_id = ?": tenantId,
+			"id = ?":        id,
 		},
 	}
 	err := f.g.Delete(del)
 	if err != nil {
-		logc.Error(context.Background(), err)
 		return err
 	}
 	return nil
 }
 
-func (f faultCenterRepo) List(params models.FaultCenterQuery) ([]models.FaultCenter, error) {
-	var db = f.db.Model(&models.FaultCenter{})
-	var data []models.FaultCenter
-	if params.TenantId != "" {
-		db.Where("tenant_id = ?", params.TenantId)
-	}
+func (f faultCenterRepo) List(tenantId, query string) ([]models.FaultCenter, error) {
+	var (
+		data []models.FaultCenter
+		db   = f.db.Model(&models.FaultCenter{})
+	)
 
-	if params.Query != "" {
-		db.Where("name LIKE ? OR id LIKE ?", "%"+params.Query+"%", "%"+params.Query+"%")
+	if tenantId != "" {
+		db.Where("tenant_id = ?", tenantId)
+	}
+	if query != "" {
+		db.Where("name LIKE ? OR id LIKE ? OR description LIKE ?", "%"+query+"%", "%"+query+"%", "%"+query+"%")
 	}
 
 	err := db.Find(&data).Error
@@ -92,15 +89,22 @@ func (f faultCenterRepo) List(params models.FaultCenterQuery) ([]models.FaultCen
 	return data, nil
 }
 
-func (f faultCenterRepo) Get(params models.FaultCenterQuery) (models.FaultCenter, error) {
-	var db = f.db.Model(&models.FaultCenter{})
-	var data models.FaultCenter
-	if params.Name != "" {
-		db.Where("name = ?", params.Name)
+func (f faultCenterRepo) Get(tenantId, id, name string) (models.FaultCenter, error) {
+	var (
+		data models.FaultCenter
+		db   = f.db.Model(&models.FaultCenter{})
+	)
+
+	if tenantId != "" {
+		db.Where("tenant_id = ?", tenantId)
 	}
-	if params.ID != "" {
-		db.Where("id = ?", params.ID)
+	if name != "" {
+		db.Where("name = ?", name)
 	}
+	if id != "" {
+		db.Where("id = ?", id)
+	}
+
 	err := db.First(&data).Error
 	if err != nil {
 		return data, err
@@ -108,25 +112,25 @@ func (f faultCenterRepo) Get(params models.FaultCenterQuery) (models.FaultCenter
 	return data, nil
 }
 
-func (f faultCenterRepo) Reset(params models.FaultCenter) error {
+func (f faultCenterRepo) Reset(tenantId, id, name, description, aggregationType string) error {
 	var update []string
-	if params.Name != "" {
-		update = []string{"name", params.Name}
-	}
 
-	if params.Description != "" {
-		update = []string{"description", params.Description}
+	if name != "" {
+		update = []string{"name", name}
 	}
-
-	if params.AggregationType != "" {
-		update = []string{"aggregation_type", params.AggregationType}
+	if description != "" {
+		update = []string{"description", description}
+	}
+	if aggregationType != "" {
+		update = []string{"aggregation_type", aggregationType}
 	}
 
 	if update != nil {
 		err := f.g.Update(Update{
 			Table: &models.FaultCenter{},
 			Where: map[string]interface{}{
-				"id = ?": params.ID,
+				"tenant_id = ?": tenantId,
+				"id = ?":        id,
 			},
 			Update: update,
 		})
@@ -134,5 +138,6 @@ func (f faultCenterRepo) Reset(params models.FaultCenter) error {
 			return err
 		}
 	}
+
 	return nil
 }

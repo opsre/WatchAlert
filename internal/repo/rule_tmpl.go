@@ -11,10 +11,10 @@ type (
 	}
 
 	InterRuleTmplRepo interface {
-		List(r models.RuleTemplateQuery) ([]models.RuleTemplate, error)
+		List(tmplGroup, tmplType, query string, page models.Page) ([]models.RuleTemplate, int64, error)
 		Create(r models.RuleTemplate) error
 		Update(r models.RuleTemplate) error
-		Delete(r models.RuleTemplateQuery) error
+		Delete(tmplGroupName, tmplName string) error
 	}
 )
 
@@ -27,21 +27,29 @@ func newRuleTmplInterface(db *gorm.DB, g InterGormDBCli) InterRuleTmplRepo {
 	}
 }
 
-func (rt RuleTmplRepo) List(r models.RuleTemplateQuery) ([]models.RuleTemplate, error) {
-	var data []models.RuleTemplate
-	db := rt.db.Model(&models.RuleTemplate{}).Where("rule_group_name = ?", r.RuleGroupName)
-	db.Where("type = ?", r.Type)
-	if r.Query != "" {
+func (rt RuleTmplRepo) List(tmplGroup, tmplType, query string, page models.Page) ([]models.RuleTemplate, int64, error) {
+	var (
+		data  []models.RuleTemplate
+		count int64
+	)
+
+	db := rt.db.Model(&models.RuleTemplate{}).Where("rule_group_name = ?", tmplGroup)
+	db.Where("type = ?", tmplType)
+	if query != "" {
 		db.Where("rule_name LIKE ? OR datasource_type LIKE ?",
-			"%"+r.Query+"%", "%"+r.Query+"%")
+			"%"+query+"%", "%"+query+"%")
 	}
+
+	db.Count(&count)
+
+	db.Limit(int(page.Size)).Offset(int((page.Index - 1) * page.Size))
 
 	err := db.Find(&data).Error
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	return data, nil
+	return data, count, nil
 }
 
 func (rt RuleTmplRepo) Create(r models.RuleTemplate) error {
@@ -69,12 +77,12 @@ func (rt RuleTmplRepo) Update(r models.RuleTemplate) error {
 	return nil
 }
 
-func (rt RuleTmplRepo) Delete(r models.RuleTemplateQuery) error {
+func (rt RuleTmplRepo) Delete(tmplGroupName, tmplName string) error {
 	d := Delete{
 		Table: models.RuleTemplate{},
 		Where: map[string]interface{}{
-			"rule_group_name = ?": r.RuleGroupName,
-			"rule_name = ?":       r.RuleName,
+			"rule_group_name = ?": tmplGroupName,
+			"rule_name = ?":       tmplName,
 		},
 	}
 

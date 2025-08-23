@@ -7,20 +7,22 @@ import (
 	"watchAlert/internal/types"
 )
 
-type AiController struct{}
+type aiController struct{}
 
-func (a AiController) API(gin *gin.RouterGroup) {
-	ai := gin.Group("ai")
-	ai.Use(
+var AiController = new(aiController)
+
+func (aiController aiController) API(gin *gin.RouterGroup) {
+	a := gin.Group("ai")
+	a.Use(
 		middleware.Cors(),
 		middleware.Auth(),
 	)
 	{
-		ai.POST("chat", a.Chat)
+		a.POST("chat", aiController.Chat)
 	}
 }
 
-func (a AiController) Chat(ctx *gin.Context) {
+func (aiController aiController) Chat(ctx *gin.Context) {
 	r := new(types.RequestAiChatContent)
 	r.Content = ctx.PostForm("content")
 	r.RuleId = ctx.PostForm("rule_id")

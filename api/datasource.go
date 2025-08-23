@@ -12,40 +12,42 @@ import (
 	"watchAlert/internal/middleware"
 	"watchAlert/internal/models"
 	"watchAlert/internal/services"
+	"watchAlert/internal/types"
 	"watchAlert/pkg/provider"
 	"watchAlert/pkg/tools"
 )
 
-type DatasourceController struct{}
+type datasourceController struct{}
+
+var DatasourceController = new(datasourceController)
 
 /*
 数据源 API
 /api/w8t/datasource
 */
-func (dc DatasourceController) API(gin *gin.RouterGroup) {
-	datasourceA := gin.Group("datasource")
-	datasourceA.Use(
+func (datasourceController datasourceController) API(gin *gin.RouterGroup) {
+	a := gin.Group("datasource")
+	a.Use(
 		middleware.Auth(),
 		middleware.Permission(),
 		middleware.ParseTenant(),
 		middleware.AuditingLog(),
 	)
 	{
-		datasourceA.POST("dataSourceCreate", dc.Create)
-		datasourceA.POST("dataSourceUpdate", dc.Update)
-		datasourceA.POST("dataSourceDelete", dc.Delete)
+		a.POST("dataSourceCreate", datasourceController.Create)
+		a.POST("dataSourceUpdate", datasourceController.Update)
+		a.POST("dataSourceDelete", datasourceController.Delete)
 	}
 
-	datasourceB := gin.Group("datasource")
-	datasourceB.Use(
+	b := gin.Group("datasource")
+	b.Use(
 		middleware.Auth(),
 		middleware.Permission(),
 		middleware.ParseTenant(),
 	)
 	{
-		datasourceB.GET("dataSourceList", dc.List)
-		datasourceB.GET("dataSourceGet", dc.Get)
-		datasourceB.GET("dataSourceSearch", dc.Search)
+		b.GET("dataSourceList", datasourceController.List)
+		b.GET("dataSourceGet", datasourceController.Get)
 	}
 
 	c := gin.Group("datasource")
@@ -54,15 +56,15 @@ func (dc DatasourceController) API(gin *gin.RouterGroup) {
 		middleware.ParseTenant(),
 	)
 	{
-		c.GET("promQuery", dc.PromQuery)
-		c.POST("dataSourcePing", dc.Ping)
-		c.POST("searchViewLogsContent", dc.SearchViewLogsContent)
+		c.GET("promQuery", datasourceController.PromQuery)
+		c.POST("dataSourcePing", datasourceController.Ping)
+		c.POST("searchViewLogsContent", datasourceController.SearchViewLogsContent)
 	}
 
 }
 
-func (dc DatasourceController) Create(ctx *gin.Context) {
-	d := new(models.AlertDataSource)
+func (datasourceController datasourceController) Create(ctx *gin.Context) {
+	d := new(types.RequestDatasourceCreate)
 	BindJson(ctx, d)
 
 	tid, _ := ctx.Get("TenantID")
@@ -73,8 +75,8 @@ func (dc DatasourceController) Create(ctx *gin.Context) {
 	})
 }
 
-func (dc DatasourceController) List(ctx *gin.Context) {
-	r := new(models.DatasourceQuery)
+func (datasourceController datasourceController) List(ctx *gin.Context) {
+	r := new(types.RequestDatasourceQuery)
 	BindQuery(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -85,8 +87,8 @@ func (dc DatasourceController) List(ctx *gin.Context) {
 	})
 }
 
-func (dc DatasourceController) Get(ctx *gin.Context) {
-	r := new(models.DatasourceQuery)
+func (datasourceController datasourceController) Get(ctx *gin.Context) {
+	r := new(types.RequestDatasourceQuery)
 	BindQuery(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -97,20 +99,8 @@ func (dc DatasourceController) Get(ctx *gin.Context) {
 	})
 }
 
-func (dc DatasourceController) Search(ctx *gin.Context) {
-	r := new(models.DatasourceQuery)
-	BindQuery(ctx, r)
-
-	tid, _ := ctx.Get("TenantID")
-	r.TenantId = tid.(string)
-
-	Service(ctx, func() (interface{}, interface{}) {
-		return services.DatasourceService.Search(r)
-	})
-}
-
-func (dc DatasourceController) Update(ctx *gin.Context) {
-	r := new(models.AlertDataSource)
+func (datasourceController datasourceController) Update(ctx *gin.Context) {
+	r := new(types.RequestDatasourceUpdate)
 	BindJson(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -121,8 +111,8 @@ func (dc DatasourceController) Update(ctx *gin.Context) {
 	})
 }
 
-func (dc DatasourceController) Delete(ctx *gin.Context) {
-	r := new(models.DatasourceQuery)
+func (datasourceController datasourceController) Delete(ctx *gin.Context) {
+	r := new(types.RequestDatasourceQuery)
 	BindJson(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -133,8 +123,8 @@ func (dc DatasourceController) Delete(ctx *gin.Context) {
 	})
 }
 
-func (dc DatasourceController) PromQuery(ctx *gin.Context) {
-	r := new(models.PromQueryReq)
+func (datasourceController datasourceController) PromQuery(ctx *gin.Context) {
+	r := new(types.RequestQueryMetricsValue)
 	BindQuery(ctx, r)
 
 	Service(ctx, func() (interface{}, interface{}) {
@@ -152,9 +142,7 @@ func (dc DatasourceController) PromQuery(ctx *gin.Context) {
 		ids = strings.Split(r.DatasourceIds, ",")
 		for _, id := range ids {
 			var res provider.QueryResponse
-			source, err := ctx2.DO().DB.Datasource().Get(models.DatasourceQuery{
-				Id: id,
-			})
+			source, err := ctx2.DO().DB.Datasource().Get(id)
 			if err != nil {
 				return nil, err
 			}
@@ -175,12 +163,25 @@ func (dc DatasourceController) PromQuery(ctx *gin.Context) {
 	})
 }
 
-func (dc DatasourceController) Ping(ctx *gin.Context) {
-	r := new(models.AlertDataSource)
+func (datasourceController datasourceController) Ping(ctx *gin.Context) {
+	r := new(types.RequestDatasourceCreate)
 	BindJson(ctx, r)
 
 	Service(ctx, func() (interface{}, interface{}) {
-		ok, err := provider.CheckDatasourceHealth(*r)
+		ok, err := provider.CheckDatasourceHealth(models.AlertDataSource{
+			TenantId:         r.TenantId,
+			Name:             r.Name,
+			Labels:           r.Labels,
+			Type:             r.Type,
+			HTTP:             r.HTTP,
+			Auth:             r.Auth,
+			DsAliCloudConfig: r.DsAliCloudConfig,
+			AWSCloudWatch:    r.AWSCloudWatch,
+			ClickHouseConfig: r.ClickHouseConfig,
+			Description:      r.Description,
+			KubeConfig:       r.KubeConfig,
+			Enabled:          r.Enabled,
+		})
 		if !ok {
 			return "", fmt.Errorf("数据源不可达, err: %s", err.Error())
 		}
@@ -189,14 +190,12 @@ func (dc DatasourceController) Ping(ctx *gin.Context) {
 }
 
 // SearchViewLogsContent Logs 数据预览
-func (dc DatasourceController) SearchViewLogsContent(ctx *gin.Context) {
-	r := new(models.SearchLogsContentReq)
+func (datasourceController datasourceController) SearchViewLogsContent(ctx *gin.Context) {
+	r := new(types.RequestSearchLogsContent)
 	BindJson(ctx, r)
 
 	Service(ctx, func() (interface{}, interface{}) {
-		data, err := services.DatasourceService.Get(&models.DatasourceQuery{
-			Id: r.DatasourceId,
-		})
+		data, err := services.DatasourceService.Get(&types.RequestDatasourceQuery{ID: r.DatasourceId})
 		if err != nil {
 			return nil, err
 		}

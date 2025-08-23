@@ -4,6 +4,7 @@ import (
 	"watchAlert/alert/probing"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
+	"watchAlert/internal/types"
 	"watchAlert/pkg/provider"
 	"watchAlert/pkg/tools"
 )
@@ -36,30 +37,56 @@ func newInterProbingService(ctx *ctx.Context, NetworkMonProduct *probing.Product
 }
 
 func (m probingService) Create(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.ProbingRule)
-	r.RuleId = "r-" + tools.RandId()
+	r := req.(*types.RequestProbingRuleCreate)
+	data := models.ProbingRule{
+		TenantId:              r.TenantId,
+		RuleName:              r.RuleName,
+		RuleId:                "r-" + tools.RandId(),
+		RuleType:              r.RuleType,
+		RepeatNoticeInterval:  r.RepeatNoticeInterval,
+		ProbingEndpointConfig: r.ProbingEndpointConfig,
+		ProbingEndpointValues: r.ProbingEndpointValues,
+		NoticeId:              r.NoticeId,
+		Annotations:           r.Annotations,
+		RecoverNotify:         r.RecoverNotify,
+		Enabled:               r.Enabled,
+	}
 
-	err := m.ctx.DB.Probing().Create(*r)
+	err := m.ctx.DB.Probing().Create(data)
 	if err != nil {
 		return nil, err
 	}
 
 	if *r.GetEnabled() {
-		m.ProductTask.Add(*r)
+		m.ProductTask.Add(data)
 	}
-	m.ConsumerTask.Add(*r)
+	m.ConsumerTask.Add(data)
 
 	return nil, nil
 }
 
 func (m probingService) Update(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.ProbingRule)
-	_, err := m.ctx.DB.Probing().Search(models.ProbingRuleQuery{RuleId: r.RuleId})
+	r := req.(*types.RequestProbingRuleUpdate)
+	data := models.ProbingRule{
+		TenantId:              r.TenantId,
+		RuleName:              r.RuleName,
+		RuleId:                r.RuleId,
+		RuleType:              r.RuleType,
+		RepeatNoticeInterval:  r.RepeatNoticeInterval,
+		ProbingEndpointConfig: r.ProbingEndpointConfig,
+		ProbingEndpointValues: r.ProbingEndpointValues,
+		NoticeId:              r.NoticeId,
+		Annotations:           r.Annotations,
+		RecoverNotify:         r.RecoverNotify,
+		Enabled:               r.Enabled,
+	}
+
+	_, err := m.ctx.DB.Probing().Search(r.TenantId, r.RuleId)
 	if err != nil {
 		return nil, err
 	}
 
-	err = m.ctx.DB.Probing().Update(*r)
+	err = m.ctx.DB.Probing().Update(data)
 	if err != nil {
 		return nil, err
 	}
@@ -67,21 +94,21 @@ func (m probingService) Update(req interface{}) (interface{}, interface{}) {
 	m.ProductTask.Stop(r.RuleId)
 	m.ConsumerTask.Stop(r.RuleId)
 	if *r.GetEnabled() {
-		m.ProductTask.Add(*r)
-		m.ConsumerTask.Add(*r)
+		m.ProductTask.Add(data)
+		m.ConsumerTask.Add(data)
 	}
 
 	return nil, nil
 }
 
 func (m probingService) Delete(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.ProbingRuleQuery)
-	res, err := m.ctx.DB.Probing().Search(models.ProbingRuleQuery{RuleId: r.RuleId})
+	r := req.(*types.RequestProbingRuleQuery)
+	res, err := m.ctx.DB.Probing().Search(r.TenantId, r.RuleId)
 	if err != nil {
 		return nil, err
 	}
 
-	err = m.ctx.DB.Probing().Delete(*r)
+	err = m.ctx.DB.Probing().Delete(r.TenantId, r.RuleId)
 	if err != nil {
 		return nil, err
 	}
@@ -97,8 +124,8 @@ func (m probingService) Delete(req interface{}) (interface{}, interface{}) {
 }
 
 func (m probingService) List(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.ProbingRuleQuery)
-	data, err := m.ctx.DB.Probing().List(*r)
+	r := req.(*types.RequestProbingRuleQuery)
+	data, err := m.ctx.DB.Probing().List(r.TenantId, r.RuleType, r.Query)
 	if err != nil {
 		return nil, err
 	}
@@ -130,8 +157,8 @@ func (m probingService) List(req interface{}) (interface{}, interface{}) {
 }
 
 func (m probingService) Search(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.ProbingRuleQuery)
-	data, err := m.ctx.DB.Probing().Search(*r)
+	r := req.(*types.RequestProbingRuleQuery)
+	data, err := m.ctx.DB.Probing().Search(r.TenantId, r.RuleId)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +167,7 @@ func (m probingService) Search(req interface{}) (interface{}, interface{}) {
 }
 
 func (m probingService) Once(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.OnceProbing)
+	r := req.(*types.RequestProbingOnce)
 	var ruleConfig = r.ProbingEndpointConfig
 	switch r.RuleType {
 	case provider.ICMPEndpointProvider:
@@ -177,8 +204,8 @@ func (m probingService) Once(req interface{}) (interface{}, interface{}) {
 }
 
 func (m probingService) GetHistory(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.ReqProbingHistory)
-	data, err := m.ctx.DB.Probing().GetRecord(*r)
+	r := req.(*types.RequestProbingHistoryRecord)
+	data, err := m.ctx.DB.Probing().GetRecord(r.RuleId, r.DateRange)
 	if err != nil {
 		return nil, err
 	}
@@ -187,13 +214,10 @@ func (m probingService) GetHistory(req interface{}) (interface{}, interface{}) {
 }
 
 func (m probingService) ChangeState(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.RequestProbeChangeState)
+	r := req.(*types.RequestProbeChangeState)
 	switch *r.GetEnabled() {
 	case true:
-		rule, err := m.ctx.DB.Probing().Search(models.ProbingRuleQuery{
-			TenantId: r.TenantId,
-			RuleId:   r.RuleId,
-		})
+		rule, err := m.ctx.DB.Probing().Search(r.TenantId, r.RuleId)
 		if err != nil {
 			return nil, err
 		}
@@ -206,7 +230,7 @@ func (m probingService) ChangeState(req interface{}) (interface{}, interface{}) 
 		m.ctx.Redis.Probing().DelProbingEventCache(models.BuildProbingEventCacheKey(r.TenantId, r.RuleId))
 	}
 
-	err := m.ctx.DB.Probing().ChangeState(*r)
+	err := m.ctx.DB.Probing().ChangeState(r.TenantId, r.RuleId, r.GetEnabled())
 	if err != nil {
 		return nil, err
 	}

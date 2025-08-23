@@ -6,58 +6,43 @@ import (
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/middleware"
 	"watchAlert/internal/models"
+	"watchAlert/internal/types"
 	"watchAlert/pkg/response"
 )
 
-type DashboardInfoController struct {
-	models.AlertCurEvent
-}
+type dashboardInfoController struct{}
 
-func (di DashboardInfoController) API(gin *gin.RouterGroup) {
+var DashboardInfoController = new(dashboardInfoController)
+
+func (dashboardInfoController dashboardInfoController) API(gin *gin.RouterGroup) {
 	system := gin.Group("system")
 	system.Use(
 		middleware.Auth(),
 		middleware.ParseTenant(),
 	)
 	{
-		system.GET("getDashboardInfo", di.GetDashboardInfo)
+		system.GET("getDashboardInfo", dashboardInfoController.GetDashboardInfo)
 	}
 }
 
-type ResponseDashboardInfo struct {
-	CountAlertRules   int64             `json:"countAlertRules"`
-	FaultCenterNumber int64             `json:"faultCenterNumber"`
-	UserNumber        int64             `json:"userNumber"`
-	CurAlertList      []string          `json:"curAlertList"`
-	AlarmDistribution AlarmDistribution `json:"alarmDistribution"`
-}
-
-type AlarmDistribution struct {
-	P0 int64 `json:"P0"`
-	P1 int64 `json:"P1"`
-	P2 int64 `json:"P2"`
-}
-
-func (di DashboardInfoController) GetDashboardInfo(context *gin.Context) {
+func (dashboardInfoController dashboardInfoController) GetDashboardInfo(context *gin.Context) {
 	var c = ctx.DO()
+
 	tid, _ := context.Get("TenantID")
 	tidString := tid.(string)
 
-	faultCenter, err := ctx.DB.FaultCenter().Get(models.FaultCenterQuery{
-		TenantId: tidString,
-		ID:       context.Query("faultCenterId"),
-	})
+	faultCenter, err := c.DB.FaultCenter().Get(tidString, context.Query("faultCenterId"), "")
 	if err != nil {
-		logc.Error(ctx.Ctx, err.Error())
+		logc.Error(c.Ctx, err.Error())
 		return
 	}
 
-	response.Success(context, ResponseDashboardInfo{
+	response.Success(context, types.ResponseDashboardInfo{
 		CountAlertRules:   getRuleNumber(c, tidString),
 		FaultCenterNumber: getFaultCenterNumber(c, tidString),
 		UserNumber:        getUserNumber(c),
 		CurAlertList:      getAlertList(c, faultCenter),
-		AlarmDistribution: AlarmDistribution{
+		AlarmDistribution: types.AlarmDistribution{
 			P0: getAlarmDistribution(c, faultCenter, "P0"),
 			P1: getAlarmDistribution(c, faultCenter, "P1"),
 			P2: getAlarmDistribution(c, faultCenter, "P2"),
@@ -66,22 +51,19 @@ func (di DashboardInfoController) GetDashboardInfo(context *gin.Context) {
 }
 
 func getRuleNumber(ctx *ctx.Context, tenantId string) int64 {
-	list, err := ctx.DB.Rule().List(models.AlertRuleQuery{
-		TenantId: tenantId,
-		Page: models.Page{
-			Index: 0,
-			Size:  10000,
-		},
+	list, _, err := ctx.DB.Rule().List(tenantId, "", "", "", "", models.Page{
+		Index: 0,
+		Size:  10000,
 	})
 	if err != nil {
 		return 0
 	}
-	return int64(len(list.List))
+	return int64(len(list))
 }
 
 // getFaultCenterNumber 获取故障中心总数
 func getFaultCenterNumber(ctx *ctx.Context, tenantId string) int64 {
-	list, err := ctx.DB.FaultCenter().List(models.FaultCenterQuery{TenantId: tenantId})
+	list, err := ctx.DB.FaultCenter().List(tenantId, "")
 	if err != nil {
 		logc.Error(ctx.Ctx, err.Error())
 		return 0
@@ -91,7 +73,7 @@ func getFaultCenterNumber(ctx *ctx.Context, tenantId string) int64 {
 
 // getUserNumber 获取用户总数
 func getUserNumber(ctx *ctx.Context) int64 {
-	list, err := ctx.DB.User().List()
+	list, err := ctx.DB.User().List("", "")
 	if err != nil {
 		logc.Error(ctx.Ctx, err.Error())
 		return 0

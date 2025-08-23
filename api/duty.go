@@ -3,45 +3,46 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 	middleware "watchAlert/internal/middleware"
-	"watchAlert/internal/models"
 	"watchAlert/internal/services"
+	"watchAlert/internal/types"
 	jwtUtils "watchAlert/pkg/tools"
 )
 
-type DutyController struct{}
+type dutyController struct{}
+
+var DutyController = new(dutyController)
 
 /*
 排班管理 API
 /api/w8t/dutyManage
 */
-func (dc DutyController) API(gin *gin.RouterGroup) {
-	dutyManageA := gin.Group("dutyManage")
-	dutyManageA.Use(
+func (dutyController dutyController) API(gin *gin.RouterGroup) {
+	a := gin.Group("dutyManage")
+	a.Use(
 		middleware.Auth(),
 		middleware.Permission(),
 		middleware.ParseTenant(),
 		middleware.AuditingLog(),
 	)
 	{
-		dutyManageA.POST("dutyManageCreate", dc.Create)
-		dutyManageA.POST("dutyManageUpdate", dc.Update)
-		dutyManageA.POST("dutyManageDelete", dc.Delete)
+		a.POST("dutyManageCreate", dutyController.Create)
+		a.POST("dutyManageUpdate", dutyController.Update)
+		a.POST("dutyManageDelete", dutyController.Delete)
 	}
 
-	dutyManageB := gin.Group("dutyManage")
-	dutyManageB.Use(
+	b := gin.Group("dutyManage")
+	b.Use(
 		middleware.Auth(),
 		middleware.Permission(),
 		middleware.ParseTenant(),
 	)
 	{
-		dutyManageB.GET("dutyManageList", dc.List)
-		dutyManageB.GET("dutyManageSearch", dc.Get)
+		b.GET("dutyManageList", dutyController.List)
 	}
 }
 
-func (dc DutyController) List(ctx *gin.Context) {
-	r := new(models.DutyManagementQuery)
+func (dutyController dutyController) List(ctx *gin.Context) {
+	r := new(types.RequestDutyManagementQuery)
 	BindQuery(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -52,8 +53,8 @@ func (dc DutyController) List(ctx *gin.Context) {
 	})
 }
 
-func (dc DutyController) Create(ctx *gin.Context) {
-	r := new(models.DutyManagement)
+func (dutyController dutyController) Create(ctx *gin.Context) {
+	r := new(types.RequestDutyManagementCreate)
 	BindJson(ctx, r)
 
 	userName := jwtUtils.GetUser(ctx.Request.Header.Get("Authorization"))
@@ -67,8 +68,8 @@ func (dc DutyController) Create(ctx *gin.Context) {
 	})
 }
 
-func (dc DutyController) Update(ctx *gin.Context) {
-	r := new(models.DutyManagement)
+func (dutyController dutyController) Update(ctx *gin.Context) {
+	r := new(types.RequestDutyManagementUpdate)
 	BindJson(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -79,8 +80,8 @@ func (dc DutyController) Update(ctx *gin.Context) {
 	})
 }
 
-func (dc DutyController) Delete(ctx *gin.Context) {
-	r := new(models.DutyManagementQuery)
+func (dutyController dutyController) Delete(ctx *gin.Context) {
+	r := new(types.RequestDutyManagementQuery)
 	BindJson(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")
@@ -91,8 +92,8 @@ func (dc DutyController) Delete(ctx *gin.Context) {
 	})
 }
 
-func (dc DutyController) Get(ctx *gin.Context) {
-	r := new(models.DutyManagementQuery)
+func (dutyController dutyController) Get(ctx *gin.Context) {
+	r := new(types.RequestDutyManagementQuery)
 	BindQuery(ctx, r)
 
 	tid, _ := ctx.Get("TenantID")

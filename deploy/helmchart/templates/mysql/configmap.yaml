@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "watchalert.componentName" (dict "root" . "component" "init-config") }}
+  namespace: {{ .Release.Namespace }}
+data:
+  auto_import.sh: |
+    {{ .Files.Get "files/sql/auto_import.sh" | nindent 4 }}
+  notice_template_examples.sql: |
+    {{ .Files.Get "files/sql/notice_template_examples.sql" | nindent 4 }}
+  rule_template_groups.sql: |
+    {{ .Files.Get "files/sql/rule_template_groups.sql" | nindent 4 }}
+  rule_templates.sql: |
+    {{ .Files.Get "files/sql/rule_templates.sql" | nindent 4 }}
+  tenants.sql: |
+    {{ .Files.Get "files/sql/tenants.sql" | nindent 4 }}
+  tenants_linked_users.sql: |
+    {{ .Files.Get "files/sql/tenants_linked_users.sql" | nindent 4 }}
+

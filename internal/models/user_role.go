@@ -7,9 +7,3 @@ type UserRole struct {
 	Permissions []UserPermissions `json:"permissions" gorm:"permissions;serializer:json"`
 	CreateAt    int64             `json:"create_at"`
 }
-
-type UserRoleQuery struct {
-	ID          string `json:"id" form:"id"`
-	Name        string `json:"name" form:"name"`
-	Description string `json:"description" form:"description"`
-}

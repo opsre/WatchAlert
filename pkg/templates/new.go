@@ -10,7 +10,7 @@ type Template struct {
 }
 
 func NewTemplate(ctx *ctx.Context, alert models.AlertCurEvent, notice models.AlertNotice) Template {
-	noticeTmpl := ctx.DB.NoticeTmpl().Get(models.NoticeTemplateExampleQuery{Id: notice.NoticeTmplId})
+	noticeTmpl := ctx.DB.NoticeTmpl().Get(notice.NoticeTmplId)
 	switch notice.NoticeType {
 	case "FeiShu":
 		return Template{CardContentMsg: feishuTemplate(alert, noticeTmpl)}

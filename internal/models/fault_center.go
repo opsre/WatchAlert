@@ -41,6 +41,12 @@ type UpgradeStrategy struct {
 	NoticeId       string `json:"noticeId"`       // 通知对象ID
 }
 
+type NoticeRoute struct {
+	Key       string   `json:"key"`
+	Value     string   `json:"value"`
+	NoticeIds []string `json:"noticeIds" gorm:"column:noticeIds;serializer:json"`
+}
+
 func (u *UpgradeStrategy) GetEnabled() bool {
 	if u.Enabled == nil {
 		return false
@@ -86,12 +92,6 @@ func (f *FaultCenter) GetStrategy(strategyType int64) *UpgradeStrategy {
 	return nil
 }
 
-type NoticeRoute struct {
-	Key       string   `json:"key"`
-	Value     string   `json:"value"`
-	NoticeIds []string `json:"noticeIds" gorm:"column:noticeIds;serializer:json"`
-}
-
 func (f *FaultCenter) TableName() string {
 	return "w8t_fault_center"
 }
@@ -112,13 +112,6 @@ func (f *FaultCenter) GetRecoverNotify() bool {
 
 func (f *FaultCenter) GetAlarmAggregationType() string {
 	return f.AggregationType
-}
-
-type FaultCenterQuery struct {
-	TenantId string `form:"tenantId"`
-	ID       string `form:"id"`
-	Name     string `form:"name"`
-	Query    string `from:"query"`
 }
 
 type AlertEventCacheKey string

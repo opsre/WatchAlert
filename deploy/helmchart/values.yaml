@@ -1,0 +1,209 @@
+# Default values for watchalert.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+imagePullSecrets: []
+imagePullPolicy: IfNotPresent
+
+service:
+  image:
+    repository: docker.1ms.run/cairry/watchalert
+    tag: "latest"
+
+  resources:
+    requests:
+      memory: 50Mi
+      cpu: 50m
+    limits:
+      memory: 1Gi
+      cpu: 1
+
+  config: |-
+    Server:
+      port: "9001"
+      mode: "release"
+    
+    MySQL:
+      host: {{ .Release.Name }}-mysql
+      port: 3306
+      user: root
+      pass: w8t.123
+      dbName: watchalert
+      timeout: 10s
+    
+    Redis:
+      host: {{ .Release.Name }}-redis
+      port: 6379
+      pass: ""
+      database: 0
+    
+    Jwt:
+      expire: 18000
+    
+    Ldap:
+      enabled: false
+      address: "192.168.1.100:399"
+      baseDN: "dc=test,dc=com"
+      adminUser: "cn=admin,dc=test,dc=com"
+      adminPass: "test123."
+      userDN: "ou=people,dc=test,dc=com"
+      userPrefix: "uid"
+      defaultUserRole: "ur-cq7nkj1d6gviooaigqi0"
+      cronjob: "*/1 * * * *"
+
+  nodeSelector: {}
+
+  tolerations: []
+
+  livenessProbe:
+    httpGet:
+      path: /hello
+      port: 9001
+    initialDelaySeconds: 10
+    periodSeconds: 10
+
+  readinessProbe:
+    httpGet:
+      path: /hello
+      port: 9001
+    initialDelaySeconds: 5
+    periodSeconds: 10
+
+web:
+  image:
+    repository: docker.1ms.run/cairry/watchalert-web
+    tag: "latest"
+
+  resources:
+    requests:
+      memory: 50Mi
+      cpu: 50m
+    limits:
+      memory: 1Gi
+      cpu: 1
+
+  livenessProbe:
+    httpGet:
+      path: /
+      port: 80
+    initialDelaySeconds: 10
+    periodSeconds: 10
+
+  readinessProbe:
+    httpGet:
+      path: /
+      port: 80
+    initialDelaySeconds: 5
+    periodSeconds: 10
+
+  config: |-
+    server {
+      listen 80;
+    
+      root /app;
+      index index.html index.htm;
+    
+      location / {
+        add_header Access-Control-Allow-Origin *;
+        add_header Access-Control-Allow-Methods 'GET, POST, OPTIONS';
+        add_header Access-Control-Allow-Headers 'DNT,X-Mx-ReqToken,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization';
+        try_files $uri $uri/ /index.html;
+      }
+    
+      location /api {
+        add_header Access-Control-Allow-Origin *;
+        add_header Access-Control-Allow-Methods 'GET, POST, OPTIONS';
+        add_header Access-Control-Allow-Headers 'DNT,X-Mx-ReqToken,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization';
+        proxy_connect_timeout 300;
+        proxy_read_timeout 300;
+        proxy_send_timeout 300;
+        proxy_buffer_size 128k;
+        proxy_buffers 4 256k;
+        proxy_busy_buffers_size 256k;
+        proxy_request_buffering off;
+        proxy_ssl_server_name on;
+        proxy_ssl_protocols TLSv1.2;
+        proxy_pass http://{{ include "watchalert.componentName" (dict "root" . "component" "service") }}:9001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_body $request_body;
+        proxy_pass_request_headers on;
+      }
+    
+      error_page 500 502 503 504 /500.html;
+    
+      client_max_body_size 2050m;
+      client_body_buffer_size 1024k;
+    
+      keepalive_timeout 10;
+    }
+
+  service:
+    type: NodePort
+#    nodePort: 30080
+
+  ingress:
+    enabled: false
+    className: ""
+    annotations:
+      kubernetes.io/ingress.class: nginx
+    hosts:
+      - host: watchalert.x.com
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+    tls: []
+
+serviceAccount:
+  create: false
+  annotations: {}
+  name: ""
+
+job:
+  image:
+    repository: docker.1ms.run/mysql
+    tag: "8.0"
+
+  mysql:
+    host: ""
+    username: root
+    password: w8t.123
+    database: watchalert
+
+mysql:
+  enabled:  true
+
+  image:
+    repository: docker.1ms.run/mysql
+    tag: "8.0"
+
+  auth:
+    password: w8t.123
+    database: watchalert
+
+  persistence:
+    enabled:  false
+    storageClass: "hostpath"
+    accessModes: "ReadWriteOnce"
+    size: 5Gi
+
+redis:
+  enabled:  true
+
+  image:
+    repository: docker.1ms.run/redis
+    tag: "latest"
+
+  persistence:
+    enabled:  false
+    storageClass: "hostpath"
+    accessModes: "ReadWriteOnce"
+    size: 1Gi
+
+initContainers:
+  wait:
+    image:
+      repository: docker.1ms.run/busybox
+      tag: "1.36.1"

@@ -4,6 +4,7 @@ import (
 	"time"
 	"watchAlert/internal/ctx"
 	models "watchAlert/internal/models"
+	"watchAlert/internal/types"
 	"watchAlert/pkg/tools"
 )
 
@@ -26,12 +27,12 @@ func newInterSilenceService(ctx *ctx.Context) InterSilenceService {
 }
 
 func (ass alertSilenceService) Create(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.AlertSilences)
+	r := req.(*types.RequestSilenceCreate)
 	updateAt := time.Now().Unix()
-	silenceEvent := models.AlertSilences{
+	silence := models.AlertSilences{
 		TenantId:      r.TenantId,
 		Name:          r.Name,
-		Id:            "s-" + tools.RandId(),
+		ID:            "s-" + tools.RandId(),
 		StartsAt:      r.StartsAt,
 		EndsAt:        r.EndsAt,
 		UpdateAt:      updateAt,
@@ -46,8 +47,8 @@ func (ass alertSilenceService) Create(req interface{}) (interface{}, interface{}
 		r.Status = 0
 	}
 
-	ass.ctx.Redis.Silence().PushAlertMute(silenceEvent)
-	err := ass.ctx.DB.Silence().Create(silenceEvent)
+	ass.ctx.Redis.Silence().PushAlertMute(silence)
+	err := ass.ctx.DB.Silence().Create(silence)
 	if err != nil {
 		return nil, err
 	}
@@ -56,18 +57,29 @@ func (ass alertSilenceService) Create(req interface{}) (interface{}, interface{}
 }
 
 func (ass alertSilenceService) Update(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.AlertSilences)
-	updateAt := time.Now().Unix()
-	r.UpdateAt = updateAt
+	r := req.(*types.RequestSilenceUpdate)
+	silence := models.AlertSilences{
+		TenantId:      r.TenantId,
+		Name:          r.Name,
+		ID:            r.ID,
+		StartsAt:      r.StartsAt,
+		EndsAt:        r.EndsAt,
+		UpdateAt:      time.Now().Unix(),
+		UpdateBy:      r.UpdateBy,
+		FaultCenterId: r.FaultCenterId,
+		Labels:        r.Labels,
+		Comment:       r.Comment,
+		Status:        1,
+	}
 
-	if r.StartsAt > updateAt {
+	if r.StartsAt > r.UpdateAt {
 		r.Status = 0
 	} else {
 		r.Status = 1
 	}
 
-	ass.ctx.Redis.Silence().PushAlertMute(*r)
-	err := ass.ctx.DB.Silence().Update(*r)
+	ass.ctx.Redis.Silence().PushAlertMute(silence)
+	err := ass.ctx.DB.Silence().Update(silence)
 	if err != nil {
 		return nil, err
 	}
@@ -76,9 +88,9 @@ func (ass alertSilenceService) Update(req interface{}) (interface{}, interface{}
 }
 
 func (ass alertSilenceService) Delete(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.AlertSilenceQuery)
-	ass.ctx.Redis.Silence().RemoveAlertMute(r.TenantId, r.FaultCenterId, r.Id)
-	err := ass.ctx.DB.Silence().Delete(*r)
+	r := req.(*types.RequestSilenceQuery)
+	ass.ctx.Redis.Silence().RemoveAlertMute(r.TenantId, r.FaultCenterId, r.ID)
+	err := ass.ctx.DB.Silence().Delete(r.TenantId, r.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -87,11 +99,18 @@ func (ass alertSilenceService) Delete(req interface{}) (interface{}, interface{}
 }
 
 func (ass alertSilenceService) List(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.AlertSilenceQuery)
-	data, err := ass.ctx.DB.Silence().List(*r)
+	r := req.(*types.RequestSilenceQuery)
+	data, count, err := ass.ctx.DB.Silence().List(r.TenantId, r.FaultCenterId, r.Query, r.Page)
 	if err != nil {
 		return nil, err
 	}
 
-	return data, nil
+	return types.ResponseSilenceList{
+		List: data,
+		Page: models.Page{
+			Total: count,
+			Index: r.Page.Index,
+			Size:  r.Page.Size,
+		},
+	}, nil
 }

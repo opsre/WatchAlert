@@ -11,7 +11,6 @@ type App struct {
 	Redis  Redis  `json:"Redis"`
 	Jwt    Jwt    `json:"Jwt"`
 	Jaeger Jaeger `json:"Jaeger"`
-	Ldap   Ldap   `json:"ldap"`
 }
 
 type Server struct {
@@ -41,18 +40,6 @@ type Jwt struct {
 
 type Jaeger struct {
 	URL string `json:"url"`
-}
-
-type Ldap struct {
-	Enabled         bool   `json:"enabled"`
-	Address         string `json:"address"`
-	BaseDN          string `json:"baseDN"`
-	UserDN          string `json:"userDN"`
-	AdminUser       string `json:"adminUser"`
-	AdminPass       string `json:"adminPass"`
-	UserPrefix      string `json:"userPrefix"`
-	DefaultUserRole string `json:"defaultUserRole"`
-	Cronjob         string `json:"cronjob"`
 }
 
 var (

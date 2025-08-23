@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "watchalert.componentName" (dict "root" . "component" "service-config") }}
+  namespace: {{ .Release.Namespace }}
+data:
+  config.yaml: |-
+    {{- tpl .Values.service.config . | nindent 4 }}

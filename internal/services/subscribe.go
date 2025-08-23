@@ -6,6 +6,7 @@ import (
 	"time"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
+	"watchAlert/internal/types"
 	"watchAlert/pkg/tools"
 )
 
@@ -29,8 +30,8 @@ func newInterAlertSubscribe(ctx *ctx.Context) InterAlertSubscribeService {
 }
 
 func (s alertSubscribeService) List(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.AlertSubscribeQuery)
-	list, err := s.ctx.DB.Subscribe().List(*r)
+	r := req.(*types.RequestSubscribeQuery)
+	list, err := s.ctx.DB.Subscribe().List(r.STenantId, r.SRuleId, r.Query)
 	if err != nil {
 		return nil, err
 	}
@@ -39,8 +40,8 @@ func (s alertSubscribeService) List(req interface{}) (interface{}, interface{}) 
 }
 
 func (s alertSubscribeService) Get(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.AlertSubscribeQuery)
-	get, _, err := s.ctx.DB.Subscribe().Get(*r)
+	r := req.(*types.RequestSubscribeQuery)
+	get, _, err := s.ctx.DB.Subscribe().Get(r.STenantId, r.SId, r.SUserId, r.SRuleId)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +51,7 @@ func (s alertSubscribeService) Get(req interface{}) (interface{}, interface{}) {
 
 func (s alertSubscribeService) Create(req interface{}) (interface{}, interface{}) {
 	r := req.(*models.AlertSubscribe)
-	_, b, err := s.ctx.DB.Subscribe().Get(models.AlertSubscribeQuery{STenantId: r.STenantId, SUserId: r.SUserId, SRuleId: r.SRuleId})
+	_, b, err := s.ctx.DB.Subscribe().Get(r.STenantId, "", r.SUserId, r.SRuleId)
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	}
@@ -69,8 +70,8 @@ func (s alertSubscribeService) Create(req interface{}) (interface{}, interface{}
 }
 
 func (s alertSubscribeService) Delete(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.AlertSubscribeQuery)
-	err := s.ctx.DB.Subscribe().Delete(*r)
+	r := req.(*types.RequestSubscribeQuery)
+	err := s.ctx.DB.Subscribe().Delete(r.STenantId, r.SId)
 	if err != nil {
 		return nil, err
 	}
