@@ -47,5 +47,12 @@ func Router(engine *gin.Engine) {
 			api.FaultCenterController.API(w8t)
 			api.AiController.API(w8t)
 		}
+
+		oidc := v1.Group("oidc")
+		{
+			oidc.GET("oidcInfo", api.SystemController.GetOidcInfo)
+			oidc.GET("callback", api.SystemController.CallBack)
+			oidc.GET("token", api.SystemController.CookieConvertToken)
+		}
 	}
 }

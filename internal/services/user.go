@@ -81,6 +81,9 @@ func (us userService) Login(req interface{}) (interface{}, interface{}) {
 			logc.Error(us.ctx.Ctx, "请先开启 LDAP 功能!")
 			return nil, fmt.Errorf("请先开启 LDAP 功能!")
 		}
+	case "OIDC":
+		logc.Error(us.ctx.Ctx, "请使用 OIDC 登录!")
+		return nil, fmt.Errorf("请使用 OIDC 登录!")
 	default:
 		if data.Password != r.Password {
 			return nil, fmt.Errorf("密码错误")

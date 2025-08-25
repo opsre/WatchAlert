@@ -36,6 +36,7 @@ var (
 	ProbingService          InterProbingService
 	FaultCenterService      InterFaultCenterService
 	AiService               InterAiService
+	OidcService             InterOidcService
 )
 
 func NewServices(ctx *ctx.Context) {
@@ -67,4 +68,5 @@ func NewServices(ctx *ctx.Context) {
 	ProbingService = newInterProbingService(ctx, &alert.ProductProbing, &alert.ConsumeProbing)
 	FaultCenterService = newInterFaultCenterService(ctx)
 	AiService = newInterAiService(ctx)
+	OidcService = newInterOidcService(ctx)
 }
