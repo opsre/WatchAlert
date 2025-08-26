@@ -33,8 +33,13 @@ func (sr SilenceRepo) List(tenantId, faultCenterId, query string, page models.Pa
 		count       int64
 	)
 	db := sr.db.Model(models.AlertSilences{})
-	db.Where("tenant_id = ?", tenantId)
-	db.Where("fault_center_id = ?", faultCenterId)
+	if tenantId != "" {
+		db.Where("tenant_id = ?", tenantId)
+	}
+
+	if faultCenterId != "" {
+		db.Where("fault_center_id = ?", faultCenterId)
+	}
 
 	if query != "" {
 		db.Where("id LIKE ? OR comment LIKE ?", "%"+query+"%", "%"+query+"%")
