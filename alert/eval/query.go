@@ -78,7 +78,7 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 				ExpectedValue: value,
 			}
 
-			fingerprint := v.GetFingerprint()
+			fingerprint := v.GetFingerprint(rule.RuleId)
 			event := process.BuildEvent(rule, func() map[string]interface{} {
 				metric := v.GetMetric()
 				metric["rule_name"] = rule.RuleName
