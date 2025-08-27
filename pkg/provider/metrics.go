@@ -23,17 +23,18 @@ type Metrics struct {
 	Timestamp float64
 }
 
-func (m Metrics) GetFingerprint() string {
-	if len(m.Metric) == 0 {
+func (m Metrics) GetFingerprint(ruleId string) string {
+	var labels = m.Metric
+
+	if len(labels) == 0 {
 		return strconv.FormatUint(tools.HashNew(), 10)
 	}
 
-	delete(m.Metric, "value")
-	delete(m.Metric, "recover_value")
-	delete(m.Metric, "fingerprint")
+	// 避免不同规则相同 label 出现相同指纹；
+	labels["rule_id"] = ruleId
 
 	var result uint64
-	for labelName, labelValue := range m.Metric {
+	for labelName, labelValue := range labels {
 		sum := tools.HashNew()
 		sum = tools.HashAdd(sum, labelName)
 		sum = tools.HashAdd(sum, fmt.Sprintf("%v", labelValue))

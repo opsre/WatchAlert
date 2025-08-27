@@ -78,7 +78,7 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 				ExpectedValue: value,
 			}
 
-			fingerprint := v.GetFingerprint()
+			fingerprint := v.GetFingerprint(rule.RuleId)
 			event := process.BuildEvent(rule, func() map[string]interface{} {
 				metric := v.GetMetric()
 				metric["rule_name"] = rule.RuleName
@@ -94,12 +94,10 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 
 				// 获取初次触发值
 				data, err := ctx.Redis.Alert().GetEventFromCache(rule.TenantId, rule.FaultCenterId, fingerprint)
-				if err == nil {
-					if data.Labels["first_value"] != nil {
-						metric["first_value"] = data.Labels["first_value"]
-					} else {
-						metric["first_value"] = v.Value
-					}
+				if err == nil && data.Labels["first_value"] != nil {
+					metric["first_value"] = data.Labels["first_value"]
+				} else {
+					metric["first_value"] = v.Value
 				}
 
 				return metric

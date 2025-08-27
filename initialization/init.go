@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/zeromicro/go-zero/core/logc"
 	"golang.org/x/sync/errgroup"
+	"sync"
 	"watchAlert/alert"
 	"watchAlert/config"
 	"watchAlert/internal/cache"
@@ -42,6 +43,9 @@ func InitBasic() {
 
 	// 定时任务，清理历史通知记录和历史拨测数据
 	go gcHistoryData(ctx)
+
+	// 加载静默规则
+	go pushMuteRuleToRedis()
 
 	r, err := ctx.DB.Setting().Get()
 	if err != nil {
@@ -108,4 +112,32 @@ func gcHistoryData(ctx *ctx.Context) {
 		}
 	})
 
+}
+
+func pushMuteRuleToRedis() {
+	list, _, err := ctx.DB.Silence().List("", "", "", models.Page{
+		Index: 0,
+		Size:  1000,
+	})
+	if err != nil {
+		logc.Errorf(ctx.Ctx, "获取静默规则列表失败, err: %s", err.Error())
+		return
+	}
+
+	logc.Infof(ctx.Ctx, "获取到 %d 个静默规则", len(list))
+
+	var wg sync.WaitGroup
+	wg.Add(len(list))
+	for _, silence := range list {
+		go func(silence models.AlertSilences) {
+			defer func() {
+				wg.Done()
+			}()
+
+			ctx.Redis.Silence().PushAlertMute(silence)
+		}(silence)
+	}
+
+	wg.Wait()
+	logc.Infof(ctx.Ctx, "所有静默规则加载完毕！")
 }
