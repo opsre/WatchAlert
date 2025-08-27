@@ -1,6 +1,6 @@
 package types
 
-const OidcPassword = "watchalert"
+const OidcPassword = "watchAlert"
 
 type RequestOidcCodeQuery struct {
 	Code string `json:"code" form:"code"`
@@ -18,22 +18,33 @@ type OauthToken struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
-type RespOidcAuth struct {
-	Code   int  `json:"code"`
-	Status bool `json:"status"`
-	Data   struct {
-		NewToken string `json:"new_token"`
-	} `json:"data"`
+type RespOpenIDConfiguration struct {
+	AuthorizationEndpoint             string   `json:"authorization_endpoint"`
+	ClaimsSupported                   []string `json:"claims_supported"`
+	CodeChallengeMethodsSupported     []string `json:"code_challenge_methods_supported"`
+	GrantTypesSupported               []string `json:"grant_types_supported"`
+	IdTokenSigningAlgValuesSupported  []string `json:"id_token_signing_alg_values_supported"`
+	Issuer                            string   `json:"issuer"`
+	JwksUri                           string   `json:"jwks_uri"`
+	ResponseTypesSupported            []string `json:"response_types_supported"`
+	ScopesSupported                   []string `json:"scopes_supported"`
+	SubjectTypesSupported             []string `json:"subject_types_supported"`
+	TokenEndpoint                     string   `json:"token_endpoint"`
+	TokenEndpointAuthMethodsSupported []string `json:"token_endpoint_auth_methods_supported"`
+	UserinfoEndpoint                  string   `json:"userinfo_endpoint"`
 }
 
 type RespOidcUserInfo struct {
-	Code int `json:"code"`
-	Data struct {
-		BaseInfo struct {
-			Email    string `json:"email"`
-			Name     string `json:"name"`
-			Nickname string `json:"nickname"`
-			PhoneNum string `json:"phone_num"`
-		} `json:"base_info"`
-	} `json:"data"`
+	Attributes struct {
+		AvatarUrl   string        `json:"avatar_url"`
+		Departments []interface{} `json:"departments"`
+		Email       string        `json:"email"`
+		Name        string        `json:"name"`
+		Nickname    string        `json:"nickname"`
+		PhoneNum    string        `json:"phone_num"`
+	} `json:"attributes"`
+	ClientId string `json:"client_id"`
+	Email    string `json:"email"`
+	Id       string `json:"id"`
+	Sub      string `json:"sub"`
 }

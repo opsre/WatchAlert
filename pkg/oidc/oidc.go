@@ -1,163 +1,65 @@
 package oidc
 
 import (
-	"context"
-	"crypto/tls"
-	"encoding/json"
+	"bytes"
 	"fmt"
-	"github.com/zeromicro/go-zero/core/logc"
-	"io"
-	"net/http"
 	"net/url"
-	"strings"
 	"watchAlert/internal/types"
+	"watchAlert/pkg/tools"
 )
 
-func GetOauthToken(upper string, code string) (*types.OauthToken, error) {
-	ctx := context.Background()
-
-	client := http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
-			},
-		},
+func GetOpenIDConfiguration(upper string) (*types.RespOpenIDConfiguration, error) {
+	resp, err := tools.Get(nil, fmt.Sprintf("%s/.well-known/openid-configuration", upper), 10)
+	if err != nil {
+		return nil, err
 	}
+
+	var d types.RespOpenIDConfiguration
+	if err = tools.ParseReaderBody(resp.Body, &d); err != nil {
+		return nil, err
+	}
+
+	return &d, nil
+}
+
+func GetOauthToken(tokenUrl, code string) (*types.OauthToken, error) {
+	header := make(map[string]string)
+	header["Content-Type"] = "application/x-www-form-urlencoded"
 
 	form := url.Values{}
 	form.Add("grant_type", "authorization_code")
 	form.Add("code", code)
 
-	host := fmt.Sprintf("%s/v1/oauth/token", upper)
-
-	request, err := http.NewRequest(http.MethodPost, host, strings.NewReader(form.Encode()))
+	resp, err := tools.Post(header, tokenUrl, bytes.NewReader([]byte(form.Encode())), 10)
 	if err != nil {
-		logc.Error(ctx, fmt.Sprintf("post 请求建立失败, err: %s", err.Error()))
-		return nil, err
-	}
-	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	resp, err := client.Do(request)
-	if err != nil {
-		logc.Error(ctx, fmt.Sprintf("post 请求发送失败, err: %s", err.Error()))
 		return nil, err
 	}
 
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		logc.Error(ctx, fmt.Sprintf("读取响应体失败, err: %s", err.Error()))
+	var d types.OauthToken
+	if err = tools.ParseReaderBody(resp.Body, &d); err != nil {
 		return nil, err
 	}
 
-	var result types.OauthToken
-	if err = json.Unmarshal(body, &result); err != nil {
-		logc.Error(ctx, fmt.Sprintf("解析响应体失败, err: %s", err.Error()))
-		return nil, err
-	}
-
-	if result.AccessToken == "" || result.RefreshToken == "" {
-		logc.Error(ctx, fmt.Sprintf("请求 accessToken 或 refreshToken 失败, body: %s", string(body)))
+	if d.AccessToken == "" || d.RefreshToken == "" {
 		return nil, fmt.Errorf("failed to get oauth token")
 	}
 
-	return &result, nil
+	return &d, nil
 }
 
-func GetCurrentUser(upper string, uid interface{}) (*types.RespOidcUserInfo, error) {
-	ctx := context.Background()
+func GetCurrentUser(userInfoUrl, token string) (*types.RespOidcUserInfo, error) {
+	header := make(map[string]string)
+	header["Authorization"] = token
 
-	client := http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
-			},
-		},
-	}
-
-	host := fmt.Sprintf("%s/v1/users/%v?app_label=oidc", upper, uid)
-
-	request, err := http.NewRequest(http.MethodGet, host, nil)
+	resp, err := tools.Get(header, userInfoUrl, 10)
 	if err != nil {
-		logc.Error(ctx, fmt.Sprintf("post 请求建立失败, err: %s", err.Error()))
 		return nil, err
 	}
 
-	resp, err := client.Do(request)
-	if err != nil {
-		logc.Error(ctx, fmt.Sprintf("post 请求发送失败, err: %s", err.Error()))
+	var d types.RespOidcUserInfo
+	if err = tools.ParseReaderBody(resp.Body, &d); err != nil {
 		return nil, err
 	}
 
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		logc.Error(ctx, fmt.Sprintf("读取响应体失败, err: %s", err.Error()))
-		return nil, err
-	}
-
-	var result types.RespOidcUserInfo
-	if err = json.Unmarshal(body, &result); err != nil {
-		logc.Error(ctx, fmt.Sprintf("解析响应体失败, err: %s", err.Error()))
-		return nil, err
-	}
-
-	if result.Code != 0 {
-		logc.Error(ctx, fmt.Sprintf("获取用户信息失败, 错误码: %d, body: %s", result.Code, string(body)))
-		return nil, fmt.Errorf("failed to get user info, code: %d", result.Code)
-	}
-
-	return &result, nil
-}
-
-func DecodeToken(upper, accessToken, rfToken string) error {
-	ctx := context.Background()
-
-	client := http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
-			},
-		},
-	}
-
-	host := fmt.Sprintf("%s/v1/auth", upper)
-
-	request, err := http.NewRequest(http.MethodGet, host, nil)
-	if err != nil {
-		logc.Error(ctx, fmt.Sprintf("post 请求建立失败, err: %s", err.Error()))
-		return err
-	}
-
-	request.Header.Set("Authorization", accessToken)
-	request.Header.Set("RFToken", rfToken)
-
-	resp, err := client.Do(request)
-	if err != nil {
-		logc.Error(ctx, fmt.Sprintf("post 请求发送失败, err: %s", err.Error()))
-		return err
-	}
-
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		logc.Error(ctx, fmt.Sprintf("读取响应体失败, err: %s", err.Error()))
-		return err
-	}
-
-	var result types.RespOidcAuth
-	if err = json.Unmarshal(body, &result); err != nil {
-		logc.Error(ctx, fmt.Sprintf("解析响应体失败, err: %s", err.Error()))
-		return err
-	}
-
-	if result.Code != 0 {
-		logc.Error(ctx, fmt.Sprintf("认证失败, 错误码: %d", result.Code))
-		return fmt.Errorf("auth failed: %d", result.Code)
-	}
-
-	return nil
+	return &d, nil
 }

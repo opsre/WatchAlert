@@ -63,9 +63,13 @@ func (os oidcService) CallBack(ctx *gin.Context, req interface{}) (interface{}, 
 		return nil, fmt.Errorf("oidc is not enabled")
 	}
 
-	r := req.(*types.RequestOidcCodeQuery)
+	cfg, err := oidc.GetOpenIDConfiguration(setting.OidcConfig.UpperURI)
+	if err != nil {
+		return nil, err
+	}
 
-	data, err := oidc.GetOauthToken(setting.OidcConfig.UpperURI, r.Code)
+	r := req.(*types.RequestOidcCodeQuery)
+	data, err := oidc.GetOauthToken(cfg.TokenEndpoint, r.Code)
 	if err != nil {
 		return nil, err
 	}
@@ -85,20 +89,24 @@ func (os oidcService) CallBack(ctx *gin.Context, req interface{}) (interface{}, 
 		return nil, err
 	}
 
-	result, err := oidc.GetCurrentUser(setting.OidcConfig.UpperURI, payload["uid"])
+	result, err := oidc.GetCurrentUser(cfg.UserinfoEndpoint, data.AccessToken)
 	if err != nil {
 		return nil, err
 	}
 
-	_, ok, _ := os.ctx.DB.User().Get("", result.Data.BaseInfo.Name, "")
+	if result == nil {
+		return nil, fmt.Errorf("获取用户信息失败")
+	}
+
+	_, ok, _ := os.ctx.DB.User().Get("", result.Id, "")
 	if ok {
-		logc.Infof(os.ctx.Ctx, fmt.Sprintf("用户 %s 已存在", result.Data.BaseInfo.Name))
+		logc.Infof(os.ctx.Ctx, fmt.Sprintf("用户 %s 已存在", result.Id))
 	} else {
 		err = os.ctx.DB.User().Create(models.Member{
 			UserId:   tools.RandUid(),
-			UserName: result.Data.BaseInfo.Name,
-			Email:    result.Data.BaseInfo.Email,
-			Phone:    result.Data.BaseInfo.PhoneNum,
+			UserName: result.Id,
+			Email:    result.Email,
+			Phone:    result.Attributes.PhoneNum,
 			Password: tools.GenerateHashPassword(types.OidcPassword),
 			CreateBy: "OIDC",
 			CreateAt: time.Now().Unix(),
@@ -130,36 +138,21 @@ func (os oidcService) CookieConvertToken(ctx *gin.Context) (interface{}, interfa
 		return nil, err
 	}
 
-	rfToken, err := ctx.Cookie("rftoken")
+	cfg, err := oidc.GetOpenIDConfiguration(setting.OidcConfig.UpperURI)
 	if err != nil {
 		return nil, err
 	}
 
-	if err = oidc.DecodeToken(setting.OidcConfig.UpperURI, accessToken, rfToken); err != nil {
-		return nil, err
-	}
-
-	parts := strings.Split(accessToken, ".")
-	if len(parts) < 2 {
-		return nil, err
-	}
-
-	payloadBytes, err := base64.RawURLEncoding.DecodeString(parts[1])
+	result, err := oidc.GetCurrentUser(cfg.UserinfoEndpoint, accessToken)
 	if err != nil {
 		return nil, err
 	}
 
-	var payload map[string]interface{}
-	if err = json.Unmarshal(payloadBytes, &payload); err != nil {
-		return nil, err
+	if result == nil {
+		return nil, fmt.Errorf("获取用户信息失败")
 	}
 
-	currentUser, err := oidc.GetCurrentUser(setting.OidcConfig.UpperURI, payload["uid"])
-	if err != nil {
-		return nil, err
-	}
-
-	data, _, err := os.ctx.DB.User().Get("", currentUser.Data.BaseInfo.Name, "")
+	data, _, err := os.ctx.DB.User().Get("", result.Id, "")
 	if err != nil {
 		return nil, err
 	}
