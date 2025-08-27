@@ -7,7 +7,7 @@ type RequestOidcCodeQuery struct {
 }
 
 type OidcInfo struct {
-	Enable      bool   `json:"enable"`
+	AuthType    *int   `json:"authType"`
 	ClientID    string `json:"clientID"`
 	UpperURI    string `json:"upperURI"`
 	RedirectURI string `json:"redirectURI"`

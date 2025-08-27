@@ -39,14 +39,8 @@ func (os oidcService) GetOidcInfo() (interface{}, interface{}) {
 		return nil, err
 	}
 
-	if setting.OidcConfig.Enable != true {
-		return &types.OidcInfo{
-			Enable: false,
-		}, nil
-	}
-
 	return &types.OidcInfo{
-		Enable:      true,
+		AuthType:    setting.AuthType,
 		ClientID:    setting.OidcConfig.ClientID,
 		UpperURI:    setting.OidcConfig.UpperURI,
 		RedirectURI: setting.OidcConfig.RedirectURI,
@@ -57,10 +51,6 @@ func (os oidcService) CallBack(ctx *gin.Context, req interface{}) (interface{}, 
 	setting, err := os.ctx.DB.Setting().Get()
 	if err != nil {
 		return nil, err
-	}
-
-	if setting.OidcConfig.Enable != true {
-		return nil, fmt.Errorf("oidc is not enabled")
 	}
 
 	cfg, err := oidc.GetOpenIDConfiguration(setting.OidcConfig.UpperURI)
@@ -127,10 +117,6 @@ func (os oidcService) CookieConvertToken(ctx *gin.Context) (interface{}, interfa
 	setting, err := os.ctx.DB.Setting().Get()
 	if err != nil {
 		return nil, err
-	}
-
-	if setting.OidcConfig.Enable != true {
-		return nil, fmt.Errorf("oidc is not enabled")
 	}
 
 	accessToken, err := ctx.Cookie("token")
