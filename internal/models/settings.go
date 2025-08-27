@@ -56,7 +56,6 @@ type LdapConfig struct {
 }
 
 type OidcConfig struct {
-	Enable      bool   `json:"enable"`
 	ClientID    string `json:"clientID"`
 	UpperURI    string `json:"upperURI"`
 	RedirectURI string `json:"redirectURI"`
