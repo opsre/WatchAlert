@@ -32,9 +32,10 @@ type DsClickHouseConfig struct {
 }
 
 type DsAliCloudConfig struct {
-	AliCloudEndpoint string `json:"alicloudEndpoint"`
-	AliCloudAk       string `json:"alicloudAk"`
-	AliCloudSk       string `json:"alicloudSk"`
+	AliCloudEndpoint   string `json:"alicloudEndpoint"`
+	AliCloudAk         string `json:"alicloudAk"`
+	AliCloudSk         string `json:"alicloudSk"`
+	AliCloudSlsProject string `json:"alicloudSlsProject"`
 }
 
 type AWSCloudWatch struct {

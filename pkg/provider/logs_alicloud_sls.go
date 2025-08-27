@@ -11,6 +11,7 @@ import (
 
 type AliCloudSlsDsProvider struct {
 	client         *sls20201230.Client
+	project        string
 	ExternalLabels map[string]interface{}
 }
 
@@ -27,6 +28,7 @@ func NewAliCloudSlsClient(source models.AlertDataSource) (LogsFactoryProvider, e
 
 	return AliCloudSlsDsProvider{
 		client:         result,
+		project:        source.DsAliCloudConfig.AliCloudSlsProject,
 		ExternalLabels: source.Labels,
 	}, nil
 }
@@ -46,7 +48,7 @@ func (a AliCloudSlsDsProvider) Query(query LogQueryOptions) (Logs, int, error) {
 		}
 	}()
 
-	res, err := a.client.GetLogsWithOptions(tea.String(query.AliCloudSLS.Project), tea.String(query.AliCloudSLS.LogStore), getLogsRequest, headers, runtime)
+	res, err := a.client.GetLogsWithOptions(tea.String(a.project), tea.String(query.AliCloudSLS.LogStore), getLogsRequest, headers, runtime)
 	if err != nil {
 		return Logs{}, 0, err
 	}

@@ -228,7 +228,6 @@ func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.Ale
 		queryOptions := provider.LogQueryOptions{
 			AliCloudSLS: provider.AliCloudSLS{
 				Query:    rule.AliCloudSLSConfig.LogQL,
-				Project:  rule.AliCloudSLSConfig.Project,
 				LogStore: rule.AliCloudSLSConfig.Logstore,
 			},
 			StartAt: int32(startsAt.Unix()),
