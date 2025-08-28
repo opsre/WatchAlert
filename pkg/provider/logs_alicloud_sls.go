@@ -1,11 +1,13 @@
 package provider
 
 import (
+	"context"
 	"github.com/alibabacloud-go/darabonba-openapi/v2/client"
 	openapi "github.com/alibabacloud-go/darabonba-openapi/v2/client"
 	sls20201230 "github.com/alibabacloud-go/sls-20201230/v6/client"
 	util "github.com/alibabacloud-go/tea-utils/v2/service"
 	"github.com/alibabacloud-go/tea/tea"
+	"github.com/zeromicro/go-zero/core/logc"
 	"watchAlert/internal/models"
 )
 
@@ -32,7 +34,6 @@ func NewAliCloudSlsClient(source models.AlertDataSource) (LogsFactoryProvider, e
 }
 
 func (a AliCloudSlsDsProvider) Query(query LogQueryOptions) (Logs, int, error) {
-	var err error
 	getLogsRequest := &sls20201230.GetLogsRequest{
 		To:    tea.Int32(query.EndAt.(int32)),
 		From:  tea.Int32(query.StartAt.(int32)),
@@ -42,19 +43,24 @@ func (a AliCloudSlsDsProvider) Query(query LogQueryOptions) (Logs, int, error) {
 	headers := make(map[string]*string)
 	defer func() {
 		if r := tea.Recover(recover()); r != nil {
-			err = r
+			logc.Error(context.Background(), r.Error())
 		}
 	}()
 
-	res, err := a.client.GetLogsWithOptions(tea.String(query.AliCloudSLS.Project), tea.String(query.AliCloudSLS.LogStore), getLogsRequest, headers, runtime)
-	if err != nil {
-		return Logs{}, 0, err
+	var msg = []map[string]interface{}{}
+	for _, logstore := range query.AliCloudSLS.LogStore {
+		res, err := a.client.GetLogsWithOptions(tea.String(query.AliCloudSLS.Project), tea.String(logstore), getLogsRequest, headers, runtime)
+		if err != nil {
+			logc.Error(context.Background(), err.Error())
+			continue
+		}
+		msg = append(msg, res.Body...)
 	}
 
 	return Logs{
 		ProviderName: AliCloudSLSDsProviderName,
-		Message:      res.Body,
-	}, len(res.Body), nil
+		Message:      msg,
+	}, len(msg), nil
 }
 
 func (a AliCloudSlsDsProvider) Check() (bool, error) {

@@ -41,9 +41,9 @@ type Loki struct {
 }
 
 type AliCloudSLS struct {
-	Query    string // 查询语句
-	Project  string // AliCloud SLS Project
-	LogStore string // AliCloud SLS LogStore
+	Query    string   // 查询语句
+	Project  string   // AliCloud SLS Project
+	LogStore []string // AliCloud SLS LogStore
 }
 
 type Elasticsearch struct {
