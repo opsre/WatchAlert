@@ -14,6 +14,7 @@ type Settings struct {
 	PhoneCallConfig phoneCallConfig `json:"phoneCallConfig" gorm:"phoneCallConfig;serializer:json"`
 	AiConfig        AiConfig        `json:"aiConfig" gorm:"aiConfig;serializer:json"`
 	LdapConfig      LdapConfig      `json:"ldapConfig" gorm:"ldapConfig;serializer:json"`
+	OidcConfig      OidcConfig      `json:"oidcConfig" gorm:"oidcConfig;serializer:json"`
 }
 
 type emailConfig struct {
@@ -52,6 +53,13 @@ type LdapConfig struct {
 	UserPrefix      string `json:"userPrefix"`
 	DefaultUserRole string `json:"defaultUserRole"`
 	Cronjob         string `json:"cronjob"`
+}
+
+type OidcConfig struct {
+	ClientID    string `json:"clientID"`
+	UpperURI    string `json:"upperURI"`
+	RedirectURI string `json:"redirectURI"`
+	Domain      string `json:"domain"`
 }
 
 func (a AiConfig) GetEnable() bool {
