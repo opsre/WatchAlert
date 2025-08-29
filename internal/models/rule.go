@@ -109,10 +109,10 @@ type EffectiveTime struct {
 }
 
 type AliCloudSLSConfig struct {
-	Project  string `json:"project"`
-	Logstore string `json:"logstore"`
-	LogQL    string `json:"logQL"`    // 查询语句
-	LogScope int    `json:"logScope"` // 相对查询的日志范围（单位分钟）,1(min) 5(min)...
+	Project  string   `json:"project"`
+	Logstore []string `json:"logstore"`
+	LogQL    string   `json:"logQL"`    // 查询语句
+	LogScope int      `json:"logScope"` // 相对查询的日志范围（单位分钟）,1(min) 5(min)...
 }
 
 type LokiConfig struct {
