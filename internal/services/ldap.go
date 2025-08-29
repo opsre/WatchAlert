@@ -187,16 +187,43 @@ func (l ldapService) Login(username, password string) error {
 		logc.Errorf(l.ctx.Ctx, err.Error())
 		return err
 	}
+	defer auth.Close()
 
-	userDn := fmt.Sprintf("%s=%s,%s", l.ldapConfig.UserPrefix, username, l.ldapConfig.UserDN)
-	err = auth.Bind(userDn, password)
+	// 先搜索用户，获取真实的DN
+	searchRequest := ldap.NewSearchRequest(
+		l.ldapConfig.BaseDN,
+		ldap.ScopeWholeSubtree,
+		ldap.NeverDerefAliases,
+		1, 0, false,
+		fmt.Sprintf("(sAMAccountName=%s)", ldap.EscapeFilter(username)),
+		[]string{"dn"},
+		nil,
+	)
+
+	searchResult, err := auth.Search(searchRequest)
 	if err != nil {
-		logc.Errorf(l.ctx.Ctx, fmt.Sprintf("LDAP 用户登陆失败, err: %s", err.Error()))
+		logc.Errorf(l.ctx.Ctx, fmt.Sprintf("LDAP 搜索用户失败, username: %s, err: %s", username, err.Error()))
 		return err
 	}
 
+	if len(searchResult.Entries) == 0 {
+		logc.Errorf(l.ctx.Ctx, fmt.Sprintf("LDAP 用户不存在, username: %s", username))
+		return fmt.Errorf("用户不存在")
+	}
+
+	userDN := searchResult.Entries[0].DN
+	logc.Infof(l.ctx.Ctx, fmt.Sprintf("找到用户DN: %s", userDN))
+
+	err = auth.Bind(userDN, password)
+	if err != nil {
+		logc.Errorf(l.ctx.Ctx, fmt.Sprintf("LDAP 用户登陆失败, username: %s, DN: %s, err: %s", username, userDN, err.Error()))
+		return err
+	}
+
+	logc.Infof(l.ctx.Ctx, fmt.Sprintf("LDAP 用户登陆成功, username: %s", username))
 	return nil
 }
+
 
 func (l ldapService) SyncUsersCronjob(ctx context.Context) {
 	c := cron.New()
