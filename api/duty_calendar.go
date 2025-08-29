@@ -34,6 +34,7 @@ func (dc DutyCalendarController) API(gin *gin.RouterGroup) {
 	)
 	{
 		calendarB.GET("calendarSearch", dc.Search)
+		calendarB.GET("getCalendarUsers", dc.GetCalendarUsers)
 	}
 }
 
@@ -70,5 +71,17 @@ func (dc DutyCalendarController) Search(ctx *gin.Context) {
 
 	Service(ctx, func() (interface{}, interface{}) {
 		return services.DutyCalendarService.Search(r)
+	})
+}
+
+func (dc DutyCalendarController) GetCalendarUsers(ctx *gin.Context) {
+	r := new(models.DutyScheduleQuery)
+	BindQuery(ctx, r)
+
+	tid, _ := ctx.Get("TenantID")
+	r.TenantId = tid.(string)
+
+	Service(ctx, func() (interface{}, interface{}) {
+		return services.DutyCalendarService.GetCalendarUsers(r)
 	})
 }

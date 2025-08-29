@@ -38,3 +38,7 @@ func Md5Hash(str []byte) string {
 	return hashStr
 
 }
+
+func WithKVCalculateHash(key, value string) string {
+	return Md5Hash([]byte(key + ":" + value))
+}

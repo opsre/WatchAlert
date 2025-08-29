@@ -1,37 +1,46 @@
 package cache
 
 import (
-	"github.com/go-redis/redis"
 	"watchAlert/pkg/client"
 )
 
 type (
 	entryCache struct {
-		redis    *redis.Client
+		//redis    *redis.Client
 		provider *ProviderPoolStore
+		cache    Cache
 	}
 
 	InterEntryCache interface {
-		Redis() *redis.Client
-		Silence() InterSilenceCache
-		Rule() InterRuleCache
-		Event() InterEventCache
+		Cache() Cache
+		Silence() SilenceCacheInterface
+		Event() EventCacheInterface
 		ProviderPools() *ProviderPoolStore
+		FaultCenter() FaultCenterCacheInterface
 	}
 )
 
-func NewEntryCache() InterEntryCache {
-	r := client.InitRedis()
-	p := NewClientPoolStore()
+func NewEntryCache(cacheType string) InterEntryCache {
 
-	return &entryCache{
-		redis:    r,
-		provider: p,
+	p := NewClientPoolStore()
+	switch cacheType {
+	case "Redis":
+		return &entryCache{
+			cache:    client.NewRedisCache(),
+			provider: p,
+		}
+	default:
+		return &entryCache{
+			cache:    client.InitLocalCache(),
+			provider: p,
+		}
 	}
 }
 
-func (e entryCache) Redis() *redis.Client              { return e.redis }
-func (e entryCache) Silence() InterSilenceCache        { return newSilenceCacheInterface(e.redis) }
-func (e entryCache) Rule() InterRuleCache              { return newRuleCacheInterface(e.redis) }
-func (e entryCache) Event() InterEventCache            { return newEventCacheInterface(e.redis) }
+func (e entryCache) Cache() Cache                      { return e.cache }
+func (e entryCache) Silence() SilenceCacheInterface    { return newSilenceCacheInterface(e.cache) }
+func (e entryCache) Event() EventCacheInterface        { return newEventCacheInterface(e.cache) }
 func (e entryCache) ProviderPools() *ProviderPoolStore { return e.provider }
+func (e entryCache) FaultCenter() FaultCenterCacheInterface {
+	return newFaultCenterCacheInterface(e.cache)
+}

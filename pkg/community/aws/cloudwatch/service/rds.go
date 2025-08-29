@@ -32,7 +32,7 @@ func (a awsRdsService) GetDBInstanceIdentifier(req interface{}) (interface{}, in
 		return nil, err
 	}
 
-	cfg, err := provider.NewAWSCredentialCfg(datasourceObj.AWSCloudWatch.Region, datasourceObj.AWSCloudWatch.AccessKey, datasourceObj.AWSCloudWatch.SecretKey)
+	cfg, err := provider.NewAWSCredentialCfg(datasourceObj.AWSCloudWatch.Region, datasourceObj.AWSCloudWatch.AccessKey, datasourceObj.AWSCloudWatch.SecretKey, datasourceObj.Labels)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +59,7 @@ func (a awsRdsService) GetDBClusterIdentifier(req interface{}) (interface{}, int
 		return nil, err
 	}
 
-	cfg, err := provider.NewAWSCredentialCfg(datasourceObj.AWSCloudWatch.Region, datasourceObj.AWSCloudWatch.AccessKey, datasourceObj.AWSCloudWatch.SecretKey)
+	cfg, err := provider.NewAWSCredentialCfg(datasourceObj.AWSCloudWatch.Region, datasourceObj.AWSCloudWatch.AccessKey, datasourceObj.AWSCloudWatch.SecretKey, datasourceObj.Labels)
 	if err != nil {
 		return nil, err
 	}

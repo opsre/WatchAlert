@@ -1,7 +1,7 @@
 package services
 
 import (
-	"fmt"
+	"github.com/zeromicro/go-zero/core/logc"
 	"sync"
 	"watchAlert/internal/models"
 	"watchAlert/pkg/ctx"
@@ -55,7 +55,7 @@ func (as alertService) RePushRule(ctx *ctx.Context, alertRule chan *models.Alert
 	// 处理结果
 	for result := range resultCh {
 		if result != nil {
-			fmt.Println("Error:", result)
+			logc.Error(ctx.Ctx, result)
 		}
 	}
 

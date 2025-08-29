@@ -1,7 +1,6 @@
 package services
 
 import (
-	"fmt"
 	"time"
 	models "watchAlert/internal/models"
 	"watchAlert/pkg/ctx"
@@ -28,33 +27,26 @@ func newInterSilenceService(ctx *ctx.Context) InterSilenceService {
 
 func (ass alertSilenceService) Create(req interface{}) (interface{}, interface{}) {
 	r := req.(*models.AlertSilences)
-	createAt := time.Now().Unix()
+	updateAt := time.Now().Unix()
 	silenceEvent := models.AlertSilences{
-		TenantId:       r.TenantId,
-		Id:             "s-" + tools.RandId(),
-		Fingerprint:    r.Fingerprint,
-		Datasource:     r.Datasource,
-		DatasourceType: r.DatasourceType,
-		StartsAt:       r.StartsAt,
-		EndsAt:         r.EndsAt,
-		CreateBy:       r.CreateBy,
-		CreateAt:       createAt,
-		UpdateAt:       createAt,
-		Comment:        r.Comment,
+		TenantId:      r.TenantId,
+		Name:          r.Name,
+		Id:            "s-" + tools.RandId(),
+		StartsAt:      r.StartsAt,
+		EndsAt:        r.EndsAt,
+		UpdateAt:      updateAt,
+		UpdateBy:      r.UpdateBy,
+		FaultCenterId: r.FaultCenterId,
+		Labels:        r.Labels,
+		Comment:       r.Comment,
+		Status:        1,
 	}
 
-	event, ok := ass.ctx.Redis.Silence().GetCache(models.AlertSilenceQuery{
-		TenantId:    silenceEvent.TenantId,
-		Fingerprint: silenceEvent.Fingerprint,
-	})
-	if ok && event != "" {
-		return nil, fmt.Errorf("静默消息已存在, ID:%s", silenceEvent.Id)
+	if r.StartsAt > updateAt {
+		r.Status = 0
 	}
 
-	muteAt := r.EndsAt - createAt
-	duration := time.Duration(muteAt) * time.Second
-	ass.ctx.Redis.Silence().SetCache(silenceEvent, duration)
-
+	ass.ctx.Cache.Silence().PushMuteToFaultCenter(silenceEvent)
 	err := ass.ctx.DB.Silence().Create(silenceEvent)
 	if err != nil {
 		return nil, err
@@ -67,10 +59,14 @@ func (ass alertSilenceService) Update(req interface{}) (interface{}, interface{}
 	r := req.(*models.AlertSilences)
 	updateAt := time.Now().Unix()
 	r.UpdateAt = updateAt
-	muteAt := r.EndsAt - r.StartsAt
-	duration := time.Duration(muteAt) * time.Second
-	ass.ctx.Redis.Silence().SetCache(*r, duration)
 
+	if r.StartsAt > updateAt {
+		r.Status = 0
+	} else {
+		r.Status = 1
+	}
+
+	ass.ctx.Cache.Silence().PushMuteToFaultCenter(*r)
 	err := ass.ctx.DB.Silence().Update(*r)
 	if err != nil {
 		return nil, err
@@ -81,12 +77,8 @@ func (ass alertSilenceService) Update(req interface{}) (interface{}, interface{}
 
 func (ass alertSilenceService) Delete(req interface{}) (interface{}, interface{}) {
 	r := req.(*models.AlertSilenceQuery)
-	err := ass.ctx.Redis.Silence().DelCache(*r)
-	if err != nil {
-		return nil, err
-	}
-
-	err = ass.ctx.DB.Silence().Delete(*r)
+	ass.ctx.Cache.Silence().RemoveMuteFromFaultCenter(r.TenantId, r.FaultCenterId, r.Id)
+	err := ass.ctx.DB.Silence().Delete(*r)
 	if err != nil {
 		return nil, err
 	}

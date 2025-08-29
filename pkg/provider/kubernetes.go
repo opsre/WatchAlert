@@ -12,11 +12,12 @@ import (
 )
 
 type KubernetesClient struct {
-	Cli *kubernetes.Clientset
-	Ctx context.Context
+	ExternalLabels map[string]interface{}
+	Cli            *kubernetes.Clientset
+	Ctx            context.Context
 }
 
-func NewKubernetesClient(ctx context.Context, kubeConfigContent string) (KubernetesClient, error) {
+func NewKubernetesClient(ctx context.Context, kubeConfigContent string, labels map[string]interface{}) (KubernetesClient, error) {
 	// 如果配置内容为空，则去默认目录下取配置文件的内容
 	if kubeConfigContent == "" {
 		kubeConfigContent = os.Getenv("HOME") + "/.kube/config"
@@ -47,8 +48,9 @@ func NewKubernetesClient(ctx context.Context, kubeConfigContent string) (Kuberne
 	}
 
 	return KubernetesClient{
-		Cli: cs,
-		Ctx: ctx,
+		Cli:            cs,
+		Ctx:            ctx,
+		ExternalLabels: labels,
 	}, nil
 }
 
@@ -84,4 +86,14 @@ func (a KubernetesClient) GetWarningEvent(reason string, scope int) (*corev1.Eve
 	}
 
 	return &warningEvents, nil
+}
+
+func (a KubernetesClient) GetExternalLabels() map[string]interface{} {
+	return a.ExternalLabels
+}
+
+func (a KubernetesClient) Check() (bool, error) {
+	_, err := a.Cli.ServerVersion()
+
+	return err == nil, err
 }

@@ -33,6 +33,7 @@ func (a EmailClient) Send(to, cc []string, subject string, msg []byte) error {
 	a.Email.HTML = msg
 	a.Email.Subject = subject
 	port := strconv.FormatInt(int64(a.Port), 10)
+	//err := a.Email.SendWithTLS(a.ServerAddr+":"+port, a.Auth, &tls.Config{ServerName: a.ServerAddr})
 	err := a.Email.Send(a.ServerAddr+":"+port, a.Auth)
 	if err != nil {
 		return err

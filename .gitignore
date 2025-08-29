@@ -26,4 +26,4 @@ data
 *.sw?
 deploy/docker-compose/mysql
 deploy/docker-compose/redis
-
+cache_file

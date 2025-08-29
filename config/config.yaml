@@ -10,17 +10,20 @@ DataBase:
   source: data/watchalert.db
 
 MySQL:
-  host: 127.0.0.1
+  host: w8t-mysql
   port: 3306
   user: root
   pass: w8t.123
   dbName: watchalert
   timeout: 10s
 
+Cache: default
+
 Redis:
-  host: 127.0.0.1
+  host: w8t-redis
   port: 6379
   pass: ""
+  database: 0
 
 Jwt:
   # 失效时间

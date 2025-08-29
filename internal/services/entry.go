@@ -34,6 +34,8 @@ var (
 	LdapService             InterLdapService
 	SubscribeService        InterAlertSubscribeService
 	ProbingService          InterProbingService
+	FaultCenterService      InterFaultCenterService
+	AiService               InterAiService
 )
 
 func NewServices(ctx *ctx.Context) {
@@ -63,4 +65,6 @@ func NewServices(ctx *ctx.Context) {
 	LdapService = newInterLdapService(ctx)
 	SubscribeService = newInterAlertSubscribe(ctx)
 	ProbingService = newInterProbingService(ctx, &alert.ProductProbing, &alert.ConsumeProbing)
+	FaultCenterService = newInterFaultCenterService(ctx)
+	AiService = newInterAiService(ctx)
 }

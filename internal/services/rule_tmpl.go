@@ -12,6 +12,7 @@ type ruleTmplService struct {
 type InterRuleTmplService interface {
 	List(req interface{}) (interface{}, interface{})
 	Create(req interface{}) (interface{}, interface{})
+	Update(req interface{}) (interface{}, interface{})
 	Delete(req interface{}) (interface{}, interface{})
 }
 
@@ -34,6 +35,16 @@ func (rt ruleTmplService) List(req interface{}) (interface{}, interface{}) {
 func (rt ruleTmplService) Create(req interface{}) (interface{}, interface{}) {
 	r := req.(*models.RuleTemplate)
 	err := rt.ctx.DB.RuleTmpl().Create(*r)
+	if err != nil {
+		return nil, err
+	}
+
+	return nil, nil
+}
+
+func (rt ruleTmplService) Update(req interface{}) (interface{}, interface{}) {
+	r := req.(*models.RuleTemplate)
+	err := rt.ctx.DB.RuleTmpl().Update(*r)
 	if err != nil {
 		return nil, err
 	}

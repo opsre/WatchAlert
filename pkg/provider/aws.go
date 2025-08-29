@@ -9,10 +9,11 @@ import (
 )
 
 type AwsConfig struct {
-	cfg aws.Config
+	ExternalLabels map[string]interface{}
+	cfg            aws.Config
 }
 
-func NewAWSCredentialCfg(region, ak, sk string) (AwsConfig, error) {
+func NewAWSCredentialCfg(region, ak, sk string, labels map[string]interface{}) (AwsConfig, error) {
 	cfg, err := config.LoadDefaultConfig(context.Background(),
 		func(options *config.LoadOptions) error {
 			options.Region = region
@@ -31,7 +32,8 @@ func NewAWSCredentialCfg(region, ak, sk string) (AwsConfig, error) {
 	}
 
 	return AwsConfig{
-		cfg: cfg,
+		ExternalLabels: labels,
+		cfg:            cfg,
 	}, nil
 }
 
@@ -41,4 +43,8 @@ func (a AwsConfig) CloudWatchCli() *cloudwatch.Client {
 
 func (a AwsConfig) RdsCli() *rds.Client {
 	return rds.NewFromConfig(a.cfg)
+}
+
+func (a AwsConfig) GetExternalLabels() map[string]interface{} {
+	return a.ExternalLabels
 }

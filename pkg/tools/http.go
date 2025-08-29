@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/base64"
 	"fmt"
 	"github.com/zeromicro/go-zero/core/logc"
 	"net/http"
@@ -16,6 +17,7 @@ func Get(headers map[string]string, url string, timeout int) (*http.Response, er
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
 		},
+		Proxy: http.ProxyFromEnvironment,
 	}
 
 	client := http.Client{
@@ -45,6 +47,7 @@ func Post(headers map[string]string, url string, bodyReader *bytes.Reader, timeo
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
 		},
+		Proxy: http.ProxyFromEnvironment,
 	}
 
 	client := http.Client{
@@ -68,4 +71,18 @@ func Post(headers map[string]string, url string, bodyReader *bytes.Reader, timeo
 	}
 
 	return resp, nil
+}
+
+// CreateBasicAuthHeader 创建带认证的HTTP头
+func CreateBasicAuthHeader(username, password string) map[string]string {
+	headers := make(map[string]string)
+	if username != "" || password != "" {
+		headers["Authorization"] = "Basic " + basicAuth(username, password)
+	}
+	return headers
+}
+
+func basicAuth(username, password string) string {
+	auth := username + ":" + password
+	return base64.StdEncoding.EncodeToString([]byte(auth))
 }

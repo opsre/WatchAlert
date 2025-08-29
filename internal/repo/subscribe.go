@@ -34,6 +34,9 @@ func (s subscribeRepo) List(r models.AlertSubscribeQuery) ([]models.AlertSubscri
 	)
 
 	db.Where("s_tenant_id = ?", r.STenantId)
+	if r.SRuleId != "" {
+		db.Where("s_rule_id = ?", r.SRuleId)
+	}
 	if r.Query != "" {
 		db.Where("s_rule_id LIKE ? or s_rule_name LIKE ? or s_rule_type LIKE ?", "%"+r.Query+"%", "%"+r.Query+"%", "%"+r.Query+"%")
 	}

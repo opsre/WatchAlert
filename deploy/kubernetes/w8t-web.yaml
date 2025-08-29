@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    name: w8t-web
+  name: w8t-web
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: w8t-web
+  template:
+    metadata:
+      labels:
+        app: w8t-web
+    spec:
+      containers:
+        - name: watchalert-web
+          image: docker.io/cairry/watchalert-web:latest
+          ports:
+            - containerPort: 80
+          command:
+            - bash
+            - -c
+          args:
+            - "sed -i 's@http://$host:9001@http://w8t-service:9001@g' /etc/nginx/conf.d/w8t.conf; nginx -g 'daemon off;'"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: w8t-web
+  namespace: default
+spec:
+  selector:
+    app: w8t-web
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+      nodePort: 30800
+  type: NodePort

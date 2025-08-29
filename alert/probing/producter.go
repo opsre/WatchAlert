@@ -6,6 +6,7 @@ import (
 	"github.com/zeromicro/go-zero/core/logc"
 	"golang.org/x/sync/errgroup"
 	"time"
+	"watchAlert/alert/process"
 	"watchAlert/internal/models"
 	"watchAlert/pkg/ctx"
 	"watchAlert/pkg/provider"
@@ -13,16 +14,18 @@ import (
 )
 
 type ProductProbing struct {
-	ctx         *ctx.Context
-	WatchCtxMap map[string]context.CancelFunc
-	Timing      map[string]int
+	ctx           *ctx.Context
+	WatchCtxMap   map[string]context.CancelFunc
+	FailFrequency map[string]int
+	OkFrequency   map[string]int
 }
 
 func NewProbingTask(ctx *ctx.Context) ProductProbing {
 	return ProductProbing{
-		ctx:         ctx,
-		Timing:      make(map[string]int),
-		WatchCtxMap: make(map[string]context.CancelFunc),
+		ctx:           ctx,
+		FailFrequency: make(map[string]int),
+		OkFrequency:   make(map[string]int),
+		WatchCtxMap:   make(map[string]context.CancelFunc),
 	}
 }
 
@@ -68,13 +71,13 @@ func (t *ProductProbing) worker(rule models.ProbingRule) {
 		ruleConfig = rule.ProbingEndpointConfig
 	)
 
-	eValue, err = t.runEvaluation(rule)
+	eValue, err = t.runProbing(rule)
 	if err != nil {
 		logc.Errorf(t.ctx.Ctx, err.Error())
 		return
 	}
 
-	event := t.processDefaultEvent(rule)
+	event := t.buildEvent(rule)
 	event.Fingerprint = eValue.GetFingerprint()
 	event.Metric = eValue.GetLabels()
 	var isValue float64
@@ -88,18 +91,20 @@ func (t *ProductProbing) worker(rule models.ProbingRule) {
 	}
 	event.Annotations = tools.ParserVariables(rule.Annotations, event.Metric)
 
-	var option EvalStrategy
-	if rule.RuleType != provider.TCPEndpointProvider {
-		option = EvalStrategy{
+	var option models.EvalCondition
+	switch rule.RuleType {
+	// 如果拨测类型是 TCP ，直接定义好计算条件 == 0 则表示异常
+	case provider.TCPEndpointProvider:
+		option = models.EvalCondition{
+			Operator:      "==",
+			QueryValue:    isValue,
+			ExpectedValue: 0,
+		}
+	default:
+		option = models.EvalCondition{
 			Operator:      ruleConfig.Strategy.Operator,
 			QueryValue:    eValue[ruleConfig.Strategy.Field].(float64),
 			ExpectedValue: ruleConfig.Strategy.ExpectedValue,
-		}
-	} else {
-		option = EvalStrategy{
-			Operator:      "==",
-			QueryValue:    isValue,
-			ExpectedValue: 1,
 		}
 	}
 
@@ -112,7 +117,7 @@ func (t *ProductProbing) worker(rule models.ProbingRule) {
 	return
 }
 
-func (t *ProductProbing) runEvaluation(rule models.ProbingRule) (provider.EndpointValue, error) {
+func (t *ProductProbing) runProbing(rule models.ProbingRule) (provider.EndpointValue, error) {
 	var ruleConfig = rule.ProbingEndpointConfig
 	switch rule.RuleType {
 	case provider.ICMPEndpointProvider:
@@ -148,40 +153,38 @@ func (t *ProductProbing) runEvaluation(rule models.ProbingRule) (provider.Endpoi
 	return provider.EndpointValue{}, fmt.Errorf("unsupported rule type: %s", rule.RuleType)
 }
 
-func (t *ProductProbing) Evaluation(event models.ProbingEvent, option EvalStrategy) {
-	// Retry mechanism for the condition evaluation
-	if EvalCondition(option) {
-		t.setTime(event.RuleId)
-		if t.getTime(event.RuleId) >= event.ProbingEndpointConfig.Strategy.Failure {
+func (t *ProductProbing) Evaluation(event models.ProbingEvent, option models.EvalCondition) {
+	if process.EvalCondition(option) {
+		// 控制失败频次
+		t.setFrequency(t.FailFrequency, event.RuleId)
+		// 如果失败频次达到设定次数后记录事件
+		if t.getFrequency(t.FailFrequency, event.RuleId) >= event.ProbingEndpointConfig.Strategy.Failure {
+			defer func() {
+				t.cleanFrequency(t.FailFrequency, event.RuleId)
+			}()
+
 			SaveProbingEndpointEvent(event)
-			t.cleanTime(event.RuleId)
 		}
 	} else {
-		c := ctx.Redis.Event()
-		neCache, err := c.GetPECache(event.GetFiringAlertCacheKey())
-		if err != nil {
-			return
-		}
-		neCache.FirstTriggerTime = c.GetPEFirstTime(event.GetFiringAlertCacheKey())
-		neCache.IsRecovered = true
-		neCache.RecoverTime = time.Now().Unix()
-		neCache.LastSendTime = 0
-		c.SetPECache(neCache, 0)
-		delete(t.Timing, neCache.RuleId)
-	}
-}
+		// 控制成功频次
+		t.setFrequency(t.OkFrequency, event.RuleId)
+		if t.getFrequency(t.OkFrequency, event.RuleId) >= 3 {
+			defer func() {
+				t.cleanFrequency(t.OkFrequency, event.RuleId)
+			}()
 
-func (t *ProductProbing) processDefaultEvent(rule models.ProbingRule) models.ProbingEvent {
-	return models.ProbingEvent{
-		TenantId:              rule.TenantId,
-		RuleId:                rule.RuleId,
-		RuleType:              rule.RuleType,
-		NoticeId:              rule.NoticeId,
-		Severity:              rule.Severity,
-		IsRecovered:           false,
-		RepeatNoticeInterval:  rule.RepeatNoticeInterval,
-		RecoverNotify:         rule.RecoverNotify,
-		ProbingEndpointConfig: rule.ProbingEndpointConfig,
+			c := ctx.Cache.Event()
+			neCache, err := c.GetProbingEventCache(event.GetFiringAlertCacheKey())
+			if err != nil {
+				logc.Error(ctx.Ctx, err.Error())
+				return
+			}
+			neCache.FirstTriggerTime = c.GetProbingEventFirstTime(event.GetFiringAlertCacheKey())
+			neCache.IsRecovered = true
+			neCache.RecoverTime = time.Now().Unix()
+			neCache.LastSendTime = 0
+			c.SetProbingEventCache(neCache, 0)
+		}
 	}
 }
 
@@ -207,17 +210,20 @@ func (t *ProductProbing) RePushRule(consumer *ConsumeProbing) {
 	}
 }
 
-func (t *ProductProbing) setTime(ruleId string) {
+func (t *ProductProbing) setFrequency(frequencyStorage map[string]int, ruleId string) {
 	t.ctx.Mux.Lock()
 	defer t.ctx.Mux.Unlock()
 
-	t.Timing[ruleId]++
+	frequencyStorage[ruleId]++
 }
 
-func (t *ProductProbing) getTime(ruleId string) int {
-	return t.Timing[ruleId]
+func (t *ProductProbing) getFrequency(frequencyStorage map[string]int, ruleId string) int {
+	t.ctx.Mux.RLock()
+	defer t.ctx.Mux.RUnlock()
+
+	return frequencyStorage[ruleId]
 }
 
-func (t *ProductProbing) cleanTime(ruleId string) {
-	t.Timing[ruleId] = 0
+func (t *ProductProbing) cleanFrequency(frequencyStorage map[string]int, ruleId string) {
+	delete(frequencyStorage, ruleId)
 }

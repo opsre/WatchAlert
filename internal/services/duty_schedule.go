@@ -7,18 +7,18 @@ import (
 	"time"
 	"watchAlert/internal/models"
 	"watchAlert/pkg/ctx"
+	"watchAlert/pkg/tools"
 )
 
 type dutyCalendarService struct {
 	ctx *ctx.Context
 }
 
-var layout = "2006-01"
-
 type InterDutyCalendarService interface {
 	CreateAndUpdate(req interface{}) (interface{}, interface{})
 	Update(req interface{}) (interface{}, interface{})
 	Search(req interface{}) (interface{}, interface{})
+	GetCalendarUsers(req interface{}) (interface{}, interface{})
 }
 
 func newInterDutyCalendarService(ctx *ctx.Context) InterDutyCalendarService {
@@ -30,102 +30,17 @@ func newInterDutyCalendarService(ctx *ctx.Context) InterDutyCalendarService {
 // CreateAndUpdate 创建和更新值班表
 func (dms dutyCalendarService) CreateAndUpdate(req interface{}) (interface{}, interface{}) {
 	r := req.(*models.DutyScheduleCreate)
+	dutyScheduleList, err := dms.generateDutySchedule(*r)
+	if err != nil {
+		return nil, fmt.Errorf("生成值班表失败: %w", err)
+	}
 
-	var (
-		dutyScheduleList []models.DutySchedule
-		timeC            = make(chan string, 370)
-		wg               sync.WaitGroup
-	)
-	// 默认从当前月份顺延到年底
-	curYear, curMonth, _ := parseTime(r.Month)
-
-	wg.Add(1)
 	go func() {
-		defer wg.Done()
-
-		// 生产值班日期
-		for mon := int(curMonth); mon <= 12; mon++ {
-			for day := 1; day <= 31; day++ {
-				dutyTime := fmt.Sprintf("%d-%d-%d", curYear, mon, day)
-				timeC <- dutyTime
-			}
-		}
-		close(timeC)
-
-		var count int
-		var days int
-		switch r.DateType {
-		case "day":
-			days = 1 * r.DutyPeriod
-		case "week":
-			days = 7 * r.DutyPeriod
-		}
-
-		// 产出值班表数据结构
-		for {
-			if len(timeC) == 0 {
-				break
-			}
-
-			for _, value := range r.Users {
-				for t := 1; t <= days; t++ {
-					tc := <-timeC
-					ds := models.DutySchedule{
-						TenantId: r.TenantId,
-						DutyId:   r.DutyId,
-						Time:     tc,
-						Users: models.Users{
-							UserId:   value.UserId,
-							Username: value.Username,
-						},
-					}
-
-					if tc != "" {
-						dutyScheduleList = append(dutyScheduleList, ds)
-					}
-
-					if r.DateType == "week" {
-						weekday, err := getWeekday(tc)
-						if err != nil {
-							continue
-						}
-
-						if weekday == 0 {
-							count++
-							if count == r.DutyPeriod {
-								count = 0
-								break
-							}
-						}
-					}
-
-				}
-			}
+		if err := dms.updateDutyScheduleInDB(dutyScheduleList, r.TenantId); err != nil {
+			logc.Errorf(dms.ctx.Ctx, err.Error())
 		}
 	}()
-
-	wg.Wait()
-
-	go func(dutyScheduleList []models.DutySchedule) {
-		for _, v := range dutyScheduleList {
-			// 更新当前已发布的日程表
-			dutyScheduleInfo := dms.ctx.DB.DutyCalendar().GetCalendarInfo(r.DutyId, v.Time)
-			if dutyScheduleInfo.Time != "" {
-				if err := dms.ctx.DB.DutyCalendar().Update(v); err != nil {
-					logc.Errorf(dms.ctx.Ctx, fmt.Sprintf("值班系统更新失败 %s", err))
-				}
-			} else {
-				err := dms.ctx.DB.DutyCalendar().Create(v)
-				if err != nil {
-					logc.Errorf(dms.ctx.Ctx, fmt.Sprintf("值班系统创建失败 %s", err))
-					return
-				}
-			}
-		}
-	}(dutyScheduleList)
-
-	return dutyScheduleList, nil
-
+	return nil, nil
 }
 
 // Update 更新值班表
@@ -150,21 +65,119 @@ func (dms dutyCalendarService) Search(req interface{}) (interface{}, interface{}
 	return data, nil
 }
 
-func parseTime(month string) (int, time.Month, int) {
-	parsedTime, err := time.Parse(layout, month)
+func (dms dutyCalendarService) GetCalendarUsers(req interface{}) (interface{}, interface{}) {
+	r := req.(*models.DutyScheduleQuery)
+	data, err := dms.ctx.DB.DutyCalendar().GetCalendarUsers(*r)
 	if err != nil {
-		return 0, time.Month(0), 0
+		return nil, err
 	}
-	curYear, curMonth, curDay := parsedTime.Date()
-	return curYear, curMonth, curDay
+
+	return data, nil
 }
 
-func getWeekday(date string) (time.Weekday, error) {
-	t, err := time.Parse("2006-1-2", date)
-	if err != nil {
-		return 0, err
+func (dms dutyCalendarService) generateDutySchedule(dutyInfo models.DutyScheduleCreate) ([]models.DutySchedule, error) {
+	curYear, curMonth, _ := tools.ParseTime(dutyInfo.Month)
+	dutyDays := dms.calculateDutyDays(dutyInfo.DateType, dutyInfo.DutyPeriod)
+	timeC := dms.generateDutyDates(curYear, curMonth)
+	dutyScheduleList := dms.createDutyScheduleList(dutyInfo, timeC, dutyDays)
+
+	return dutyScheduleList, nil
+}
+
+// 计算值班天数
+func (dms dutyCalendarService) calculateDutyDays(dateType string, dutyPeriod int) int {
+	switch dateType {
+	case "day":
+		return dutyPeriod
+	case "week":
+		return 7 * dutyPeriod
+	default:
+		return 0
+	}
+}
+
+// 生成值班日期
+func (dms dutyCalendarService) generateDutyDates(year int, startMonth time.Month) <-chan string {
+	timeC := make(chan string, 370)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer close(timeC)
+		defer wg.Done()
+		for month := startMonth; month <= 12; month++ {
+			daysInMonth := time.Date(year, month+1, 0, 0, 0, 0, 0, time.UTC).Day()
+			for day := 1; day <= daysInMonth; day++ {
+				date := time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
+				if date.Month() != month {
+					break
+				}
+				timeC <- date.Format("2006-1-2")
+			}
+		}
+	}()
+
+	// 等待所有日期生产完成
+	wg.Wait()
+	return timeC
+}
+
+// 创建值班表
+func (dms dutyCalendarService) createDutyScheduleList(dutyInfo models.DutyScheduleCreate, timeC <-chan string, dutyDays int) []models.DutySchedule {
+	var dutyScheduleList []models.DutySchedule
+	var count int
+
+	for {
+		// 数据消费完成后退出
+		if len(timeC) == 0 {
+			break
+		}
+
+		for _, user := range dutyInfo.Users {
+			for day := 1; day <= dutyDays; day++ {
+				date, ok := <-timeC
+				if !ok {
+					return dutyScheduleList
+				}
+
+				dutyScheduleList = append(dutyScheduleList, models.DutySchedule{
+					DutyId: dutyInfo.DutyId,
+					Time:   date,
+					Users: models.Users{
+						UserId:   user.UserId,
+						Username: user.Username,
+					},
+				})
+
+				if dutyInfo.DateType == "week" && tools.IsEndOfWeek(date) {
+					count++
+					if count == dutyInfo.DutyPeriod {
+						count = 0
+						break
+					}
+				}
+			}
+		}
 	}
 
-	weekday := t.Weekday()
-	return weekday, nil
+	return dutyScheduleList
+}
+
+// 更新库表
+func (dms dutyCalendarService) updateDutyScheduleInDB(dutyScheduleList []models.DutySchedule, tenantId string) error {
+	for _, schedule := range dutyScheduleList {
+		schedule.TenantId = tenantId
+		dutyScheduleInfo := dms.ctx.DB.DutyCalendar().GetCalendarInfo(schedule.DutyId, schedule.Time)
+
+		var err error
+		if dutyScheduleInfo.Time != "" {
+			err = dms.ctx.DB.DutyCalendar().Update(schedule)
+		} else {
+			err = dms.ctx.DB.DutyCalendar().Create(schedule)
+		}
+
+		if err != nil {
+			return fmt.Errorf("更新/创建值班系统失败: %w", err)
+		}
+	}
+	return nil
 }

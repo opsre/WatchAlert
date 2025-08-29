@@ -48,7 +48,7 @@ func (sc SilenceController) Create(ctx *gin.Context) {
 	r.TenantId = tid.(string)
 
 	user := jwtUtils.GetUser(ctx.Request.Header.Get("Authorization"))
-	r.CreateBy = user
+	r.UpdateBy = user
 
 	Service(ctx, func() (interface{}, interface{}) {
 		return services.SilenceService.Create(r)
@@ -63,7 +63,7 @@ func (sc SilenceController) Update(ctx *gin.Context) {
 	r.TenantId = tid.(string)
 
 	user := jwtUtils.GetUser(ctx.Request.Header.Get("Authorization"))
-	r.CreateBy = user
+	r.UpdateBy = user
 
 	Service(ctx, func() (interface{}, interface{}) {
 		return services.SilenceService.Update(r)

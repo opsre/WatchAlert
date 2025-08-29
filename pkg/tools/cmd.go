@@ -2,14 +2,17 @@ package tools
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
 	"github.com/rs/xid"
 	"github.com/zeromicro/go-zero/core/logc"
 	"io"
 	"math/rand"
 	"regexp"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -35,10 +38,6 @@ func RandUid() string {
 	}
 
 	return id
-}
-
-func RandUuid() string {
-	return uuid.NewString()
 }
 
 func JsonMarshal(v interface{}) string {
@@ -122,4 +121,57 @@ func ParseReaderBody(body io.Reader, req interface{}) error {
 		return fmt.Errorf("解析 Body 失败, body: %s, err: %s", string(bodyByte), err.Error())
 	}
 	return nil
+}
+
+func ParseTime(month string) (int, time.Month, int) {
+	parsedTime, err := time.Parse("2006-01", month)
+	if err != nil {
+		return 0, time.Month(0), 0
+	}
+	curYear, curMonth, curDay := parsedTime.Date()
+	return curYear, curMonth, curDay
+}
+
+func GetWeekday(date string) (time.Weekday, error) {
+	t, err := time.Parse("2006-1-2", date)
+	if err != nil {
+		return 0, err
+	}
+
+	weekday := t.Weekday()
+	return weekday, nil
+}
+
+func IsEndOfWeek(dateStr string) bool {
+	date, err := time.Parse("2006-1-2", dateStr)
+	if err != nil {
+		return false
+	}
+	return date.Weekday() == time.Sunday
+}
+
+func ProcessRuleExpr(ruleExpr string) (string, float64, error) {
+	// 去除空格
+	trimmedExpr := strings.ReplaceAll(ruleExpr, " ", "")
+
+	// 正则表达式匹配，支持负数和小数点
+	re := regexp.MustCompile(`([^\d\-]+)(-?\d+(?:\.\d+)?)`)
+	matches := re.FindStringSubmatch(trimmedExpr)
+	if len(matches) < 3 {
+		return "", 0, fmt.Errorf("无效的表达式: %s", ruleExpr)
+	}
+
+	// 提取操作符和数值
+	operator := matches[1]
+	value, err := strconv.ParseFloat(matches[2], 64)
+	if err != nil {
+		return "", 0, fmt.Errorf("无法解析数值: %s", matches[2])
+	}
+
+	return operator, value, nil
+}
+
+func GenerateHashPassword(passwd string) string {
+	arr := md5.Sum([]byte(passwd))
+	return hex.EncodeToString(arr[:])
 }

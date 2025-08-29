@@ -172,8 +172,10 @@ func (ur UserRepo) ChangeCache(userId string) {
 
 func (ur UserRepo) ChangePass(r models.Member) error {
 	u := Update{
-		Table:  models.Member{},
-		Where:  []interface{}{"user_id = ?", r.UserId},
+		Table: models.Member{},
+		Where: map[string]interface{}{
+			"user_id = ?": r.UserId,
+		},
 		Update: []string{"password", r.Password},
 	}
 

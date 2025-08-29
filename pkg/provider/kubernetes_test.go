@@ -8,7 +8,7 @@ import (
 )
 
 func TestKubernetesClient(t *testing.T) {
-	cli, err := NewKubernetesClient(context.Background(), "")
+	cli, err := NewKubernetesClient(context.Background(), "", nil)
 	if err != nil {
 		logrus.Errorf(err.Error())
 		return

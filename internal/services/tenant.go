@@ -45,7 +45,7 @@ func (ts tenantService) Create(req interface{}) (data interface{}, err interface
 		UserNumber:       r.UserNumber,
 		DutyNumber:       r.DutyNumber,
 		NoticeNumber:     r.NoticeNumber,
-		RemoveProtection: r.RemoveProtection,
+		RemoveProtection: r.GetRemoveProtection(),
 	}
 
 	err = ts.ctx.DB.Tenant().Create(nt)
@@ -72,7 +72,7 @@ func (ts tenantService) Delete(req interface{}) (data interface{}, err interface
 	var t models.Tenant
 	ts.ctx.DB.DB().Model(&models.Tenant{}).Where("id = ?", r.ID).Find(&t)
 
-	if *t.RemoveProtection {
+	if *t.GetRemoveProtection() {
 		return nil, fmt.Errorf("删除失败, 删除保护已开启 关闭后再删除")
 	}
 

@@ -14,18 +14,12 @@ type App struct {
 	Jwt      Jwt      `json:"Jwt"`
 	Jaeger   Jaeger   `json:"Jaeger"`
 	Ldap     Ldap     `json:"ldap"`
+  Cache  string `json:"Cache"`
 }
 
 type Server struct {
-	Mode        string `json:"mode"`
-	Port        string `json:"port"`
-	AlarmConfig AlarmConfig
-}
-
-type AlarmConfig struct {
-	GroupWait     int `json:"groupWait"`
-	GroupInterval int `json:"groupInterval"`
-	RecoverWait   int `json:"recoverWait"`
+	Mode string `json:"mode"`
+	Port string `json:"port"`
 }
 
 type DataBase struct {
@@ -43,9 +37,10 @@ type MySQL struct {
 }
 
 type Redis struct {
-	Host string `json:"host"`
-	Port string `json:"port"`
-	Pass string `json:"pass"`
+	Host     string `json:"host"`
+	Port     string `json:"port"`
+	Pass     string `json:"pass"`
+	Database int    `json:"database"`
 }
 
 type Jwt struct {

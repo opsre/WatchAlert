@@ -7,19 +7,28 @@ import (
 	"watchAlert/pkg/tools"
 )
 
-type DingResponseMsg struct {
-	Code int    `json:"errcode"`
-	Msg  string `json:"errmsg"`
+type (
+	// DingDingSender 钉钉发送策略
+	DingDingSender struct{}
+
+	DingResponse struct {
+		Code int    `json:"errcode"`
+		Msg  string `json:"errmsg"`
+	}
+)
+
+func NewDingSender() SendInter {
+	return &DingDingSender{}
 }
 
-func SendToDingDing(hook, msg string) error {
-	cardContentByte := bytes.NewReader([]byte(msg))
-	res, err := tools.Post(nil, hook, cardContentByte, 10)
+func (d *DingDingSender) Send(params SendParams) error {
+	cardContentByte := bytes.NewReader([]byte(params.Content))
+	res, err := tools.Post(nil, params.Hook, cardContentByte, 10)
 	if err != nil {
 		return err
 	}
 
-	var response DingResponseMsg
+	var response DingResponse
 	if err := tools.ParseReaderBody(res.Body, &response); err != nil {
 		return errors.New(fmt.Sprintf("Error unmarshalling Dingding response: %s", err.Error()))
 	}

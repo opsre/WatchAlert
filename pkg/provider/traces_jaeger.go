@@ -10,7 +10,8 @@ import (
 )
 
 type JaegerDsProvider struct {
-	url string
+	ExternalLabels map[string]interface{}
+	url            string
 }
 
 func NewJaegerClient(datasource models.AlertDataSource) (TracesFactoryProvider, error) {
@@ -19,7 +20,10 @@ func NewJaegerClient(datasource models.AlertDataSource) (TracesFactoryProvider, 
 		return JaegerDsProvider{}, err
 	}
 
-	return JaegerDsProvider{url: datasource.HTTP.URL}, nil
+	return JaegerDsProvider{
+		url:            datasource.HTTP.URL,
+		ExternalLabels: datasource.Labels,
+	}, nil
 }
 
 type JaegerResult struct {
@@ -103,4 +107,8 @@ func (j JaegerDsProvider) GetJaegerService() (JaegerServiceData, error) {
 	}
 
 	return resData, nil
+}
+
+func (j JaegerDsProvider) GetExternalLabels() map[string]interface{} {
+	return j.ExternalLabels
 }

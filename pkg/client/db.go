@@ -48,7 +48,6 @@ func dbAutoMigrate() {
 		&models.RuleGroups{},
 		&models.RuleTemplateGroup{},
 		&models.RuleTemplate{},
-		&models.ServiceResource{},
 		&models.Tenant{},
 		&models.Dashboard{},
 		&models.AuditLog{},
@@ -58,6 +57,8 @@ func dbAutoMigrate() {
 		&models.AlertSubscribe{},
 		&models.NoticeRecord{},
 		&models.ProbingRule{},
+		&models.FaultCenter{},
+		&models.AiContentRecord{},
 	)
 }
 

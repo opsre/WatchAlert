@@ -33,9 +33,9 @@ func (sr SilenceRepo) List(r models.AlertSilenceQuery) (models.SilenceResponse, 
 		count       int64
 	)
 	db := sr.db.Model(models.AlertSilences{})
-	db.Where("tenant_id = ?", r.TenantId)
-	if r.Status < 2 {
-		db.Where("status = ?", r.Status)
+	if r.TenantId != "" && r.FaultCenterId != "" {
+		db.Where("tenant_id = ?", r.TenantId)
+		db.Where("fault_center_id = ?", r.FaultCenterId)
 	}
 
 	if r.Query != "" {
@@ -43,7 +43,9 @@ func (sr SilenceRepo) List(r models.AlertSilenceQuery) (models.SilenceResponse, 
 	}
 
 	db.Count(&count)
-	db.Limit(int(r.Page.Size)).Offset(int((r.Page.Index - 1) * r.Page.Size))
+	if r.Page.Size != 0 && r.Page.Index != 0 {
+		db.Limit(int(r.Page.Size)).Offset(int((r.Page.Index - 1) * r.Page.Size))
+	}
 	err := db.Find(&silenceList).Error
 	if err != nil {
 		return models.SilenceResponse{}, err

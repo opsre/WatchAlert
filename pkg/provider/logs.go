@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strings"
+	"time"
 	"watchAlert/internal/models"
 	"watchAlert/pkg/tools"
 )
@@ -13,17 +14,20 @@ const (
 	LokiDsProviderName          string = "Loki"
 	AliCloudSLSDsProviderName   string = "AliCloudSLS"
 	ElasticSearchDsProviderName string = "ElasticSearch"
+	VictoriaLogsDsProviderName  string = "VictoriaLogs"
 )
 
 type LogsFactoryProvider interface {
 	Query(options LogQueryOptions) ([]Logs, int, error)
 	Check() (bool, error)
+	GetExternalLabels() map[string]interface{}
 }
 
 type LogQueryOptions struct {
 	AliCloudSLS   AliCloudSLS
 	Loki          Loki
 	ElasticSearch Elasticsearch
+	VictoriaLogs  VictoriaLogs
 	StartAt       interface{} // 查询的开始时间。
 	EndAt         interface{} // 查询的结束时间。
 }
@@ -41,8 +45,36 @@ type AliCloudSLS struct {
 }
 
 type Elasticsearch struct {
-	Index       string                 // 索引名称
-	QueryFilter []models.EsQueryFilter // 过滤条件
+	// 索引名称
+	Index string
+	// 过滤条件
+	QueryFilter []models.EsQueryFilter
+	// filter关系，与或非
+	QueryFilterCondition models.EsFilterCondition
+	// 查询类型，sql语句查询与条件查询
+	QueryType models.EsQueryType
+	// wildcard
+	QueryWildcard int64
+	// 查询sql
+	RawJson string
+}
+
+// VictoriaLogs victoriaMetrics数据源配置
+type VictoriaLogs struct {
+	Query string `json:"query"` // 查询语句
+	Limit int    // 要返回的最大条目数
+}
+
+func (e Elasticsearch) GetIndexName() string {
+	if strings.Contains(e.Index, "YYYY") && strings.Contains(e.Index, "MM") && strings.Contains(e.Index, "dd") {
+		indexName := e.Index
+		indexName = strings.ReplaceAll(indexName, "YYYY", time.Now().Format("2006"))
+		indexName = strings.ReplaceAll(indexName, "MM", time.Now().Format("01"))
+		indexName = strings.ReplaceAll(indexName, "dd", time.Now().Format("02"))
+		return indexName
+	}
+
+	return e.Index
 }
 
 type Logs struct {
@@ -90,6 +122,7 @@ func commonKeyValuePairs(maps []map[string]interface{}) map[string]interface{} {
 		if count == mapCount {
 			// 提取出key和value
 			m := strings.SplitAfterN(keyValue, ":", 2)
+			m[0] = strings.ReplaceAll(m[0], ":", "")
 			common[m[0]] = m[1]
 		}
 	}

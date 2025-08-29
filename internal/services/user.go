@@ -62,10 +62,7 @@ func (us userService) Get(req interface{}) (interface{}, interface{}) {
 
 func (us userService) Login(req interface{}) (interface{}, interface{}) {
 	r := req.(*models.Member)
-
-	// 校验 Password
-	arr := md5.Sum([]byte(r.Password))
-	hashPassword := hex.EncodeToString(arr[:])
+	r.Password = tools.GenerateHashPassword(r.Password)
 
 	q := models.MemberQuery{
 		UserName: r.UserName,
@@ -88,20 +85,19 @@ func (us userService) Login(req interface{}) (interface{}, interface{}) {
 			return nil, fmt.Errorf("请先开启 LDAP 功能!")
 		}
 	default:
-		if data.Password != hashPassword {
+		if data.Password != r.Password {
 			return nil, fmt.Errorf("密码错误")
 		}
 	}
 
 	r.UserId = data.UserId
-	r.Password = hashPassword
 	tokenData, err := tools.GenerateToken(r.UserId, r.UserName, r.Password)
 	if err != nil {
 		return nil, err
 	}
 
 	duration := time.Duration(global.Config.Jwt.Expire) * time.Second
-	us.ctx.Redis.Redis().Set("uid-"+data.UserId, tools.JsonMarshal(r), duration)
+	us.ctx.Cache.Cache().SetKey("uid-"+data.UserId, tools.JsonMarshal(r), duration)
 
 	return tokenData, nil
 }
@@ -115,14 +111,12 @@ func (us userService) Register(req interface{}) (interface{}, interface{}) {
 		return nil, fmt.Errorf("用户已存在")
 	}
 
-	arr := md5.Sum([]byte(r.Password))
-	hashPassword := hex.EncodeToString(arr[:])
 	// 在初始化admin用户时会固定一个userid，所以这里需要做一下判断；
 	if r.UserId == "" {
 		r.UserId = tools.RandUid()
 	}
 
-	r.Password = hashPassword
+	r.Password = tools.GenerateHashPassword(r.Password)
 	r.CreateAt = time.Now().Unix()
 
 	if r.CreateBy == "" {
@@ -144,7 +138,11 @@ func (us userService) Update(req interface{}) (interface{}, interface{}) {
 	db := us.ctx.DB.DB().Model(models.Member{})
 	db.Where("user_id = ?", r.UserId).First(&dbData)
 
-	r.Password = dbData.Password
+	if r.Password == "" {
+		r.Password = dbData.Password
+	} else {
+		r.Password = tools.GenerateHashPassword(r.Password)
+	}
 	err := us.ctx.DB.User().Update(*r)
 	if err != nil {
 		return nil, err

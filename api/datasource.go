@@ -1,14 +1,17 @@
 package api
 
 import (
+	"encoding/base64"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 	middleware "watchAlert/internal/middleware"
 	"watchAlert/internal/models"
 	"watchAlert/internal/services"
+	ctx2 "watchAlert/pkg/ctx"
 	"watchAlert/pkg/provider"
 	"watchAlert/pkg/tools"
 )
@@ -45,6 +48,7 @@ func (dc DatasourceController) API(gin *gin.RouterGroup) {
 		datasourceB.GET("dataSourceSearch", dc.Search)
 		datasourceB.GET("promQuery", dc.PromQuery)
 		datasourceB.POST("dataSourcePing", dc.Ping)
+		datasourceB.POST("searchViewLogsContent", dc.SearchViewLogsContent)
 	}
 
 }
@@ -126,22 +130,40 @@ func (dc DatasourceController) PromQuery(ctx *gin.Context) {
 	BindQuery(ctx, r)
 
 	Service(ctx, func() (interface{}, interface{}) {
-		var res provider.QueryResponse
+		var ress []provider.QueryResponse
 		path := "/api/v1/query"
 		params := url.Values{}
 		params.Add("query", r.Query)
 		params.Add("time", strconv.FormatInt(time.Now().Unix(), 10))
-		fullURL := fmt.Sprintf("%s%s?%s", r.Addr, path, params.Encode())
-		get, err := tools.Get(nil, fullURL, 10)
-		if err != nil {
-			return nil, err
+
+		var ids []string
+		if len(r.DatasourceIds) < 2 {
+			ids = []string{r.DatasourceIds}
 		}
 
-		if err := tools.ParseReaderBody(get.Body, &res); err != nil {
-			return nil, err
+		ids = strings.Split(r.DatasourceIds, ",")
+		for _, id := range ids {
+			var res provider.QueryResponse
+			source, err := ctx2.DO().DB.Datasource().Get(models.DatasourceQuery{
+				Id: id,
+			})
+			if err != nil {
+				return nil, err
+			}
+			fullURL := fmt.Sprintf("%s%s?%s", source.HTTP.URL, path, params.Encode())
+			get, err := tools.Get(tools.CreateBasicAuthHeader(source.Auth.User, source.Auth.Pass), fullURL, 10)
+			if err != nil {
+				return nil, err
+			}
+
+			if err := tools.ParseReaderBody(get.Body, &res); err != nil {
+				return nil, err
+			}
+
+			ress = append(ress, res)
 		}
 
-		return res, nil
+		return ress, nil
 	})
 }
 
@@ -150,10 +172,74 @@ func (dc DatasourceController) Ping(ctx *gin.Context) {
 	BindJson(ctx, r)
 
 	Service(ctx, func() (interface{}, interface{}) {
-		ok := provider.CheckDatasourceHealth(*r)
+		ok, err := provider.CheckDatasourceHealth(*r)
 		if !ok {
-			return "", fmt.Errorf("数据源不可达!")
+			return "", fmt.Errorf("数据源不可达, err: %s", err.Error())
 		}
 		return "", nil
+	})
+}
+
+// SearchViewLogsContent Logs 数据预览
+func (dc DatasourceController) SearchViewLogsContent(ctx *gin.Context) {
+	r := new(models.SearchLogsContentReq)
+	BindJson(ctx, r)
+
+	Service(ctx, func() (interface{}, interface{}) {
+		data, err := services.DatasourceService.Get(&models.DatasourceQuery{
+			Id: r.DatasourceId,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		datasource := data.(models.AlertDataSource)
+
+		var (
+			client  provider.LogsFactoryProvider
+			options provider.LogQueryOptions
+		)
+
+		// 使用 base64.StdEncoding 进行解码
+		decodedBytes, err := base64.StdEncoding.DecodeString(r.Query)
+		if err != nil {
+			return nil, fmt.Errorf("base64 解码失败: %s", err)
+		}
+		// 将解码后的字节转换为字符串
+		QueryStr := string(decodedBytes)
+
+		switch r.Type {
+		case provider.VictoriaLogsDsProviderName:
+			client, err = provider.NewVictoriaLogsClient(ctx, datasource)
+			if err != nil {
+				return nil, err
+			}
+
+			options = provider.LogQueryOptions{
+				VictoriaLogs: provider.VictoriaLogs{
+					Query: QueryStr,
+				},
+			}
+		case provider.ElasticSearchDsProviderName:
+			client, err = provider.NewElasticSearchClient(ctx, datasource)
+			if err != nil {
+				return nil, err
+			}
+
+			options = provider.LogQueryOptions{
+				ElasticSearch: provider.Elasticsearch{
+					Index:     r.GetElasticSearchIndexName(),
+					QueryType: "RawJson",
+					RawJson:   QueryStr,
+				},
+			}
+		}
+
+		query, _, err := client.Query(options)
+		if err != nil {
+			return nil, err
+		}
+
+		return query, nil
 	})
 }

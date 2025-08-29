@@ -3,168 +3,236 @@ package cache
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"github.com/go-redis/redis"
 	"github.com/zeromicro/go-zero/core/logc"
-	"log"
 	"sync"
 	"time"
 	"watchAlert/internal/models"
-	"watchAlert/pkg/client"
+	"watchAlert/pkg/tools"
 )
 
 type (
-	eventCache struct {
-		rc *redis.Client
+	// EventCache 用于管理事件缓存操作
+	EventCache struct {
+		//rc    *redis.Client
+		cache Cache
 		sync.RWMutex
 	}
 
-	InterEventCache interface {
-		SetCache(cacheType string, event models.AlertCurEvent, expiration time.Duration)
-		DelCache(key string)
-		GetCache(key string) models.AlertCurEvent
-		GetFirstTime(key string) int64
-		GetLastEvalTime(key string) int64
-		GetLastSendTime(key string) int64
-		SetPECache(event models.ProbingEvent, expiration time.Duration)
-		GetPECache(key string) (models.ProbingEvent, error)
-		GetPEFirstTime(key string) int64
-		GetPELastEvalTime(key string) int64
-		GetPELastSendTime(key string) int64
+	// EventCacheInterface 定义了事件缓存的操作接口
+	EventCacheInterface interface {
+		SetProbingEventCache(event models.ProbingEvent, expiration time.Duration)
+		GetProbingEventCache(key string) (models.ProbingEvent, error)
+		GetProbingEventFirstTime(key string) int64
+		GetProbingEventLastEvalTime(key string) int64
+		GetProbingEventLastSendTime(key string) int64
+		PushEventToFaultCenter(event *models.AlertCurEvent)
+		RemoveEventFromFaultCenter(tenantId, faultCenterId, fingerprint string)
+		GetFingerprintsByRuleId(tenantId, faultCenterId, ruleId string) []string
+		GetAllEventsForFaultCenter(fcKey string) (map[string]models.AlertCurEvent, error)
+		GetFirstTimeForFaultCenter(tenantId, faultCenterId, fingerprint string) int64
+		GetLastEvalTimeForFaultCenter() int64
+		GetLastSendTimeForFaultCenter(tenantId, faultCenterId, fingerprint string) int64
+		GetEventStatusForFaultCenter(tenantId, faultCenterId, fingerprint string) int64
+		GetLastFiringValueForFaultCenter(tenantId, faultCenterId, fingerprint string) float64
 	}
 )
 
-func newEventCacheInterface(r *redis.Client) InterEventCache {
-	return &eventCache{
-		rc: r,
+// newEventCacheInterface 创建一个新的 EventCache 实例
+func newEventCacheInterface(c Cache) EventCacheInterface {
+	return &EventCache{
+		cache: c,
 	}
 }
 
-func (ec *eventCache) SetCache(cacheType string, event models.AlertCurEvent, expiration time.Duration) {
+// SetProbingEventCache 设置探测事件缓存
+func (ec *EventCache) SetProbingEventCache(event models.ProbingEvent, expiration time.Duration) {
 	ec.Lock()
 	defer ec.Unlock()
 
-	alertJson, _ := json.Marshal(event)
-	switch cacheType {
-	case "Firing":
-		client.Redis.Set(event.GetFiringAlertCacheKey(), string(alertJson), expiration)
-	case "Pending":
-		client.Redis.Set(event.GetPendingAlertCacheKey(), string(alertJson), expiration)
-	}
-
+	eventJSON, _ := json.Marshal(event)
+	ec.cache.SetKey(event.GetFiringAlertCacheKey(), string(eventJSON), expiration)
 }
 
-func (ec *eventCache) DelCache(key string) {
+// GetProbingEventCache 获取探测事件缓存
+func (ec *EventCache) GetProbingEventCache(key string) (models.ProbingEvent, error) {
+	var event models.ProbingEvent
+
+	data, err := ec.cache.GetKey(key)
+	if err != nil {
+		return event, err
+	}
+
+	if err := json.Unmarshal([]byte(data), &event); err != nil {
+		return event, err
+	}
+
+	return event, nil
+}
+
+// GetProbingEventFirstTime 获取探测事件的首次触发时间
+func (ec *EventCache) GetProbingEventFirstTime(key string) int64 {
+	event, err := ec.GetProbingEventCache(key)
+	if err != nil || event.FirstTriggerTime == 0 {
+		return time.Now().Unix()
+	}
+	return event.FirstTriggerTime
+}
+
+// GetProbingEventLastEvalTime 获取探测事件的最后评估时间
+func (ec *EventCache) GetProbingEventLastEvalTime(key string) int64 {
+	curTime := time.Now().Unix()
+	event, err := ec.GetProbingEventCache(key)
+	if err != nil || event.LastEvalTime == 0 || event.LastEvalTime < curTime {
+		return curTime
+	}
+	return event.LastEvalTime
+}
+
+// GetProbingEventLastSendTime 获取探测事件的最后发送时间
+func (ec *EventCache) GetProbingEventLastSendTime(key string) int64 {
+	event, err := ec.GetProbingEventCache(key)
+	if err != nil {
+		return 0
+	}
+	return event.LastSendTime
+}
+
+// PushEventToFaultCenter 将事件推送到故障中心的缓存中
+func (ec *EventCache) PushEventToFaultCenter(event *models.AlertCurEvent) {
 	ec.Lock()
 	defer ec.Unlock()
 
-	// 使用Scan命令获取所有匹配指定模式的键
-	iter := client.Redis.Scan(0, key, 0).Iterator()
-	keysToDelete := make([]string, 0)
+	key := models.BuildCacheEventKey(event.TenantId, event.FaultCenterId)
+	ec.cache.SetHash(key, event.Fingerprint, tools.JsonMarshal(event))
+}
 
-	// 遍历匹配的键
-	for iter.Next() {
-		key := iter.Val()
-		keysToDelete = append(keysToDelete, key)
+// RemoveEventFromFaultCenter 从故障中心的缓存中移除事件
+func (ec *EventCache) RemoveEventFromFaultCenter(tenantId, faultCenterId, fingerprint string) {
+	ec.Lock()
+	defer ec.Unlock()
+
+	key := models.BuildCacheEventKey(tenantId, faultCenterId)
+	ec.cache.DeleteHash(key, fingerprint)
+}
+
+// GetAllEventsForFaultCenter 获取故障中心的所有事件
+func (ec *EventCache) GetAllEventsForFaultCenter(fcKey string) (map[string]models.AlertCurEvent, error) {
+	ec.RLock()
+	defer ec.RUnlock()
+
+	result, err := ec.cache.GetHashAll(fcKey)
+	if err != nil {
+		return nil, err
 	}
 
-	if err := iter.Err(); err != nil {
-		log.Fatal(err)
-	}
-
-	// 批量删除键
-	if len(keysToDelete) > 0 {
-		err := client.Redis.Del(keysToDelete...).Err()
-		if err != nil {
-			log.Fatal(err)
+	events := make(map[string]models.AlertCurEvent)
+	for fingerprint, eventJSON := range result {
+		var event models.AlertCurEvent
+		if err := json.Unmarshal([]byte(eventJSON), &event); err != nil {
+			return nil, err
 		}
-		logc.Infof(context.Background(), fmt.Sprintf("移除告警消息 -> %s\n", keysToDelete))
+		events[fingerprint] = event
 	}
+
+	return events, nil
 }
 
-func (ec *eventCache) GetCache(key string) models.AlertCurEvent {
-
-	var alert models.AlertCurEvent
-
-	d, err := ec.rc.Get(key).Result()
-	_ = json.Unmarshal([]byte(d), &alert)
+// GetFingerprintsByRuleId 获取与指定规则 ID 相关的指纹列表
+func (ec *EventCache) GetFingerprintsByRuleId(tenantId, faultCenterId, ruleId string) []string {
+	key := models.BuildCacheEventKey(tenantId, faultCenterId)
+	events, err := ec.GetAllEventsForFaultCenter(key)
 	if err != nil {
-		return alert
+		logc.Error(context.Background(), err.Error())
+		return nil
 	}
-	//logc.Info(alert)
-	return alert
 
+	var fingerprints []string
+	for fingerprint, event := range events {
+		if event.RuleId == ruleId {
+			fingerprints = append(fingerprints, fingerprint)
+		}
+	}
+	return fingerprints
 }
 
-func (ec *eventCache) GetFirstTime(key string) int64 {
+// GetEventFromCache 从缓存中获取事件数据
+func (ec *EventCache) GetEventFromCache(tenantId, faultCenterId, fingerprint string) (models.AlertCurEvent, error) {
+	key := models.BuildCacheEventKey(tenantId, faultCenterId)
+	data, err := ec.cache.GetHash(key, fingerprint)
+	if err != nil {
+		return models.AlertCurEvent{}, err
+	}
 
-	ft := ec.GetCache(key).FirstTriggerTime
-	if ft == 0 {
+	var event models.AlertCurEvent
+	if err := json.Unmarshal([]byte(data), &event); err != nil {
+		return models.AlertCurEvent{}, err
+	}
+
+	return event, nil
+}
+
+// GetFirstTimeForFaultCenter 获取故障中心事件的首次触发时间
+func (ec *EventCache) GetFirstTimeForFaultCenter(tenantId, faultCenterId, fingerprint string) int64 {
+	event, err := ec.GetEventFromCache(tenantId, faultCenterId, fingerprint)
+	if err != nil || event.FirstTriggerTime == 0 {
 		return time.Now().Unix()
 	}
-	return ft
-
+	return event.FirstTriggerTime
 }
 
-func (ec *eventCache) GetLastEvalTime(key string) int64 {
-
-	curTime := time.Now().Unix()
-	let := ec.GetCache(key).LastEvalTime
-	if let == 0 || let < curTime {
-		return curTime
-	}
-
-	return let
-
+// GetLastEvalTimeForFaultCenter 获取故障中心事件的最后评估时间
+func (ec *EventCache) GetLastEvalTimeForFaultCenter() int64 {
+	return time.Now().Unix()
 }
 
-func (ec *eventCache) GetLastSendTime(key string) int64 {
-
-	return ec.GetCache(key).LastSendTime
-
-}
-
-func (ec *eventCache) SetPECache(event models.ProbingEvent, expiration time.Duration) {
-	ec.Lock()
-	defer ec.Unlock()
-
-	alertJson, _ := json.Marshal(event)
-	ec.rc.Set(event.GetFiringAlertCacheKey(), string(alertJson), expiration)
-}
-
-func (ec *eventCache) GetPECache(key string) (models.ProbingEvent, error) {
-	var alert models.ProbingEvent
-
-	d, err := ec.rc.Get(key).Result()
-	_ = json.Unmarshal([]byte(d), &alert)
+// GetLastSendTimeForFaultCenter 获取故障中心事件的最后发送时间
+func (ec *EventCache) GetLastSendTimeForFaultCenter(tenantId, faultCenterId, fingerprint string) int64 {
+	event, err := ec.GetEventFromCache(tenantId, faultCenterId, fingerprint)
 	if err != nil {
-		return alert, err
+		return 0
 	}
-	//global.Logger.Sugar().Info(alert)
-	return alert, nil
+	return event.LastSendTime
 }
 
-func (ec *eventCache) GetPEFirstTime(key string) int64 {
-	cache, _ := ec.GetPECache(key)
-	ft := cache.FirstTriggerTime
-	if ft == 0 {
-		return time.Now().Unix()
+// GetEventStatusForFaultCenter 获取事件状态
+func (ec *EventCache) GetEventStatusForFaultCenter(tenantId, faultCenterId, fingerprint string) int64 {
+	event, err := ec.GetEventFromCache(tenantId, faultCenterId, fingerprint)
+	if err != nil {
+		return 0
 	}
-	return ft
+	return event.Status
 }
 
-func (ec *eventCache) GetPELastEvalTime(key string) int64 {
-	curTime := time.Now().Unix()
-	cache, _ := ec.GetPECache(key)
-	let := cache.LastEvalTime
-	if let == 0 || let < curTime {
-		return curTime
+// GetLastFiringValueForFaultCenter 获取故障中心事件的最新告警值
+func (ec *EventCache) GetLastFiringValueForFaultCenter(tenantId, faultCenterId, fingerprint string) float64 {
+	event, err := ec.GetEventFromCache(tenantId, faultCenterId, fingerprint)
+	if err != nil {
+		return 0
 	}
-
-	return let
+	return event.Metric["value"].(float64)
 }
 
-func (ec *eventCache) GetPELastSendTime(key string) int64 {
-	cache, _ := ec.GetPECache(key)
-	return cache.LastSendTime
-}
+//// 封装 Redis 操作
+//func (ec *EventCache) setRedisKey(key, value string, expiration time.Duration) {
+//	ec.rc.Set(key, value, expiration)
+//}
+//
+//func (ec *EventCache) getRedisKey(key string) (string, error) {
+//	return ec.rc.Get(key).Result()
+//}
+//
+//func (ec *EventCache) setRedisHash(key, field, value string) {
+//	client.Redis.HSet(key, field, value)
+//}
+//
+//func (ec *EventCache) deleteRedisHash(key, field string) {
+//	client.Redis.HDel(key, field)
+//}
+//
+//func (ec *EventCache) getRedisHash(key, field string) (string, error) {
+//	return ec.rc.HGet(key, field).Result()
+//}
+//
+//func (ec *EventCache) getRedisHashAll(key string) (map[string]string, error) {
+//	return ec.rc.HGetAll(key).Result()
+//}

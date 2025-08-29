@@ -19,14 +19,15 @@ func InitRoute() {
 	}
 	gin.SetMode(mode)
 	ginEngine := gin.New()
-
+	// 增加请求体大小限制为 10MB
+	ginEngine.MaxMultipartMemory = 10 << 20
 	ginEngine.Use(
 		// 启用CORS中间件
 		middleware.Cors(),
 		// 自定义请求日志格式
 		middleware.GinZapLogger(),
 		gin.Recovery(),
-		//gin.LoggerWithFormatter(middleware.RequestLoggerFormatter),
+		middleware.LoggingMiddleware(),
 	)
 	allRouter(ginEngine)
 

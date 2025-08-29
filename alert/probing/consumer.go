@@ -9,6 +9,7 @@ import (
 	"watchAlert/pkg/ctx"
 	"watchAlert/pkg/sender"
 	"watchAlert/pkg/templates"
+	"watchAlert/pkg/tools"
 )
 
 type ConsumeProbing struct {
@@ -35,7 +36,7 @@ func (m *ConsumeProbing) Add(r models.ProbingRule) {
 		for {
 			select {
 			case <-ticker:
-				result, err := m.ctx.Redis.Event().GetPECache(r.GetFiringAlertCacheKey())
+				result, err := m.ctx.Cache.Event().GetProbingEventCache(r.GetFiringAlertCacheKey())
 				if err == nil {
 					m.handleAlert(result)
 				}
@@ -61,32 +62,18 @@ func (m *ConsumeProbing) handleAlert(alert models.ProbingEvent) {
 		return
 	}
 
-	if m.filterEvent(alert) {
-		r := models.NoticeQuery{
-			TenantId: alert.TenantId,
-			Uuid:     alert.NoticeId,
-		}
-		noticeData, _ := ctx.DB.Notice().Get(r)
-		alert.DutyUser = process.GetDutyUser(m.ctx, noticeData)
-
-		n := templates.NewTemplate(m.ctx, buildEvent(alert), noticeData)
-		err := sender.Sender(m.ctx, sender.SendParmas{
-			TenantId:    alert.TenantId,
-			Severity:    alert.Severity,
-			NoticeType:  noticeData.NoticeType,
-			NoticeId:    noticeData.Uuid,
-			NoticeName:  noticeData.Name,
-			IsRecovered: alert.IsRecovered,
-			Hook:        noticeData.Hook,
-			Email:       noticeData.Email,
-			Content:     n.CardContentMsg,
-			Event:       nil,
-		})
-		if err != nil {
-			logc.Errorf(ctx.Ctx, err.Error())
-			return
-		}
+	if !m.filterEvent(alert) {
+		return
 	}
+
+	r := models.NoticeQuery{
+		TenantId: alert.TenantId,
+		Uuid:     alert.NoticeId,
+	}
+	noticeData, _ := ctx.DB.Notice().Get(r)
+	alert.DutyUser = process.GetDutyUser(m.ctx, noticeData)
+
+	m.sendAlert(alert, noticeData)
 }
 
 func (m *ConsumeProbing) filterEvent(alert models.ProbingEvent) bool {
@@ -94,7 +81,7 @@ func (m *ConsumeProbing) filterEvent(alert models.ProbingEvent) bool {
 	if !alert.IsRecovered {
 		if alert.LastSendTime == 0 || alert.LastEvalTime >= alert.LastSendTime+alert.RepeatNoticeInterval*60 {
 			alert.LastSendTime = time.Now().Unix()
-			m.ctx.Redis.Event().SetPECache(alert, 0)
+			m.ctx.Cache.Event().SetProbingEventCache(alert, 0)
 			return true
 		}
 	} else {
@@ -104,9 +91,36 @@ func (m *ConsumeProbing) filterEvent(alert models.ProbingEvent) bool {
 	return pass
 }
 
+func (m *ConsumeProbing) sendAlert(alert models.ProbingEvent, noticeData models.AlertNotice) {
+	err := sender.Sender(m.ctx, sender.SendParams{
+		RuleName:    alert.RuleName,
+		TenantId:    alert.TenantId,
+		NoticeType:  noticeData.NoticeType,
+		NoticeId:    noticeData.Uuid,
+		NoticeName:  noticeData.Name,
+		IsRecovered: alert.IsRecovered,
+		Hook:        noticeData.DefaultHook,
+		Email:       noticeData.Email,
+		Content:     m.getContent(alert, noticeData),
+		Event:       nil,
+	})
+	if err != nil {
+		logc.Errorf(ctx.Ctx, err.Error())
+		return
+	}
+}
+
+func (m *ConsumeProbing) getContent(alert models.ProbingEvent, noticeData models.AlertNotice) string {
+	if noticeData.NoticeType == "CustomHook" {
+		return tools.JsonMarshal(alert)
+	} else {
+		return templates.NewTemplate(m.ctx, buildEvent(alert), noticeData).CardContentMsg
+	}
+}
+
 // 删除缓存
 func removeAlertFromCache(alert models.ProbingEvent) {
-	ctx.DO().Redis.Redis().Del(alert.GetFiringAlertCacheKey())
+	ctx.DO().Cache.Cache().DeleteKey(alert.GetFiringAlertCacheKey())
 }
 
 func buildEvent(event models.ProbingEvent) models.AlertCurEvent {
@@ -114,9 +128,7 @@ func buildEvent(event models.ProbingEvent) models.AlertCurEvent {
 		TenantId:               event.TenantId,
 		RuleId:                 event.RuleId,
 		Fingerprint:            event.Fingerprint,
-		Severity:               event.Severity,
 		Metric:                 event.Metric,
-		NoticeId:               event.NoticeId,
 		Annotations:            event.Annotations,
 		IsRecovered:            event.IsRecovered,
 		FirstTriggerTime:       event.FirstTriggerTime,
@@ -127,6 +139,5 @@ func buildEvent(event models.ProbingEvent) models.AlertCurEvent {
 		RecoverTime:            event.RecoverTime,
 		RecoverTimeFormat:      event.RecoverTimeFormat,
 		DutyUser:               event.DutyUser,
-		RecoverNotify:          event.RecoverNotify,
 	}
 }

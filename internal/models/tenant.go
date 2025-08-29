@@ -15,6 +15,14 @@ type Tenant struct {
 	UserId           string `json:"userId" gorm:"-"`
 }
 
+func (t *Tenant) GetRemoveProtection() *bool {
+	if t.RemoveProtection == nil {
+		isOk := false
+		return &isOk
+	}
+	return t.RemoveProtection
+}
+
 type TenantQuery struct {
 	ID     string `json:"id" form:"id"`
 	Name   string `json:"name" form:"name"`

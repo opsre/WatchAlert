@@ -6,26 +6,56 @@ import (
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 	"math"
+	"net/http"
 	"time"
 	"watchAlert/internal/models"
 )
 
 type PrometheusProvider struct {
-	apiV1 v1.API
+	ExternalLabels map[string]interface{}
+	apiV1          v1.API
+}
+
+// BasicAuthTransport 实现带认证的HTTP传输层
+type BasicAuthTransport struct {
+	Username string
+	Password string
+	Base     http.RoundTripper
+}
+
+func (t *BasicAuthTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	if t.Username != "" || t.Password != "" {
+		req.SetBasicAuth(t.Username, t.Password)
+	}
+	return t.Base.RoundTrip(req)
 }
 
 func NewPrometheusClient(source models.AlertDataSource) (MetricsFactoryProvider, error) {
-	client, err := api.NewClient(api.Config{
-		Address: source.HTTP.URL,
-	})
+	// 创建基础传输层
+	baseTransport := http.DefaultTransport
+
+	// 配置认证传输层
+	authTransport := &BasicAuthTransport{
+		Username: source.Auth.User,
+		Password: source.Auth.Pass,
+		Base:     baseTransport,
+	}
+
+	// 创建客户端配置
+	clientConfig := api.Config{
+		Address:      source.HTTP.URL,
+		RoundTripper: authTransport,
+	}
+
+	// 创建带认证的客户端
+	client, err := api.NewClient(clientConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	apiV1 := v1.NewAPI(client)
-
 	return PrometheusProvider{
-		apiV1: apiV1,
+		apiV1:          v1.NewAPI(client),
+		ExternalLabels: source.Labels,
 	}, nil
 }
 
@@ -72,4 +102,8 @@ func (p PrometheusProvider) Check() (bool, error) {
 	}
 
 	return true, nil
+}
+
+func (p PrometheusProvider) GetExternalLabels() map[string]interface{} {
+	return p.ExternalLabels
 }

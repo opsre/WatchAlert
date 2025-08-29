@@ -185,7 +185,6 @@ func (tr TenantRepo) AddTenantLinkedUsers(t models.TenantLinkedUsers) error {
 		return err
 	}
 
-	var newUser models.TenantUser
 	// 在新增成员时不会一并将角色写入，需要找到新增的成员，并且修改它的角色。
 	for _, nUser := range t.Users {
 		found := false
@@ -196,14 +195,14 @@ func (tr TenantRepo) AddTenantLinkedUsers(t models.TenantLinkedUsers) error {
 			}
 		}
 		if !found {
-			newUser = models.TenantUser{
+			oldTenantUsers.Users = append(oldTenantUsers.Users, models.TenantUser{
 				UserID:   nUser.UserID,
 				UserName: nUser.UserName,
 				UserRole: t.UserRole,
-			}
+			})
 		}
 	}
-	oldTenantUsers.Users = append(oldTenantUsers.Users, newUser)
+
 	err = tr.g.Updates(Updates{
 		Table: models.TenantLinkedUsers{},
 		Where: map[string]interface{}{

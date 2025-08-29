@@ -42,7 +42,7 @@ func (m probingService) Create(req interface{}) (interface{}, interface{}) {
 		return nil, err
 	}
 
-	if *r.Enabled {
+	if *r.GetEnabled() {
 		m.ProductTask.Submit(*r)
 	}
 	m.ConsumerTask.Add(*r)
@@ -64,7 +64,7 @@ func (m probingService) Update(req interface{}) (interface{}, interface{}) {
 
 	m.ProductTask.Stop(r.RuleId)
 	m.ConsumerTask.Stop(r.RuleId)
-	if *r.Enabled {
+	if *r.GetEnabled() {
 		m.ProductTask.Submit(*r)
 		m.ConsumerTask.Add(*r)
 	}
@@ -86,7 +86,8 @@ func (m probingService) Delete(req interface{}) (interface{}, interface{}) {
 
 	m.ProductTask.Stop(r.RuleId)
 	m.ConsumerTask.Stop(r.RuleId)
-	err = m.ctx.Redis.Redis().Del(res.GetFiringAlertCacheKey(), res.GetProbingMappingKey()).Err()
+	// TODO miss err
+	m.ctx.Cache.Cache().DeleteHash(res.GetFiringAlertCacheKey(), res.GetProbingMappingKey())
 	if err != nil {
 		return nil, err
 	}

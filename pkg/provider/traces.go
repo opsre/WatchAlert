@@ -13,6 +13,7 @@ type TracesFactoryProvider interface {
 	Query(options TraceQueryOptions) ([]Traces, error)
 	Check() (bool, error)
 	GetJaegerService() (JaegerServiceData, error)
+	GetExternalLabels() map[string]interface{}
 }
 
 type TraceQueryOptions struct {

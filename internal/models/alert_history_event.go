@@ -16,6 +16,7 @@ type AlertHisEvent struct {
 	LastEvalTime     int64                  `json:"last_eval_time"`     // 最近评估时间
 	LastSendTime     int64                  `json:"last_send_time"`     // 最近发送时间
 	RecoverTime      int64                  `json:"recover_time"`       // 恢复时间
+	FaultCenterId    string                 `json:"faultCenterId"`
 }
 
 type AlertHisEventQuery struct {
@@ -29,6 +30,7 @@ type AlertHisEventQuery struct {
 	StartAt        int64  `json:"startAt" form:"startAt"`
 	EndAt          int64  `json:"endAt" form:"endAt"`
 	Query          string `json:"query" form:"query"`
+	FaultCenterId  string `json:"faultCenterId" form:"faultCenterId"`
 	Page
 }
 

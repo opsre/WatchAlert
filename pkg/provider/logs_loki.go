@@ -1,8 +1,11 @@
 package provider
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"github.com/zeromicro/go-zero/core/logc"
+	"net/http"
 	"net/url"
 	"strconv"
 	"time"
@@ -11,11 +14,17 @@ import (
 )
 
 type LokiProvider struct {
-	url string
+	url            string
+	timeout        int64
+	ExternalLabels map[string]interface{}
 }
 
 func NewLokiClient(datasource models.AlertDataSource) (LogsFactoryProvider, error) {
-	return LokiProvider{url: datasource.HTTP.URL}, nil
+	return LokiProvider{
+		url:            datasource.HTTP.URL,
+		timeout:        datasource.HTTP.Timeout,
+		ExternalLabels: datasource.Labels,
+	}, nil
 }
 
 type result struct {
@@ -95,13 +104,19 @@ func (l LokiProvider) Query(options LogQueryOptions) ([]Logs, int, error) {
 }
 
 func (l LokiProvider) Check() (bool, error) {
-	res, err := tools.Get(nil, l.url+"/loki/api/v1/labels", 10)
+	res, err := tools.Get(nil, l.url+"/loki/api/v1/labels", int(l.timeout))
 	if err != nil {
 		return false, err
 	}
 
-	if res.StatusCode != 200 {
-		return false, err
+	if res.StatusCode != http.StatusOK {
+		logc.Error(context.Background(), fmt.Errorf("unhealthy status: %d", res.StatusCode))
+		return false, fmt.Errorf("unhealthy status: %d", res.StatusCode)
 	}
+
 	return true, nil
+}
+
+func (l LokiProvider) GetExternalLabels() map[string]interface{} {
+	return l.ExternalLabels
 }

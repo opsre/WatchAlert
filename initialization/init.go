@@ -12,6 +12,7 @@ import (
 	"watchAlert/internal/models"
 	"watchAlert/internal/repo"
 	"watchAlert/internal/services"
+	"watchAlert/pkg/ai"
 	"watchAlert/pkg/ctx"
 )
 
@@ -21,16 +22,13 @@ func InitBasic() {
 	global.Config = config.InitConfig()
 
 	dbRepo := repo.NewRepoEntry()
-	rCache := cache.NewEntryCache()
-	ctx := ctx.NewContext(context.Background(), dbRepo, rCache)
+	rCache := cache.NewEntryCache(global.Config.Cache)
+	ctx := ctx.NewContext(context.Background(), dbRepo, rCache, global.Config.Cache)
 
 	services.NewServices(ctx)
 
 	// 启用告警评估携程
 	alert.Initialize(ctx)
-
-	// 初始化监控分析数据
-	InitResource(ctx)
 
 	// 初始化权限数据
 	InitPermissionsSQL(ctx)
@@ -46,6 +44,20 @@ func InitBasic() {
 		go services.LdapService.SyncUsersCronjob()
 	}
 
+	r, err := ctx.DB.Setting().Get()
+	if err != nil {
+		logc.Error(ctx.Ctx, fmt.Sprintf("加载系统设置失败: %s", err.Error()))
+		return
+	}
+
+	if r.AiConfig.GetEnable() {
+		client, err := ai.NewAiClient(&r.AiConfig)
+		if err != nil {
+			logc.Error(ctx.Ctx, fmt.Sprintf("创建 Ai 客户端失败: %s", err.Error()))
+			return
+		}
+		ctx.Cache.ProviderPools().SetClient("AiClient", client)
+	}
 }
 
 func importClientPools(ctx *ctx.Context) {
@@ -57,12 +69,12 @@ func importClientPools(ctx *ctx.Context) {
 
 	g := new(errgroup.Group)
 	for _, datasource := range list {
-		datasource := datasource
-		if !*datasource.Enabled {
+		ds := datasource
+		if !*ds.GetEnabled() {
 			continue
 		}
 		g.Go(func() error {
-			err := services.DatasourceService.WithAddClientToProviderPools(datasource)
+			err := services.DatasourceService.WithAddClientToProviderPools(ds)
 			if err != nil {
 				logc.Error(ctx.Ctx, fmt.Sprintf("添加到 Client 存储池失败, err: %s", err.Error()))
 				return err

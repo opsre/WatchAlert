@@ -50,17 +50,6 @@ func (rs ruleService) Update(req interface{}) (interface{}, interface{}) {
 		Where("tenant_id = ? AND rule_id = ?", rule.TenantId, rule.RuleId).
 		First(&alertInfo)
 
-	delEvent := func() {
-		// 删除缓存
-		iter := rs.ctx.Redis.Redis().Scan(0, rule.TenantId+":"+models.FiringAlertCachePrefix+rule.RuleId+"*", 0).Iterator()
-		keys := make([]string, 0)
-		for iter.Next() {
-			key := iter.Val()
-			keys = append(keys, key)
-		}
-		rs.ctx.Redis.Redis().Del(keys...)
-	}
-
 	/*
 		重启协程
 		判断当前状态是否是false 并且 历史状态是否为true
@@ -73,11 +62,15 @@ func (rs ruleService) Update(req interface{}) (interface{}, interface{}) {
 	}
 
 	// 启动协程
-	if *rule.Enabled {
+	if *rule.GetEnabled() {
 		alert.AlertRule.Submit(*rule)
 		logc.Infof(rs.ctx.Ctx, fmt.Sprintf("重启 RuleId 为 %s 的 Worker 进程", rule.RuleId))
 	} else {
-		delEvent()
+		// 删除缓存
+		fingerprints := rs.ctx.Cache.Event().GetFingerprintsByRuleId(rule.TenantId, rule.FaultCenterId, rule.RuleId)
+		for _, fingerprint := range fingerprints {
+			rs.ctx.Cache.Event().RemoveEventFromFaultCenter(rule.TenantId, rule.FaultCenterId, fingerprint)
+		}
 	}
 
 	// 更新数据
@@ -103,23 +96,18 @@ func (rs ruleService) Delete(req interface{}) (interface{}, interface{}) {
 	}
 
 	// 退出该规则的协程
-	if *info.Enabled {
+	if *info.GetEnabled() {
 		logc.Infof(rs.ctx.Ctx, fmt.Sprintf("停止 RuleId 为 %s 的 Worker 进程", rule.RuleId))
 		alert.AlertRule.Stop(rule.RuleId)
 	}
 
-	iter := rs.ctx.Redis.Redis().Scan(0, rule.TenantId+":"+models.FiringAlertCachePrefix+rule.RuleId+"*", 0).Iterator()
-	keys := make([]string, 0)
-	for iter.Next() {
-		key := iter.Val()
-		keys = append(keys, key)
+	// 删除缓存
+	fingerprints := rs.ctx.Cache.Event().GetFingerprintsByRuleId(rule.TenantId, info.FaultCenterId, rule.RuleId)
+	for _, fingerprint := range fingerprints {
+		rs.ctx.Cache.Event().RemoveEventFromFaultCenter(rule.TenantId, info.FaultCenterId, fingerprint)
 	}
 
-	rs.ctx.Redis.Redis().Del(keys...)
-	logc.Infof(rs.ctx.Ctx, fmt.Sprintf("删除队列数据 ->%s", keys))
-
 	return nil, nil
-
 }
 
 func (rs ruleService) List(req interface{}) (interface{}, interface{}) {

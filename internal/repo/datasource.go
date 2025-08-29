@@ -73,7 +73,7 @@ func (ds DatasourceRepo) Get(r models.DatasourceQuery) (models.AlertDataSource, 
 	db.Where("id = ?", r.Id)
 
 	var data models.AlertDataSource
-	err := db.Find(&data).Error
+	err := db.First(&data).Error
 	if err != nil {
 		return data, err
 	}

@@ -1,16 +1,5 @@
 package models
 
-import (
-	"sort"
-	"watchAlert/pkg/tools"
-)
-
-type Duration int64
-
-type LabelsMap map[string]string
-
-type NoticeGroup []map[string]string
-
 type AlertRule struct {
 	//gorm.Model
 	TenantId             string        `json:"tenantId"`
@@ -20,9 +9,9 @@ type AlertRule struct {
 	DatasourceIdList     []string      `json:"datasourceId" gorm:"datasourceId;serializer:json"`
 	RuleName             string        `json:"ruleName"`
 	EvalInterval         int64         `json:"evalInterval"`
+	EvalTimeType         string        `json:"evalTimeType"` // second, millisecond
 	RepeatNoticeInterval int64         `json:"repeatNoticeInterval"`
 	Description          string        `json:"description"`
-	Labels               LabelsMap     `json:"labels" gorm:"labels;serializer:json"`
 	EffectiveTime        EffectiveTime `json:"effectiveTime" gorm:"effectiveTime;serializer:json"`
 	Severity             string        `json:"severity"`
 
@@ -35,6 +24,8 @@ type AlertRule struct {
 	// Loki
 	LokiConfig LokiConfig `json:"lokiConfig" gorm:"lokiConfig;serializer:json"`
 
+	VictoriaLogsConfig VictoriaLogsConfig `json:"victoriaLogsConfig" gorm:"victoriaConfig;serializer:json"`
+
 	// Jaeger
 	JaegerConfig JaegerConfig `json:"jaegerConfig" gorm:"JaegerConfig;serializer:json"`
 
@@ -45,20 +36,36 @@ type AlertRule struct {
 
 	ElasticSearchConfig ElasticSearchConfig `json:"elasticSearchConfig" gorm:"elasticSearchConfig;serializer:json"`
 
-	NetworkEndpointConfig ProbingEndpointConfig `json:"networkEndpointConfig" gorm:"networkEndpointConfig;serializer:json"`
+	LogEvalCondition string `json:"logEvalCondition" gorm:"logEvalCondition;serializer:json"`
 
-	NoticeId         string      `json:"noticeId"`
-	NoticeGroup      NoticeGroup `json:"noticeGroup" gorm:"noticeGroup;serializer:json"`
-	RecoverNotify    *bool       `json:"recoverNotify"`
-	AlarmAggregation *bool       `json:"alarmAggregation"`
-	Enabled          *bool       `json:"enabled" gorm:"enabled"`
+	FaultCenterId string `json:"faultCenterId"`
+	Enabled       *bool  `json:"enabled" gorm:"enabled"`
 }
 
 type ElasticSearchConfig struct {
-	Index  string          `json:"index"`
-	Scope  int64           `json:"scope"`
-	Filter []EsQueryFilter `json:"filter"`
+	Index           string            `json:"index"`
+	Scope           int64             `json:"scope"`
+	Filter          []EsQueryFilter   `json:"filter"`
+	FilterCondition EsFilterCondition `json:"filterCondition"`
+	EsQueryType     EsQueryType       `json:"queryType"`
+	QueryWildcard   int64             `json:"queryWildcard"` // 0 精准匹配，1 模糊匹配
+	RawJson         string            `json:"rawJson"`
 }
+
+type EsQueryType string
+
+const (
+	EsQueryTypeRawJson EsQueryType = "RawJson"
+	EsQueryTypeField   EsQueryType = "Field"
+)
+
+type EsFilterCondition string
+
+const (
+	EsFilterConditionAnd EsFilterCondition = "And"
+	EsFilterConditionOr  EsFilterCondition = "Or"
+	EsFilterConditionNot EsFilterCondition = "Not"
+)
 
 type EsQueryFilter struct {
 	Field string `json:"field"`
@@ -98,17 +105,21 @@ type EffectiveTime struct {
 }
 
 type AliCloudSLSConfig struct {
-	Project       string        `json:"project"`
-	Logstore      string        `json:"logstore"`
-	LogQL         string        `json:"logQL"`    // 查询语句
-	LogScope      int           `json:"logScope"` // 相对查询的日志范围（单位分钟）,1(min) 5(min)...
-	EvalCondition EvalCondition `json:"evalCondition" gorm:"evalCondition;serializer:json"`
+	Project  string `json:"project"`
+	Logstore string `json:"logstore"`
+	LogQL    string `json:"logQL"`    // 查询语句
+	LogScope int    `json:"logScope"` // 相对查询的日志范围（单位分钟）,1(min) 5(min)...
 }
 
 type LokiConfig struct {
-	LogQL         string        `json:"logQL"`
-	LogScope      int           `json:"logScope"`
-	EvalCondition EvalCondition `json:"evalCondition" gorm:"evalCondition;serializer:json"`
+	LogQL    string `json:"logQL"`
+	LogScope int    `json:"logScope"`
+}
+
+type VictoriaLogsConfig struct {
+	LogQL    string `json:"logQL"`
+	LogScope int    `json:"logScope"`
+	Limit    int    `json:"limit"`
 }
 
 type CloudWatchConfig struct {
@@ -122,9 +133,8 @@ type CloudWatchConfig struct {
 	Endpoints  []string `json:"endpoints" gorm:"endpoints;serializer:json"`
 }
 
-// EvalCondition 日志评估条件
+// EvalCondition 评估表达式
 type EvalCondition struct {
-	Type string `json:"type"`
 	// 运算
 	Operator string `json:"operator"`
 	// 查询值
@@ -153,40 +163,12 @@ type RuleResponse struct {
 	Page
 }
 
-var (
-	// cache the signature of an empty label set.
-	emptyLabelSignature = tools.HashNew()
-)
-
-const SeparatorByte byte = 255
-
-// Fingerprint returns a unique hash for the alert. It is equivalent to
-// the fingerprint of the alert's label set.
-func (a *AlertRule) Fingerprint() Fingerprint {
-
-	// 没有配置标签，则用随机生成
-	if len(a.Labels) == 0 {
-		return Fingerprint(emptyLabelSignature)
-	}
-
-	// 定义map存储所有标签
-	labelNames := make([]string, 0, len(a.Labels))
-	for labelName := range a.Labels {
-		labelNames = append(labelNames, labelName)
-	}
-	// 标签排序。用于根据标签做hash
-	sort.Strings(labelNames)
-
-	// 在随机生成的hash的基础上，新增标签hash
-	sum := tools.HashNew()
-	for _, labelName := range labelNames {
-		sum = tools.HashAdd(sum, labelName)
-		sum = tools.HashAddByte(sum, SeparatorByte)
-		sum = tools.HashAdd(sum, a.Labels[labelName])
-		sum = tools.HashAddByte(sum, SeparatorByte)
-	}
-	return Fingerprint(sum)
-
-}
-
 func (a *AlertRule) GetRuleType() string { return a.DatasourceType }
+
+func (a *AlertRule) GetEnabled() *bool {
+	if a.Enabled == nil {
+		isOk := false
+		return &isOk
+	}
+	return a.Enabled
+}

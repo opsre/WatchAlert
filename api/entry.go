@@ -32,6 +32,8 @@ type ApiGroup struct {
 	KubernetesTypesController
 	SubscribeController
 	ProbingController
+	FaultCenterController
+	AiController
 }
 
 var ApiGroupApp = new(ApiGroup)

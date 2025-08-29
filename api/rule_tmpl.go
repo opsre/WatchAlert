@@ -10,8 +10,8 @@ import (
 type RuleTmplController struct{}
 
 /*
-	规则模版 API
-	/api/w8t/ruleTmpl
+规则模版 API
+/api/w8t/ruleTmpl
 */
 func (rtc RuleTmplController) API(gin *gin.RouterGroup) {
 	ruleTmplA := gin.Group("ruleTmpl")
@@ -23,6 +23,7 @@ func (rtc RuleTmplController) API(gin *gin.RouterGroup) {
 	)
 	{
 		ruleTmplA.POST("ruleTmplCreate", rtc.Create)
+		ruleTmplA.POST("ruleTmplUpdate", rtc.Update)
 		ruleTmplA.POST("ruleTmplDelete", rtc.Delete)
 	}
 
@@ -43,6 +44,15 @@ func (rtc RuleTmplController) Create(ctx *gin.Context) {
 
 	Service(ctx, func() (interface{}, interface{}) {
 		return services.RuleTmplService.Create(r)
+	})
+}
+
+func (rtc RuleTmplController) Update(ctx *gin.Context) {
+	r := new(models.RuleTemplate)
+	BindJson(ctx, r)
+
+	Service(ctx, func() (interface{}, interface{}) {
+		return services.RuleTmplService.Update(r)
 	})
 }
 

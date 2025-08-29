@@ -19,6 +19,10 @@ func PermissionsInfo() map[string]UserPermissions {
 			Key: "搜索日历表",
 			API: "/api/w8t/calendar/calendarSearch",
 		},
+		"getCalendarUsers": {
+			Key: "获取值班表用户列表",
+			API: "/api/w8t/calendar/getCalendarUsers",
+		},
 		"calendarUpdate": {
 			Key: "更新日历表",
 			API: "/api/w8t/calendar/calendarUpdate",
@@ -72,7 +76,7 @@ func PermissionsInfo() map[string]UserPermissions {
 			API: "/api/w8t/dutyManage/dutyManageCreate",
 		},
 		"dutyManageDelete": {
-			Key: "更新值班表",
+			Key: "删除值班表",
 			API: "/api/w8t/dutyManage/dutyManageDelete",
 		},
 		"dutyManageList": {
@@ -195,6 +199,10 @@ func PermissionsInfo() map[string]UserPermissions {
 			Key: "创建规则模版",
 			API: "/api/w8t/ruleTmpl/ruleTmplCreate",
 		},
+		"ruleTmplUpdate": {
+			Key: "更新规则模版",
+			API: "/api/w8t/ruleTmpl/ruleTmplUpdate",
+		},
 		"ruleTmplDelete": {
 			Key: "删除规则模版",
 			API: "/api/w8t/ruleTmpl/ruleTmplDelete",
@@ -202,6 +210,10 @@ func PermissionsInfo() map[string]UserPermissions {
 		"ruleTmplGroupCreate": {
 			Key: "创建规则模版组",
 			API: "/api/w8t/ruleTmplGroup/ruleTmplGroupCreate",
+		},
+		"ruleTmplGroupUpdate": {
+			Key: "更新规则模版组",
+			API: "/api/w8t/ruleTmplGroup/ruleTmplGroupUpdate",
 		},
 		"ruleTmplGroupDelete": {
 			Key: "删除规则模版组",
@@ -356,7 +368,7 @@ func PermissionsInfo() map[string]UserPermissions {
 			API: "/api/w8t/dashboard/createFolder",
 		},
 		"updateFolder": {
-			Key: "删除仪表盘目录",
+			Key: "更新仪表盘目录",
 			API: "/api/w8t/dashboard/updateFolder",
 		},
 		"deleteFolder": {
@@ -364,7 +376,7 @@ func PermissionsInfo() map[string]UserPermissions {
 			API: "/api/w8t/dashboard/deleteFolder",
 		},
 		"listGrafanaDashboards": {
-			Key: "获取仪表盘信息",
+			Key: "获取仪表盘图表列表",
 			API: "/api/w8t/dashboard/listGrafanaDashboards",
 		},
 		"getDashboardFullUrl": {
@@ -398,6 +410,34 @@ func PermissionsInfo() map[string]UserPermissions {
 		"dataSourcePing": {
 			Key: "数据源连接测试",
 			API: "/api/w8t/datasource/dataSourcePing",
+		},
+		"faultCenterList": {
+			Key: "获取故障中心列表",
+			API: "/api/w8t/faultCenter/faultCenterList",
+		},
+		"faultCenterSearch": {
+			Key: "查询故障中心",
+			API: "/api/w8t/faultCenter/faultCenterSearch",
+		},
+		"faultCenterCreate": {
+			Key: "创建故障中心",
+			API: "/api/w8t/faultCenter/faultCenterCreate",
+		},
+		"faultCenterUpdate": {
+			Key: "更新故障中心",
+			API: "/api/w8t/faultCenter/faultCenterUpdate",
+		},
+		"faultCenterDelete": {
+			Key: "删除故障中心",
+			API: "/api/w8t/faultCenter/faultCenterDelete",
+		},
+		"faultCenterReset": {
+			Key: "修改故障中心基本信息",
+			API: "/api/w8t/faultCenter/faultCenterReset",
+		},
+		"searchViewLogsContent": {
+			Key: "搜索VictoriaLogs数据源内容",
+			API: "/api/w8t/datasource/searchViewLogsContent",
 		},
 	}
 }

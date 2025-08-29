@@ -6,13 +6,13 @@ services:
     environment:
       - TZ=Asia/Shanghai
     volumes:
-      - ./config:/app/config
+      - ../../config:/app/config
     restart: always
     privileged: true
     ports:
       - "9001:9001"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://w8t-mysql:3306"]
+      test: ["CMD", "wget", "localhost:9001/hello"]
       interval: 5s
       timeout: 2s
       retries: 10
@@ -71,10 +71,11 @@ services:
       - ../sql:/sql
     environment:
       - TZ=Asia/Shanghai
+      - MYSQL_HOST=w8t-mysql
       - MYSQL_ROOT_PASSWORD=w8t.123
       - MYSQL_DATABASE=watchalert
     restart: on-failure
-    command: ["sh", "-c", "/sql/auto_import.sh"]
+    command: ["sh", "-c", "chmod +x /sql/auto_import.sh; /sql/auto_import.sh"]
     depends_on:
       - w8t-mysql
       - w8t-service

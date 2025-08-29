@@ -30,4 +30,6 @@ var (
 	KubeEvent      = api.ApiGroupApp.KubernetesTypesController
 	Subscribe      = api.ApiGroupApp.SubscribeController
 	Probing        = api.ApiGroupApp.ProbingController
+	FaultCenter    = api.ApiGroupApp.FaultCenterController
+	Ai             = api.ApiGroupApp.AiController
 )

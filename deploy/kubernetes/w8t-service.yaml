@@ -1,0 +1,45 @@
+# w8t-service 暂不支持多副本
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    name: w8t-service
+  name: w8t-service
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: w8t-service
+  template:
+    metadata:
+      labels:
+        app: w8t-service
+    spec:
+      containers:
+        - name: w8t-service
+          image: docker.io/cairry/watchalert:latest
+          ports:
+            - containerPort: 9001
+          volumeMounts:
+            - name: config-volume
+              mountPath: /app/config
+      volumes:
+        - name: config-volume
+          configMap:
+            name: w8t-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: w8t-service
+  namespace: default
+spec:
+  selector:
+    app: w8t-service
+  type: ClusterIP
+  ports:
+    - protocol: TCP
+      port: 9001
+      targetPort: 9001
