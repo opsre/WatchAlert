@@ -1,23 +1,30 @@
 package config
 
 import (
-	"github.com/spf13/viper"
 	"log"
+
+	"github.com/spf13/viper"
 )
 
 type App struct {
-	Server Server `json:"Server"`
-	MySQL  MySQL  `json:"MySQL"`
-	Redis  Redis  `json:"Redis"`
-	Jwt    Jwt    `json:"Jwt"`
-	Jaeger Jaeger `json:"Jaeger"`
-	Ldap   Ldap   `json:"ldap"`
-	Cache  string `json:"Cache"`
+	Server   Server   `json:"Server"`
+	DataBase DataBase `json:"DataBase"`
+	MySQL    MySQL    `json:"MySQL"`
+	Redis    Redis    `json:"Redis"`
+	Jwt      Jwt      `json:"Jwt"`
+	Jaeger   Jaeger   `json:"Jaeger"`
+	Ldap     Ldap     `json:"ldap"`
+  Cache  string `json:"Cache"`
 }
 
 type Server struct {
 	Mode string `json:"mode"`
 	Port string `json:"port"`
+}
+
+type DataBase struct {
+	Driver string `json:"driver"`
+	Source string `json:"source"`
 }
 
 type MySQL struct {
@@ -56,9 +63,7 @@ type Ldap struct {
 	Cronjob         string `json:"cronjob"`
 }
 
-var (
-	configFile = "config/config.yaml"
-)
+var configFile = "config/config.yaml"
 
 func InitConfig() App {
 	v := viper.New()
