@@ -175,6 +175,7 @@ func (t *ProductProbing) Evaluation(event models.ProbingEvent, option models.Eva
 		if t.getFrequency(t.FailFrequency, event.RuleId) >= event.ProbingEndpointConfig.Strategy.Failure {
 			defer func() {
 				t.cleanFrequency(t.FailFrequency, event.RuleId)
+				t.cleanFrequency(t.OkFrequency, event.RuleId)
 			}()
 
 			event.LastEvalTime = c.GetProbingEventLastEvalTime(key)
@@ -196,6 +197,7 @@ func (t *ProductProbing) Evaluation(event models.ProbingEvent, option models.Eva
 		t.setFrequency(t.OkFrequency, event.RuleId)
 		if t.getFrequency(t.OkFrequency, event.RuleId) >= 3 {
 			defer func() {
+				t.cleanFrequency(t.FailFrequency, event.RuleId)
 				t.cleanFrequency(t.OkFrequency, event.RuleId)
 			}()
 
