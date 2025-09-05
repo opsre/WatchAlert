@@ -23,8 +23,12 @@ var EventReasonLMapping = map[string][]reason{
 			"容器健康状况不佳(Unhealthy)",
 		},
 		{
-			"CrashLoopBackOff",
-			"容器反复崩溃和重启(CrashLoopBackOff)",
+			"Killing",
+			"容器被终止(Killing)",
+		},
+		{
+			"BackOff",
+			"容器崩溃(BackOff)",
 		},
 		{
 			"FailedMount",
