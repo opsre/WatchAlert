@@ -163,7 +163,11 @@ func (t *ProductProbing) runProbing(rule models.ProbingRule) (provider.EndpointV
 	return provider.EndpointValue{}, fmt.Errorf("unsupported rule type: %s", rule.RuleType)
 }
 
-func (t *ProductProbing) Evaluation(event models.ProbingEvent, option models.EvalCondition) {
+func (t *ProductProbing) Evaluation(event *models.ProbingEvent, option models.EvalCondition) {
+	if event == nil {
+		return
+	}
+
 	key := models.BuildProbingEventCacheKey(event.TenantId, event.RuleId)
 	c := ctx.Redis.Probing()
 	event.FirstTriggerTime = c.GetProbingEventFirstTime(key)
@@ -180,7 +184,7 @@ func (t *ProductProbing) Evaluation(event models.ProbingEvent, option models.Eva
 
 			event.LastEvalTime = c.GetProbingEventLastEvalTime(key)
 			event.LastSendTime = c.GetProbingEventLastSendTime(key)
-			c.SetProbingEventCache(event, 0)
+			c.SetProbingEventCache(*event, 0)
 		}
 
 	} else {
@@ -209,7 +213,7 @@ func (t *ProductProbing) Evaluation(event models.ProbingEvent, option models.Eva
 			neCache.IsRecovered = true
 			neCache.RecoverTime = time.Now().Unix()
 			neCache.LastSendTime = 0
-			c.SetProbingEventCache(neCache, 0)
+			c.SetProbingEventCache(*neCache, 0)
 		}
 	}
 }

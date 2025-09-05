@@ -77,11 +77,11 @@ func (m *ConsumeProbing) executeTask(taskChan chan struct{}, r models.ProbingRul
 		return
 	}
 
-	if m.filterEvent(event) {
+	if m.filterEvent(*event) {
 		return
 	}
 
-	m.sendAlert(event)
+	m.sendAlert(*event)
 }
 
 func (m *ConsumeProbing) filterEvent(event models.ProbingEvent) bool {

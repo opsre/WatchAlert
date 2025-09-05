@@ -25,6 +25,10 @@ func BuildEvent(rule models.AlertRule, labels func() map[string]interface{}) mod
 }
 
 func PushEventToFaultCenter(ctx *ctx.Context, event *models.AlertCurEvent) {
+	if event == nil {
+		return
+	}
+
 	ctx.Mux.Lock()
 	defer ctx.Mux.Unlock()
 	if len(event.TenantId) <= 0 || len(event.Fingerprint) <= 0 {

@@ -19,7 +19,7 @@ type (
 	// ProbingCacheInterface 定义了事件缓存的操作接口
 	ProbingCacheInterface interface {
 		SetProbingEventCache(event models.ProbingEvent, expiration time.Duration)
-		GetProbingEventCache(key models.ProbingEventCacheKey) (models.ProbingEvent, error)
+		GetProbingEventCache(key models.ProbingEventCacheKey) (*models.ProbingEvent, error)
 		DelProbingEventCache(key models.ProbingEventCacheKey) error
 		GetProbingEventFirstTime(key models.ProbingEventCacheKey) int64
 		GetProbingEventLastEvalTime(key models.ProbingEventCacheKey) int64
@@ -41,8 +41,8 @@ func (p *ProbingCache) SetProbingEventCache(event models.ProbingEvent, expiratio
 }
 
 // GetProbingEventCache 获取探测事件缓存
-func (p *ProbingCache) GetProbingEventCache(key models.ProbingEventCacheKey) (models.ProbingEvent, error) {
-	var event models.ProbingEvent
+func (p *ProbingCache) GetProbingEventCache(key models.ProbingEventCacheKey) (*models.ProbingEvent, error) {
+	var event *models.ProbingEvent
 
 	data, err := p.getProbingCache(key)
 	if err != nil {
