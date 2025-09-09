@@ -378,7 +378,12 @@ func (t *AlertRule) RestartAllEvals() {
 // isRuleEnabled 检查规则是否启用
 func (t *AlertRule) isRuleEnabled(ruleId string) bool {
 	// 直接检查数据库或缓存中的当前启用状态
-	return *t.ctx.DB.Rule().GetRuleObject(ruleId).Enabled
+	e := t.ctx.DB.Rule().GetRuleObject(ruleId).Enabled
+	if e == nil {
+		return false
+	}
+
+	return *e
 }
 
 // getRuleList 获取规则列表
