@@ -8,8 +8,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/zeromicro/go-zero/core/logc"
 	"strconv"
 	"time"
+	"watchAlert/internal/ctx"
 
 	"watchAlert/pkg/tools"
 )
@@ -24,15 +26,36 @@ type (
 	}
 )
 
+var FeiShuTestContent = fmt.Sprintf(`{
+  "msg_type": "text",
+  "content": {
+  "text": "%s"
+  }
+}`, RobotTestContent)
+
 func NewFeiShuSender() SendInter {
 	return &FeiShuSender{}
 }
 
 func (f *FeiShuSender) Send(params SendParams) error {
-	msg := params.GetSendMsg()
-	if params.Sign != "" {
+	return f.post(params.Hook, params.Sign, params.GetSendMsg())
+}
+
+func (f *FeiShuSender) Test(params SendParams) error {
+	msg := make(map[string]any)
+	err := json.Unmarshal([]byte(FeiShuTestContent), &msg)
+	if err != nil {
+		logc.Errorf(ctx.Ctx, fmt.Sprintf("发送的内容解析失败, err: %s", err.Error()))
+		return err
+	}
+
+	return f.post(params.Hook, params.Sign, msg)
+}
+
+func (f *FeiShuSender) post(hook, sign string, msg map[string]any) error {
+	if sign != "" {
 		timestamp := strconv.FormatInt(time.Now().Unix(), 10)
-		signature, err := generateSignature(params.Sign, timestamp)
+		signature, err := generateSignature(hook, timestamp)
 		if err != nil {
 			return err
 		}
@@ -41,10 +64,8 @@ func (f *FeiShuSender) Send(params SendParams) error {
 	}
 
 	msgStr, _ := json.Marshal(msg)
-
 	msgByte := bytes.NewReader(msgStr)
-
-	res, err := tools.Post(nil, params.Hook, msgByte, 10)
+	res, err := tools.Post(nil, hook, msgByte, 10)
 	if err != nil {
 		return err
 	}

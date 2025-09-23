@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"watchAlert/internal/models"
 	"watchAlert/pkg/tools"
 )
 
@@ -21,8 +22,19 @@ func NewSlackSender() SendInter {
 func (f *SlackSender) Send(params SendParams) error {
 	msg := params.GetSendMsg()
 	msgStr, _ := json.Marshal(msg)
-	msgByte := bytes.NewReader(msgStr)
-	res, err := tools.Post(nil, params.Hook, msgByte, 10)
+	return f.post(params.Hook, string(msgStr))
+}
+
+func (f *SlackSender) Test(params SendParams) error {
+	msg := models.SlackMsgTemplate{
+		Text: RobotTestContent,
+	}
+	msgStr, _ := json.Marshal(msg)
+	return f.post(params.Hook, string(msgStr))
+}
+
+func (f *SlackSender) post(hook, content string) error {
+	res, err := tools.Post(nil, hook, bytes.NewReader([]byte(content)), 10)
 	if err != nil {
 		return err
 	}

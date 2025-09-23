@@ -38,8 +38,11 @@ type (
 	// SendInter 发送通知的接口
 	SendInter interface {
 		Send(params SendParams) error
+		Test(params SendParams) error
 	}
 )
+
+const RobotTestContent = "这是一条来自 WatchAlert 的测试消息"
 
 // Sender 发送通知的主函数
 func Sender(ctx *ctx.Context, sendParams SendParams) error {
@@ -58,6 +61,21 @@ func Sender(ctx *ctx.Context, sendParams SendParams) error {
 	// 记录成功发送的日志
 	addRecord(ctx, sendParams, 0, sendParams.Content, "")
 	logc.Info(ctx.Ctx, fmt.Sprintf("Send alarm ok, msg: %s", sendParams.Content))
+	return nil
+}
+
+// Tester 发送测试消息
+func Tester(ctx *ctx.Context, sendParams SendParams) error {
+	sender, err := senderFactory(sendParams.NoticeType)
+	if err != nil {
+		return fmt.Errorf("Send alarm failed, %s", err.Error())
+	}
+
+	// 发送通知
+	if err := sender.Test(sendParams); err != nil {
+		return fmt.Errorf("Test alarm failed to %s, err: %s", sendParams.NoticeType, err.Error())
+	}
+
 	return nil
 }
 

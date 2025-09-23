@@ -17,13 +17,28 @@ type (
 	}
 )
 
+var DingTestContent = fmt.Sprintf(`{
+	"msgtype": "text",
+    "text": {
+        "content": "%s"
+    }
+}`, RobotTestContent)
+
 func NewDingSender() SendInter {
 	return &DingDingSender{}
 }
 
 func (d *DingDingSender) Send(params SendParams) error {
-	cardContentByte := bytes.NewReader([]byte(params.Content))
-	res, err := tools.Post(nil, params.Hook, cardContentByte, 10)
+	return d.post(params.Hook, params.Content)
+}
+
+func (d *DingDingSender) Test(params SendParams) error {
+	return d.post(params.Hook, DingTestContent)
+}
+
+func (d *DingDingSender) post(hook, content string) error {
+	cardContentByte := bytes.NewReader([]byte(content))
+	res, err := tools.Post(nil, hook, cardContentByte, 10)
 	if err != nil {
 		return err
 	}

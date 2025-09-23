@@ -13,13 +13,25 @@ type (
 	WebHookSender struct{}
 )
 
+var WebhookTestContent = fmt.Sprintf(`{
+  "text": "%s"
+  }
+}`, RobotTestContent)
+
 func NewWebHookSender() SendInter {
 	return &WebHookSender{}
 }
 
 func (w *WebHookSender) Send(params SendParams) error {
-	cardContentByte := bytes.NewReader([]byte(params.Content))
-	res, err := tools.Post(nil, params.Hook, cardContentByte, 10)
+	return w.post(params.Hook, params.Content)
+}
+
+func (w *WebHookSender) Test(params SendParams) error {
+	return w.post(params.Hook, WebhookTestContent)
+}
+
+func (w *WebHookSender) post(hook, content string) error {
+	res, err := tools.Post(nil, hook, bytes.NewReader([]byte(content)), 10)
 	if err != nil {
 		return err
 	}
