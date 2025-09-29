@@ -1,8 +1,8 @@
 package middleware
 
 import (
-	"encoding/json"
 	"fmt"
+	"github.com/bytedance/sonic"
 	"github.com/gin-gonic/gin"
 	"github.com/zeromicro/go-zero/core/logc"
 	"gorm.io/gorm"
@@ -65,7 +65,7 @@ func Permission() gin.HandlerFunc {
 			context.Abort()
 			return
 		}
-		_ = json.Unmarshal([]byte(utils2.JsonMarshal(role.Permissions)), &permission)
+		_ = sonic.Unmarshal([]byte(utils2.JsonMarshalToString(role.Permissions)), &permission)
 
 		urlPath := context.Request.URL.Path
 

@@ -133,7 +133,7 @@ func (dc DutyCalendarRepo) GetCalendarUsers(tenantId, dutyId string) ([][]models
 
 	user := make(map[string]struct{})
 	for _, entry := range entries {
-		key := tools.JsonMarshal(entry.Users)
+		key := tools.JsonMarshalToString(entry.Users)
 		if _, ok := user[key]; ok {
 			continue
 		}

@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"encoding/json"
+	"github.com/bytedance/sonic"
 	"github.com/gin-gonic/gin"
 	"time"
 	"watchAlert/internal/ctx"
@@ -53,7 +53,7 @@ func IsTokenValid(ctx *ctx.Context, tokenStr string) (int64, bool) {
 	if err != nil {
 		return 400, false
 	}
-	_ = json.Unmarshal([]byte(result), &user)
+	_ = sonic.Unmarshal([]byte(result), &user)
 
 	if token.Pass != user.Password {
 		return 401, false

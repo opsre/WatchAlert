@@ -22,5 +22,5 @@ func TestPinger(t *testing.T) {
 		fmt.Println(err.Error())
 		return
 	}
-	fmt.Println(tools.JsonMarshal(pinger))
+	fmt.Println(tools.JsonMarshalToString(pinger))
 }

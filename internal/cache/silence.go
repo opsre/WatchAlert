@@ -1,7 +1,7 @@
 package cache
 
 import (
-	"encoding/json"
+	"github.com/bytedance/sonic"
 	"github.com/go-redis/redis"
 	"sync"
 	"watchAlert/internal/models"
@@ -38,7 +38,7 @@ func (sc *SilenceCache) PushAlertMute(mute models.AlertSilences) {
 	defer sc.Unlock()
 
 	key := models.BuildAlertMuteCacheKey(mute.TenantId, mute.FaultCenterId)
-	sc.setRedisHash(key, mute.ID, tools.JsonMarshal(mute))
+	sc.setRedisHash(key, mute.ID, tools.JsonMarshalToString(mute))
 }
 
 // RemoveAlertMute 从故障中心的缓存中移除静默规则
@@ -75,7 +75,7 @@ func (sc *SilenceCache) WithIdGetMuteFromCache(tenantId, faultCenterId, id strin
 	}
 
 	var mute models.AlertSilences
-	if err := json.Unmarshal(cache, &mute); err != nil {
+	if err := sonic.Unmarshal(cache, &mute); err != nil {
 		return nil, err
 	}
 

@@ -96,7 +96,7 @@ func (us userService) Login(req interface{}) (interface{}, interface{}) {
 	}
 
 	duration := time.Duration(global.Config.Jwt.Expire) * time.Second
-	us.ctx.Redis.Redis().Set("uid-"+data.UserId, tools.JsonMarshal(r), duration)
+	us.ctx.Redis.Redis().Set("uid-"+data.UserId, tools.JsonMarshalToString(r), duration)
 
 	return models.ResponseLoginInfo{
 		Token:    tokenData,

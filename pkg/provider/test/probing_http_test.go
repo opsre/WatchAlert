@@ -29,7 +29,7 @@ func geter() {
 		fmt.Println(err.Error())
 		return
 	}
-	fmt.Println(tools.JsonMarshal(per))
+	fmt.Println(tools.JsonMarshalToString(per))
 }
 
 func poster() {
@@ -42,7 +42,7 @@ func poster() {
 		HTTP: provider.Ehttp{
 			Method: provider.PostHTTPMethod,
 			Header: map[string]string{},
-			Body:   tools.JsonMarshal(user),
+			Body:   tools.JsonMarshalToString(user),
 		},
 	}
 
@@ -51,5 +51,5 @@ func poster() {
 		fmt.Println(err.Error())
 		return
 	}
-	fmt.Println(tools.JsonMarshal(per))
+	fmt.Println(tools.JsonMarshalToString(per))
 }

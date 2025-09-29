@@ -1,8 +1,8 @@
 package services
 
 import (
-	"encoding/json"
 	"fmt"
+	"github.com/bytedance/sonic"
 	"github.com/zeromicro/go-zero/core/logc"
 	"gopkg.in/yaml.v3"
 	"time"
@@ -284,7 +284,7 @@ func (rs ruleService) Import(req interface{}) (interface{}, interface{}) {
 		}
 
 	case types.WithWatchAlertJsonImport:
-		err := json.Unmarshal([]byte(r.Rules), &rules)
+		err := sonic.Unmarshal([]byte(r.Rules), &rules)
 		if err != nil {
 			return nil, err
 		}

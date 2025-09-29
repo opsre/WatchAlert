@@ -38,13 +38,13 @@ func (r ESQueryResponse) GetFingerprint() string {
 		"Index": r.Source.Index,
 	}
 	h := md5.New()
-	h.Write([]byte(tools.JsonMarshal(newMetric)))
+	h.Write([]byte(tools.JsonMarshalToString(newMetric)))
 	fingerprint := hex.EncodeToString(h.Sum(nil))
 	return fingerprint
 }
 
 func (r ESQueryResponse) GetAnnotations() string {
-	s := tools.JsonMarshal(r)
+	s := tools.JsonMarshalToString(r)
 	annotations := tools.FormatJson(s)
 	return annotations
 }

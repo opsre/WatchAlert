@@ -234,7 +234,7 @@ func (n noticeService) Test(req interface{}) (interface{}, interface{}) {
 	}
 
 	if len(errList) != 0 {
-		return nil, errors.New(tools.JsonMarshal(errList))
+		return nil, errors.New(tools.JsonMarshalToString(errList))
 	}
 
 	return nil, nil

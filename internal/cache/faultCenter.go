@@ -1,7 +1,7 @@
 package cache
 
 import (
-	"encoding/json"
+	"github.com/bytedance/sonic"
 	"github.com/go-redis/redis"
 	"github.com/zeromicro/go-zero/core/logc"
 	"golang.org/x/net/context"
@@ -32,7 +32,7 @@ func newFaultCenterCacheInterface(r *redis.Client) FaultCenterCacheInterface {
 
 // PushFaultCenterInfo 添加 Info 数据
 func (f *FaultCenterCache) PushFaultCenterInfo(center models.FaultCenter) {
-	err := f.rc.Set(string(models.BuildFaultCenterInfoCacheKey(center.TenantId, center.ID)), tools.JsonMarshal(center), 0).Err()
+	err := f.rc.Set(string(models.BuildFaultCenterInfoCacheKey(center.TenantId, center.ID)), tools.JsonMarshalToString(center), 0).Err()
 	if err != nil {
 		logc.Errorf(context.Background(), err.Error())
 		return
@@ -47,7 +47,7 @@ func (f *FaultCenterCache) GetFaultCenterInfo(faultCenterInfoKey models.FaultCen
 	}
 
 	var fc models.FaultCenter
-	_ = json.Unmarshal([]byte(result), &fc)
+	_ = sonic.Unmarshal([]byte(result), &fc)
 	return fc
 }
 

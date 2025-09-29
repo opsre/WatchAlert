@@ -2,8 +2,8 @@ package tools
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"github.com/bytedance/sonic"
 	"github.com/zeromicro/go-zero/core/logc"
 	"strconv"
 	"watchAlert/internal/models"
@@ -31,9 +31,8 @@ func ConvertStringToInt64(str string) int64 {
 
 func ConvertEventToMap(event models.AlertCurEvent) map[string]interface{} {
 	data := make(map[string]interface{})
-
-	eventJson := JsonMarshal(event)
-	err := json.Unmarshal([]byte(eventJson), &data)
+	eventJson := JsonMarshalToByte(event)
+	err := sonic.Unmarshal(eventJson, &data)
 	if err != nil {
 		logc.Error(context.Background(), "ConvertEventToMap Unmarshal failed: ", err)
 	}

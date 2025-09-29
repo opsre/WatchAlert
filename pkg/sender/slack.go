@@ -2,7 +2,6 @@ package sender
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -21,16 +20,14 @@ func NewSlackSender() SendInter {
 
 func (f *SlackSender) Send(params SendParams) error {
 	msg := params.GetSendMsg()
-	msgStr, _ := json.Marshal(msg)
-	return f.post(params.Hook, string(msgStr))
+	return f.post(params.Hook, tools.JsonMarshalToString(msg))
 }
 
 func (f *SlackSender) Test(params SendParams) error {
 	msg := models.SlackMsgTemplate{
 		Text: RobotTestContent,
 	}
-	msgStr, _ := json.Marshal(msg)
-	return f.post(params.Hook, string(msgStr))
+	return f.post(params.Hook, tools.JsonMarshalToString(msg))
 }
 
 func (f *SlackSender) post(hook, content string) error {

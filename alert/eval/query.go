@@ -371,7 +371,7 @@ func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.Ale
 			if rule.ElasticSearchConfig.RawJson != "" {
 				event.SearchQL = rule.ElasticSearchConfig.RawJson
 			} else {
-				event.SearchQL = tools.JsonMarshal(rule.ElasticSearchConfig.Filter)
+				event.SearchQL = tools.JsonMarshalToString(rule.ElasticSearchConfig.Filter)
 			}
 		case provider.VictoriaLogsDsProviderName:
 			event.SearchQL = rule.VictoriaLogsConfig.LogQL

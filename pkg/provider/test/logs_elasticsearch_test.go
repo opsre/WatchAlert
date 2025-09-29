@@ -2,8 +2,8 @@ package test
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"github.com/bytedance/sonic"
 	"github.com/sirupsen/logrus"
 	"testing"
 	"watchAlert/internal/models"
@@ -66,7 +66,7 @@ func TestElasticSearch_Query(t *testing.T) {
 		fmt.Println(err.Error())
 		return
 	}
-	json, _ := json.Marshal(query.Message)
+	json, _ := sonic.Marshal(query.Message)
 	fmt.Println("query->", string(json))
 
 }

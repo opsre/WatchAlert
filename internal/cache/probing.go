@@ -1,7 +1,7 @@
 package cache
 
 import (
-	"encoding/json"
+	"github.com/bytedance/sonic"
 	"github.com/go-redis/redis"
 	"sync"
 	"time"
@@ -36,7 +36,7 @@ func newProbingCacheInterface(r *redis.Client) ProbingCacheInterface {
 
 // SetProbingEventCache 设置探测事件缓存
 func (p *ProbingCache) SetProbingEventCache(event models.ProbingEvent, expiration time.Duration) {
-	eventJSON := tools.JsonMarshal(event)
+	eventJSON := tools.JsonMarshalToString(event)
 	p.setProbingCache(models.BuildProbingEventCacheKey(event.TenantId, event.RuleId), eventJSON, expiration)
 }
 
@@ -49,7 +49,7 @@ func (p *ProbingCache) GetProbingEventCache(key models.ProbingEventCacheKey) (*m
 		return event, err
 	}
 
-	if err := json.Unmarshal([]byte(data), &event); err != nil {
+	if err := sonic.Unmarshal([]byte(data), &event); err != nil {
 		return event, err
 	}
 

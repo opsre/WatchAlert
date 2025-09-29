@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/bytedance/sonic"
 	"github.com/rs/xid"
 	"github.com/zeromicro/go-zero/core/logc"
 	"io"
@@ -40,12 +41,22 @@ func RandUid() string {
 	return id
 }
 
-func JsonMarshal(v interface{}) string {
-	data, err := json.Marshal(v)
+func JsonMarshalToString(v interface{}) string {
+	data, err := sonic.Marshal(v)
 	if err != nil {
-		return ""
+		logc.Error(context.Background(), fmt.Sprintf("序列化失败, 原数据「%v」, err: %s", v, err.Error()))
+		return "{}"
 	}
 	return string(data)
+}
+
+func JsonMarshalToByte(v interface{}) []byte {
+	data, err := sonic.Marshal(v)
+	if err != nil {
+		logc.Error(context.Background(), fmt.Sprintf("序列化失败, 原数据「%v」, err: %s", v, err.Error()))
+		return []byte("{}")
+	}
+	return data
 }
 
 // ParserVariables 处理告警内容中变量形式的字符串，替换为对应的值
@@ -82,7 +93,7 @@ func getJSONValue(data map[string]interface{}, variable string) interface{} {
 
 func IsJSON(str string) bool {
 	var js map[string]interface{}
-	return json.Unmarshal([]byte(str), &js) == nil
+	return sonic.Unmarshal([]byte(str), &js) == nil
 }
 
 func FormatJson(s string) string {
@@ -90,7 +101,7 @@ func FormatJson(s string) string {
 	if IsJSON(s) {
 		// 将字符串解析为map类型
 		var data map[string]interface{}
-		err := json.Unmarshal([]byte(s), &data)
+		err := sonic.Unmarshal([]byte(s), &data)
 		if err != nil {
 			logc.Errorf(context.Background(), fmt.Sprintf("Error parsing JSON: %s", err.Error()))
 		} else {
@@ -104,7 +115,7 @@ func FormatJson(s string) string {
 		}
 	} else {
 		// 不是 json 格式的需要转义下其中的特殊符号，并且只取双引号(")内的内容。
-		ns = JsonMarshal(s)
+		ns = JsonMarshalToString(s)
 		ns = ns[1 : len(ns)-1]
 	}
 	return ns
@@ -117,7 +128,7 @@ func ParseReaderBody(body io.Reader, req interface{}) error {
 	if err != nil {
 		return fmt.Errorf("读取 Body 失败, err: %s", err.Error())
 	}
-	if err := json.Unmarshal(bodyByte, &req); err != nil {
+	if err := sonic.Unmarshal(bodyByte, &req); err != nil {
 		return fmt.Errorf("解析 Body 失败, body: %s, err: %s", string(bodyByte), err.Error())
 	}
 	return nil

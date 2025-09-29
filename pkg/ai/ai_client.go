@@ -4,8 +4,8 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
+	"github.com/bytedance/sonic"
 	"io"
 	"log"
 	"net/http"
@@ -51,7 +51,7 @@ func (o *AiConfig) ChatCompletion(_ context.Context, prompt string) (string, err
 		MaxTokens: o.MaxTokens,
 	}
 
-	bodyBytes, _ := json.Marshal(reqParams)
+	bodyBytes, _ := sonic.Marshal(reqParams)
 	headers := make(map[string]string)
 	headers["Authorization"] = "Bearer " + o.ApiKey
 	response, err := tools.Post(headers, o.Url, bytes.NewReader(bodyBytes), o.Timeout)
@@ -63,7 +63,7 @@ func (o *AiConfig) ChatCompletion(_ context.Context, prompt string) (string, err
 	if response.StatusCode != http.StatusOK {
 		errorBody, _ := io.ReadAll(response.Body)
 		var errResp Response
-		_ = json.Unmarshal(errorBody, &errResp)
+		_ = sonic.Unmarshal(errorBody, &errResp)
 		return "", fmt.Errorf("API 请求错误: %d - %s", response.StatusCode, errResp.Error.Message)
 	}
 
@@ -91,7 +91,7 @@ func (o *AiConfig) StreamCompletion(ctx context.Context, prompt string) (<-chan 
 		Stream:    true,
 		MaxTokens: o.MaxTokens,
 	}
-	bodyBytes, _ := json.Marshal(reqParams)
+	bodyBytes, _ := sonic.Marshal(reqParams)
 	headers := make(map[string]string)
 	headers["Authorization"] = "Bearer " + o.ApiKey
 
@@ -103,7 +103,7 @@ func (o *AiConfig) StreamCompletion(ctx context.Context, prompt string) (<-chan 
 	if response.StatusCode != http.StatusOK {
 		errorBody, _ := io.ReadAll(response.Body)
 		var errResp Response
-		_ = json.Unmarshal(errorBody, &errResp)
+		_ = sonic.Unmarshal(errorBody, &errResp)
 		return nil, fmt.Errorf("OpenAI API错误: %d - %s", response.StatusCode, errResp.Error.Message)
 	}
 
@@ -127,7 +127,7 @@ func (o *AiConfig) StreamCompletion(ctx context.Context, prompt string) (<-chan 
 					}
 
 					var chunk StreamChunk
-					if err := json.Unmarshal([]byte(content), &chunk); err != nil {
+					if err := sonic.Unmarshal([]byte(content), &chunk); err != nil {
 						log.Printf("解析错误: %v | 内容: %s", err, content)
 						continue
 					}

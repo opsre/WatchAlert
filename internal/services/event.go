@@ -117,7 +117,7 @@ func (e eventService) ListCurrentEvent(req interface{}) (interface{}, interface{
 				queryMatch = true
 			} else if strings.Contains(event.Annotations, r.Query) {
 				queryMatch = true
-			} else if event.Labels != nil && strings.Contains(tools.JsonMarshal(event.Labels), r.Query) {
+			} else if event.Labels != nil && strings.Contains(tools.JsonMarshalToString(event.Labels), r.Query) {
 				queryMatch = true
 			}
 			if !queryMatch {

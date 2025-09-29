@@ -3,6 +3,7 @@ module watchAlert
 go 1.23.0
 
 require (
+	github.com/ClickHouse/clickhouse-go/v2 v2.35.0
 	github.com/alibabacloud-go/darabonba-openapi/v2 v2.0.10
 	github.com/alibabacloud-go/dyvmsapi-intl-20211015/v2 v2.2.0
 	github.com/alibabacloud-go/sls-20201230/v6 v6.0.0
@@ -12,6 +13,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.27.17
 	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.38.5
 	github.com/aws/aws-sdk-go-v2/service/rds v1.79.5
+	github.com/bytedance/sonic v1.14.0
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-ping/ping v1.1.0
@@ -29,6 +31,7 @@ require (
 	golang.org/x/net v0.40.0
 	golang.org/x/sync v0.14.0
 	gopkg.in/ldap.v2 v2.5.1
+	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/driver/mysql v1.5.4
 	gorm.io/gorm v1.25.7
 	k8s.io/api v0.29.3
@@ -39,7 +42,6 @@ require (
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/ClickHouse/ch-go v0.66.0 // indirect
-	github.com/ClickHouse/clickhouse-go/v2 v2.35.0 // indirect
 	github.com/alibabacloud-go/alibabacloud-gateway-sls v0.0.6 // indirect
 	github.com/alibabacloud-go/alibabacloud-gateway-sls-util v0.0.1 // indirect
 	github.com/alibabacloud-go/alibabacloud-gateway-spi v0.0.5 // indirect
@@ -65,10 +67,11 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.24.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.28.11 // indirect
 	github.com/aws/smithy-go v1.20.2 // indirect
-	github.com/bytedance/sonic v1.11.0 // indirect
+	github.com/bytedance/sonic/loader v0.3.0 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20230717121745-296ad89f973d // indirect
 	github.com/chenzhuoyu/iasm v0.9.1 // indirect
 	github.com/clbanning/mxj/v2 v2.5.5 // indirect
+	github.com/cloudwego/base64x v0.1.5 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
 	github.com/fatih/color v1.17.0 // indirect
@@ -145,7 +148,6 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/klog/v2 v2.110.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20231010175941-2dd684a91f00 // indirect
 	k8s.io/utils v0.0.0-20240711033017-18e509b52bc8 // indirect

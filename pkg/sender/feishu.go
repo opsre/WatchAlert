@@ -5,9 +5,9 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/bytedance/sonic"
 	"github.com/zeromicro/go-zero/core/logc"
 	"strconv"
 	"time"
@@ -43,7 +43,7 @@ func (f *FeiShuSender) Send(params SendParams) error {
 
 func (f *FeiShuSender) Test(params SendParams) error {
 	msg := make(map[string]any)
-	err := json.Unmarshal([]byte(FeiShuTestContent), &msg)
+	err := sonic.Unmarshal([]byte(FeiShuTestContent), &msg)
 	if err != nil {
 		logc.Errorf(ctx.Ctx, fmt.Sprintf("发送的内容解析失败, err: %s", err.Error()))
 		return err
@@ -63,8 +63,7 @@ func (f *FeiShuSender) post(hook, sign string, msg map[string]any) error {
 		msg["timestamp"] = timestamp
 	}
 
-	msgStr, _ := json.Marshal(msg)
-	msgByte := bytes.NewReader(msgStr)
+	msgByte := bytes.NewReader(tools.JsonMarshalToByte(msg))
 	res, err := tools.Post(nil, hook, msgByte, 10)
 	if err != nil {
 		return err

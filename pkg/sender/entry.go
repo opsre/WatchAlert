@@ -1,8 +1,8 @@
 package sender
 
 import (
-	"encoding/json"
 	"fmt"
+	"github.com/bytedance/sonic"
 	"time"
 	"watchAlert/internal/ctx"
 
@@ -126,7 +126,7 @@ func (s *SendParams) GetSendMsg() map[string]any {
 	if s == nil || s.Content == "" {
 		return msg
 	}
-	err := json.Unmarshal([]byte(s.Content), &msg)
+	err := sonic.Unmarshal([]byte(s.Content), &msg)
 	if err != nil {
 		logc.Errorf(ctx.Ctx, fmt.Sprintf("发送的内容解析失败, err: %s", err.Error()))
 		return msg

@@ -10,5 +10,5 @@ func slackTemplate(alert models.AlertCurEvent, noticeTmpl models.NoticeTemplateE
 		Text: ParserTemplate("Event", alert, noticeTmpl.Template),
 	}
 
-	return tools.JsonMarshal(t)
+	return tools.JsonMarshalToString(t)
 }
