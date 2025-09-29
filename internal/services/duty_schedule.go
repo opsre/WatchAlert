@@ -36,11 +36,9 @@ func (dms dutyCalendarService) CreateAndUpdate(req interface{}) (interface{}, in
 		return nil, fmt.Errorf("生成值班表失败: %w", err)
 	}
 
-	go func() {
-		if err := dms.updateDutyScheduleInDB(dutyScheduleList, r.TenantId); err != nil {
-			logc.Errorf(dms.ctx.Ctx, err.Error())
-		}
-	}()
+	if err := dms.updateDutyScheduleInDB(dutyScheduleList, r.TenantId); err != nil {
+		logc.Errorf(dms.ctx.Ctx, err.Error())
+	}
 	return nil, nil
 }
 
