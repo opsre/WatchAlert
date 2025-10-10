@@ -42,5 +42,5 @@ func dingdingTemplate(alert models2.AlertCurEvent, noticeTmpl models2.NoticeTemp
 		}
 	}
 
-	return tools.JsonMarshal(t)
+	return tools.JsonMarshalToString(t)
 }

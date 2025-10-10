@@ -17,5 +17,5 @@ func TestNewEndpointTcper(t *testing.T) {
 		fmt.Println(err.Error())
 		return
 	}
-	fmt.Println(tools.JsonMarshal(pilot))
+	fmt.Println(tools.JsonMarshalToString(pilot))
 }

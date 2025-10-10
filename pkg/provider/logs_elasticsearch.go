@@ -3,9 +3,9 @@ package provider
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/bytedance/sonic"
 	"github.com/olivere/elastic/v7"
 	"watchAlert/internal/models"
 	"watchAlert/pkg/tools"
@@ -100,11 +100,11 @@ func (e ElasticSearchDsProvider) Query(options LogQueryOptions) (Logs, int, erro
 	}
 
 	var response []esQueryResponse
-	marshalHits, err := json.Marshal(res.Hits.Hits)
+	marshalHits, err := sonic.Marshal(res.Hits.Hits)
 	if err != nil {
 		return Logs{}, 0, err
 	}
-	err = json.Unmarshal(marshalHits, &response)
+	err = sonic.Unmarshal(marshalHits, &response)
 	if err != nil {
 		return Logs{}, 0, err
 	}

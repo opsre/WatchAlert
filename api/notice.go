@@ -47,6 +47,7 @@ func (noticeController noticeController) API(gin *gin.RouterGroup) {
 	)
 	{
 		c.GET("noticeRecordMetric", noticeController.GetRecordMetric)
+		c.POST("noticeTest", noticeController.Test)
 	}
 }
 
@@ -144,5 +145,14 @@ func (noticeController noticeController) GetRecordMetric(ctx *gin.Context) {
 
 	Service(ctx, func() (interface{}, interface{}) {
 		return services.NoticeService.GetRecordMetric(r)
+	})
+}
+
+func (noticeController noticeController) Test(ctx *gin.Context) {
+	r := new(types.RequestNoticeTest)
+	BindJson(ctx, r)
+
+	Service(ctx, func() (interface{}, interface{}) {
+		return services.NoticeService.Test(r)
 	})
 }

@@ -17,7 +17,7 @@ func NewEmailSender() SendInter {
 func (e *EmailSender) Send(params SendParams) error {
 	setting, err := ctx.DB.Setting().Get()
 	if err != nil {
-		return errors.New("获取系统配置失败: " + err.Error())
+		return errors.New("获取 系统配置/邮箱配置 失败: " + err.Error())
 	}
 	eCli := client.NewEmailClient(setting.EmailConfig.ServerAddress, setting.EmailConfig.Email, setting.EmailConfig.Token, setting.EmailConfig.Port)
 	if params.IsRecovered {
@@ -31,4 +31,14 @@ func (e *EmailSender) Send(params SendParams) error {
 	}
 
 	return nil
+}
+
+func (e *EmailSender) Test(params SendParams) error {
+	setting, err := ctx.DB.Setting().Get()
+	if err != nil {
+		return errors.New("获取 系统配置/邮箱配置 失败: " + err.Error())
+	}
+
+	eCli := client.NewEmailClient(setting.EmailConfig.ServerAddress, setting.EmailConfig.Email, setting.EmailConfig.Token, setting.EmailConfig.Port)
+	return eCli.Send(params.Email.To, params.Email.CC, "WatchAlert 消息测试", []byte(RobotTestContent))
 }

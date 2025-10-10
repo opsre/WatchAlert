@@ -20,5 +20,5 @@ func wechatTemplate(alert models2.AlertCurEvent, noticeTmpl models2.NoticeTempla
 		},
 	}
 
-	return tools.JsonMarshal(t)
+	return tools.JsonMarshalToString(t)
 }

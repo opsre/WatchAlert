@@ -45,7 +45,7 @@ func (c CloudWatchQuery) GetFingerprint() string {
 		"statistic":  c.Statistic,
 	}
 	h := md5.New()
-	streamString := tools.JsonMarshal(newMetric)
+	streamString := tools.JsonMarshalToString(newMetric)
 	h.Write([]byte(streamString))
 	fingerprint := hex.EncodeToString(h.Sum(nil))
 

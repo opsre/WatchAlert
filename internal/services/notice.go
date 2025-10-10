@@ -1,12 +1,14 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 	"github.com/zeromicro/go-zero/core/logc"
 	"time"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
 	"watchAlert/internal/types"
+	"watchAlert/pkg/sender"
 	"watchAlert/pkg/tools"
 )
 
@@ -24,6 +26,7 @@ type InterNoticeService interface {
 	ListRecord(req interface{}) (interface{}, interface{})
 	GetRecordMetric(req interface{}) (interface{}, interface{})
 	DeleteRecord(req interface{}) (interface{}, interface{})
+	Test(req interface{}) (interface{}, interface{})
 }
 
 func newInterAlertNoticeService(ctx *ctx.Context) InterNoticeService {
@@ -190,4 +193,49 @@ func (n noticeService) GetRecordMetric(req interface{}) (interface{}, interface{
 			P2: P2,
 		},
 	}, nil
+}
+
+func (n noticeService) Test(req interface{}) (interface{}, interface{}) {
+	r := req.(*types.RequestNoticeTest)
+	var errList []struct {
+		Hook  string
+		Error string
+	}
+
+	err := sender.Tester(n.ctx, sender.SendParams{
+		NoticeType: r.NoticeType,
+		Hook:       r.DefaultHook,
+		Email:      r.Email,
+		Sign:       r.DefaultSign,
+	})
+	if err != nil {
+		errList = append(errList, struct {
+			Hook  string
+			Error string
+		}{Hook: r.DefaultHook, Error: err.Error()})
+	}
+
+	for _, route := range r.Routes {
+		err := sender.Tester(n.ctx, sender.SendParams{
+			NoticeType: r.NoticeType,
+			Hook:       route.Hook,
+			Email: models.Email{
+				To: route.To,
+				CC: route.CC,
+			},
+			Sign: route.Sign,
+		})
+		if err != nil {
+			errList = append(errList, struct {
+				Hook  string
+				Error string
+			}{Hook: route.Hook, Error: err.Error()})
+		}
+	}
+
+	if len(errList) != 0 {
+		return nil, errors.New(tools.JsonMarshalToString(errList))
+	}
+
+	return nil, nil
 }

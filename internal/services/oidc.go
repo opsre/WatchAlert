@@ -2,8 +2,8 @@ package services
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
+	"github.com/bytedance/sonic"
 	"github.com/gin-gonic/gin"
 	"github.com/zeromicro/go-zero/core/logc"
 	"net/http"
@@ -75,7 +75,7 @@ func (os oidcService) CallBack(ctx *gin.Context, req interface{}) (interface{}, 
 	}
 
 	var payload map[string]interface{}
-	if err = json.Unmarshal(payloadBytes, &payload); err != nil {
+	if err = sonic.Unmarshal(payloadBytes, &payload); err != nil {
 		return nil, err
 	}
 
@@ -156,7 +156,7 @@ func (os oidcService) CookieConvertToken(ctx *gin.Context) (interface{}, interfa
 	}
 
 	duration := time.Duration(global.Config.Jwt.Expire) * time.Second
-	os.ctx.Redis.Redis().Set("uid-"+data.UserId, tools.JsonMarshal(r), duration)
+	os.ctx.Redis.Redis().Set("uid-"+data.UserId, tools.JsonMarshalToString(r), duration)
 
 	return models.ResponseLoginInfo{
 		Token:    tokenData,

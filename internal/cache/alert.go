@@ -2,7 +2,7 @@ package cache
 
 import (
 	"context"
-	"encoding/json"
+	"github.com/bytedance/sonic"
 	"github.com/go-redis/redis"
 	"github.com/zeromicro/go-zero/core/logc"
 	"sync"
@@ -44,7 +44,7 @@ func newAlertCacheInterface(r *redis.Client) AlertCacheInterface {
 // PushAlertEvent 将事件推送到故障中心的缓存中
 func (a *AlertCache) PushAlertEvent(event *models.AlertCurEvent) {
 	key := models.BuildAlertEventCacheKey(event.TenantId, event.FaultCenterId)
-	a.setEventCacheHash(key, event.Fingerprint, tools.JsonMarshal(event))
+	a.setEventCacheHash(key, event.Fingerprint, tools.JsonMarshalToString(event))
 }
 
 // RemoveAlertEvent 从故障中心的缓存中移除事件
@@ -66,7 +66,7 @@ func (a *AlertCache) GetAllEvents(key models.AlertEventCacheKey) (map[string]*mo
 	events := make(map[string]*models.AlertCurEvent)
 	for fingerprint, eventJSON := range result {
 		var event models.AlertCurEvent
-		if err := json.Unmarshal([]byte(eventJSON), &event); err != nil {
+		if err := sonic.Unmarshal([]byte(eventJSON), &event); err != nil {
 			return nil, err
 		}
 		events[fingerprint] = &event
@@ -102,7 +102,7 @@ func (a *AlertCache) GetEventFromCache(tenantId, faultCenterId, fingerprint stri
 	}
 
 	var event models.AlertCurEvent
-	if err := json.Unmarshal([]byte(data), &event); err != nil {
+	if err := sonic.Unmarshal([]byte(data), &event); err != nil {
 		return models.AlertCurEvent{}, err
 	}
 

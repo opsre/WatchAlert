@@ -2,10 +2,10 @@ package sender
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"watchAlert/internal/models"
 	"watchAlert/pkg/tools"
 )
 
@@ -20,9 +20,18 @@ func NewSlackSender() SendInter {
 
 func (f *SlackSender) Send(params SendParams) error {
 	msg := params.GetSendMsg()
-	msgStr, _ := json.Marshal(msg)
-	msgByte := bytes.NewReader(msgStr)
-	res, err := tools.Post(nil, params.Hook, msgByte, 10)
+	return f.post(params.Hook, tools.JsonMarshalToString(msg))
+}
+
+func (f *SlackSender) Test(params SendParams) error {
+	msg := models.SlackMsgTemplate{
+		Text: RobotTestContent,
+	}
+	return f.post(params.Hook, tools.JsonMarshalToString(msg))
+}
+
+func (f *SlackSender) post(hook, content string) error {
+	res, err := tools.Post(nil, hook, bytes.NewReader([]byte(content)), 10)
 	if err != nil {
 		return err
 	}

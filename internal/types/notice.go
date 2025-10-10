@@ -46,3 +46,11 @@ type RequestNoticeQuery struct {
 	Query        string `json:"query" form:"query"`
 	models.Page
 }
+
+type RequestNoticeTest struct {
+	NoticeType  string         `json:"noticeType"`
+	DefaultHook string         `json:"hook"`
+	DefaultSign string         `json:"sign"`
+	Routes      []models.Route `json:"routes"`
+	Email       models.Email   `json:"email"`
+}

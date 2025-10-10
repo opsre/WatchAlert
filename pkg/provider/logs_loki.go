@@ -2,9 +2,9 @@ package provider
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/bytedance/sonic"
 	"github.com/zeromicro/go-zero/core/logc"
 	"net/http"
 	"net/url"
@@ -118,7 +118,7 @@ func (l LokiProvider) Query(options LogQueryOptions) (Logs, int, error) {
 			}
 
 			var msg map[string]interface{}
-			err := json.Unmarshal(jsonData, &msg)
+			err := sonic.Unmarshal(jsonData, &msg)
 			if err != nil {
 				logc.Error(context.Background(), fmt.Sprintf("解析 Loki 日志数据错误, %v", string(jsonData)))
 				continue

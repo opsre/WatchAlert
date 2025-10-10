@@ -48,3 +48,5 @@ func (e *PhoneCallSender) Send(params SendParams) error {
 
 	return nil
 }
+
+func (e *PhoneCallSender) Test(params SendParams) error { return nil }

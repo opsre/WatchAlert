@@ -1,8 +1,8 @@
 package middleware
 
 import (
-	"encoding/json"
 	"fmt"
+	"github.com/bytedance/sonic"
 	"github.com/gin-gonic/gin"
 	"time"
 )
@@ -29,6 +29,6 @@ func RequestLoggerFormatter(param gin.LogFormatterParams) string {
 	}
 
 	// 将数据编码为JSON字符串
-	jsonData, _ := json.Marshal(logData)
+	jsonData, _ := sonic.Marshal(logData)
 	return fmt.Sprintf("%s\n", jsonData)
 }

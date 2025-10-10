@@ -91,7 +91,7 @@ type Logs struct {
 
 func (l Logs) GenerateFingerprint(ruleId string) string {
 	h := md5.New()
-	streamString := tools.JsonMarshal(map[string]string{
+	streamString := tools.JsonMarshalToString(map[string]string{
 		"ruleId": ruleId,
 	})
 	h.Write([]byte(streamString))

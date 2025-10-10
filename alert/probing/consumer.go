@@ -77,11 +77,11 @@ func (m *ConsumeProbing) executeTask(taskChan chan struct{}, r models.ProbingRul
 		return
 	}
 
-	if m.filterEvent(event) {
+	if m.filterEvent(*event) {
 		return
 	}
 
-	m.sendAlert(event)
+	m.sendAlert(*event)
 }
 
 func (m *ConsumeProbing) filterEvent(event models.ProbingEvent) bool {
@@ -136,7 +136,7 @@ func (m *ConsumeProbing) sendAlert(alert models.ProbingEvent) {
 
 func (m *ConsumeProbing) getContent(alert models.ProbingEvent, noticeData models.AlertNotice) string {
 	if noticeData.NoticeType == "CustomHook" {
-		return tools.JsonMarshal(alert)
+		return tools.JsonMarshalToString(alert)
 	} else {
 		return templates.NewTemplate(m.ctx, buildEvent(alert), noticeData).CardContentMsg
 	}

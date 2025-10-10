@@ -158,7 +158,7 @@ func getNoticeEmail(notice models.AlertNotice, severity string) models.Email {
 // generateAlertContent 生成告警内容
 func generateAlertContent(ctx *ctx.Context, alert *models.AlertCurEvent, noticeData models.AlertNotice) string {
 	if noticeData.NoticeType == "CustomHook" {
-		return tools.JsonMarshal(alert)
+		return tools.JsonMarshalToString(alert)
 	}
 	return templates.NewTemplate(ctx, *alert, noticeData).CardContentMsg
 }

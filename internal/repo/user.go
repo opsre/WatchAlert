@@ -2,8 +2,8 @@ package repo
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"github.com/bytedance/sonic"
 	"github.com/zeromicro/go-zero/core/logc"
 	"gorm.io/gorm"
 	"watchAlert/internal/models"
@@ -156,10 +156,10 @@ func (ur UserRepo) ChangeCache(userId string) {
 	if err != nil {
 		logc.Error(context.Background(), err)
 	}
-	_ = json.Unmarshal([]byte(result), &cacheUser)
+	_ = sonic.Unmarshal([]byte(result), &cacheUser)
 
 	duration, _ := client.Redis.TTL("uid-" + userId).Result()
-	client.Redis.Set("uid-"+userId, tools.JsonMarshal(dbUser), duration)
+	client.Redis.Set("uid-"+userId, tools.JsonMarshalToString(dbUser), duration)
 }
 
 func (ur UserRepo) ChangePass(userId, password string) error {

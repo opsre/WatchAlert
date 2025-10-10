@@ -26,7 +26,7 @@ func (a KubernetesEvent) GetFingerprint() string {
 		"podName":   a.event.InvolvedObject.Name,
 	}
 
-	h.Write([]byte(tools.JsonMarshal(s)))
+	h.Write(tools.JsonMarshalToByte(s))
 	fingerprint := hex.EncodeToString(h.Sum(nil))
 	return fingerprint
 }

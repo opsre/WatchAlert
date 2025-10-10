@@ -1,7 +1,7 @@
 package templates
 
 import (
-	"encoding/json"
+	"github.com/bytedance/sonic"
 	"strings"
 	models "watchAlert/internal/models"
 	"watchAlert/pkg/tools"
@@ -25,13 +25,13 @@ func feishuTemplate(alert models.AlertCurEvent, noticeTmpl models.NoticeTemplate
 		var tmplC models.Cards
 		switch alert.IsRecovered {
 		case false:
-			_ = json.Unmarshal([]byte(noticeTmpl.TemplateFiring), &tmplC)
+			_ = sonic.Unmarshal([]byte(noticeTmpl.TemplateFiring), &tmplC)
 		case true:
-			_ = json.Unmarshal([]byte(noticeTmpl.TemplateRecover), &tmplC)
+			_ = sonic.Unmarshal([]byte(noticeTmpl.TemplateRecover), &tmplC)
 		}
 		defaultTemplate.Card.Elements = tmplC.Elements
 		defaultTemplate.Card.Header = tmplC.Header
-		cardContentString = tools.JsonMarshal(defaultTemplate)
+		cardContentString = tools.JsonMarshalToString(defaultTemplate)
 		cardContentString = ParserTemplate("Card", alert, cardContentString)
 
 	} else {
@@ -81,7 +81,7 @@ func feishuTemplate(alert models.AlertCurEvent, noticeTmpl models.NoticeTemplate
 
 		defaultTemplate.Card.Elements = cardElements
 		defaultTemplate.Card.Header = cardHeader
-		cardContentString = tools.JsonMarshal(defaultTemplate)
+		cardContentString = tools.JsonMarshalToString(defaultTemplate)
 
 	}
 

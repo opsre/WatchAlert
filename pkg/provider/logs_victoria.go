@@ -4,8 +4,8 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
+	"github.com/bytedance/sonic"
 	"io"
 	"net/http"
 	"net/url"
@@ -83,7 +83,7 @@ func (v VictoriaLogsProvider) Query(options LogQueryOptions) (Logs, int, error) 
 			continue
 		}
 		var msg map[string]interface{}
-		if err := json.Unmarshal(line, &msg); err != nil {
+		if err := sonic.Unmarshal(line, &msg); err != nil {
 			logc.Error(context.Background(), fmt.Sprintf("VictoriaLogs - 解析行失败: %v，内容: %s", err, string(line)))
 			continue
 		}
