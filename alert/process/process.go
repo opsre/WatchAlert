@@ -6,6 +6,8 @@ import (
 	"watchAlert/alert/mute"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
+
+	"github.com/zeromicro/go-zero/core/logc"
 )
 
 func BuildEvent(rule models.AlertRule, labels func() map[string]interface{}) models.AlertCurEvent {
@@ -77,6 +79,12 @@ func PushEventToFaultCenter(ctx *ctx.Context, event *models.AlertCurEvent) {
 		if !isSilenced {
 			event.TransitionStatus(models.StatePreAlert)
 		}
+	}
+
+	// 最终再次校验 fingerprint 非空，避免 push 时使用空 key
+	if event.Fingerprint == "" {
+		logc.Errorf(ctx.Ctx, "PushEventToFaultCenter: fingerprint became empty before PushAlertEvent, tenant=%s, rule=%s(%s)", event.TenantId, event.RuleName, event.RuleId)
+		return
 	}
 
 	// 更新缓存

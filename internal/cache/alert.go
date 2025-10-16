@@ -2,13 +2,15 @@ package cache
 
 import (
 	"context"
-	"github.com/bytedance/sonic"
-	"github.com/go-redis/redis"
-	"github.com/zeromicro/go-zero/core/logc"
+	"fmt"
 	"sync"
 	"time"
 	"watchAlert/internal/models"
 	"watchAlert/pkg/tools"
+
+	"github.com/bytedance/sonic"
+	"github.com/go-redis/redis"
+	"github.com/zeromicro/go-zero/core/logc"
 )
 
 type (
@@ -67,7 +69,8 @@ func (a *AlertCache) GetAllEvents(key models.AlertEventCacheKey) (map[string]*mo
 	for fingerprint, eventJSON := range result {
 		var event models.AlertCurEvent
 		if err := sonic.Unmarshal([]byte(eventJSON), &event); err != nil {
-			return nil, err
+			logc.Error(context.Background(), fmt.Sprintf("unmarshal event json error: %s, event json: %s", err.Error(), eventJSON))
+			continue
 		}
 		events[fingerprint] = &event
 	}
@@ -171,10 +174,6 @@ func (a *AlertCache) GetLastUpgradeState(tenantId, faultCenterId, fingerprint st
 }
 
 // 封装 Redis 操作
-func (a *AlertCache) getEventCache(key models.AlertEventCacheKey) (string, error) {
-	return a.rc.Get(string(key)).Result()
-}
-
 func (a *AlertCache) setEventCacheHash(key models.AlertEventCacheKey, field, value string) {
 	a.rc.HSet(string(key), field, value)
 }

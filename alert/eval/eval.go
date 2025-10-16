@@ -67,8 +67,7 @@ type (
 
 	// AlertRule 告警规则
 	AlertRule struct {
-		ctx       *ctx.Context
-		ruleCache sync.Map
+		ctx *ctx.Context
 	}
 )
 
@@ -224,6 +223,21 @@ func (t *AlertRule) getEvalTimeDuration(evalTimeType string, evalInterval int64)
 }
 
 func (t *AlertRule) Recover(tenantId, ruleId string, eventCacheKey models.AlertEventCacheKey, faultCenterInfoKey models.FaultCenterInfoCacheKey, curFingerprints []string) {
+	// 过滤空指纹
+	var filteredCurFingerprints []string
+	for _, fp := range curFingerprints {
+		if fp != "" {
+			filteredCurFingerprints = append(filteredCurFingerprints, fp)
+		}
+	}
+	curFingerprints = filteredCurFingerprints
+
+	// 校验 key 非空
+	if eventCacheKey == "" || faultCenterInfoKey == "" {
+		logc.Errorf(t.ctx.Ctx, "AlertRule.Recover: eventCacheKey or faultCenterInfoKey is empty")
+		return
+	}
+
 	// 获取所有的故障中心告警事件
 	events, err := t.ctx.Redis.Alert().GetAllEvents(eventCacheKey)
 	if err != nil {
@@ -236,6 +250,10 @@ func (t *AlertRule) Recover(tenantId, ruleId string, eventCacheKey models.AlertE
 
 	// 筛选当前规则相关的指纹，并处理预告警状态
 	for fingerprint, event := range events {
+		if fingerprint == "" {
+			continue
+		}
+
 		if !strings.Contains(event.RuleId, ruleId) {
 			continue
 		}
@@ -295,13 +313,13 @@ func (t *AlertRule) Recover(tenantId, ruleId string, eventCacheKey models.AlertE
 		// 获取待恢复状态的时间戳
 		wTime, err := t.ctx.Redis.PendingRecover().Get(tenantId, ruleId, fingerprint)
 		if err == redis.Nil {
-			// 进入待恢复状态, 如果不存在, 则记录当前时间
-			t.ctx.Redis.PendingRecover().Set(tenantId, ruleId, fingerprint, curTime)
 			// 转换状态, 标记为待恢复
 			if err := newEvent.TransitionStatus(models.StatePendingRecovery); err != nil {
 				logc.Errorf(t.ctx.Ctx, "Failed to transition to「pending_recovery」state for fingerprint %s: %v", fingerprint, err)
 				continue
 			}
+			// 记录当前时间
+			t.ctx.Redis.PendingRecover().Set(tenantId, ruleId, fingerprint, curTime)
 			t.ctx.Redis.Alert().PushAlertEvent(newEvent)
 			continue
 		} else if err != nil {
