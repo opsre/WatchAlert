@@ -61,3 +61,8 @@ type RequestFaultCenterReset struct {
 	Description     string `json:"description"`
 	AggregationType string `json:"aggregationType"`
 }
+
+type RequestFaultCenterSLO struct {
+	MTTA []float64 `json:"mtta"`
+	MTTR []float64 `json:"mttr"`
+}

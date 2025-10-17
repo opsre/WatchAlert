@@ -1,10 +1,11 @@
 package api
 
 import (
-	"github.com/gin-gonic/gin"
 	"watchAlert/internal/middleware"
 	"watchAlert/internal/services"
 	"watchAlert/internal/types"
+
+	"github.com/gin-gonic/gin"
 )
 
 type faultCenterController struct{}
@@ -35,6 +36,15 @@ func (faultCenterController faultCenterController) API(gin *gin.RouterGroup) {
 	{
 		faultCenterB.GET("faultCenterList", faultCenterController.List)
 		faultCenterB.GET("faultCenterSearch", faultCenterController.Search)
+	}
+
+	c := gin.Group("faultCenter")
+	c.Use(
+		middleware.Auth(),
+		middleware.ParseTenant(),
+	)
+	{
+		c.GET("slo", faultCenterController.Slo)
 	}
 }
 
@@ -107,5 +117,17 @@ func (faultCenterController faultCenterController) Reset(ctx *gin.Context) {
 
 	Service(ctx, func() (interface{}, interface{}) {
 		return services.FaultCenterService.Reset(r)
+	})
+}
+
+func (faultCenterController faultCenterController) Slo(ctx *gin.Context) {
+	r := new(types.RequestFaultCenterQuery)
+	BindQuery(ctx, r)
+
+	tid, _ := ctx.Get("TenantID")
+	r.TenantId = tid.(string)
+
+	Service(ctx, func() (interface{}, interface{}) {
+		return services.FaultCenterService.Slo(r)
 	})
 }
