@@ -29,7 +29,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -62,7 +62,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -95,7 +95,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -128,7 +128,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -161,7 +161,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -194,7 +194,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -227,7 +227,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -260,7 +260,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -293,7 +293,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -326,7 +326,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -374,7 +374,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -407,7 +407,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -440,7 +440,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -473,7 +473,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -506,7 +506,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -539,7 +539,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -572,7 +572,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -605,7 +605,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -638,7 +638,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -671,7 +671,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -719,7 +719,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -752,7 +752,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -785,7 +785,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -818,7 +818,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -851,7 +851,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -884,7 +884,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -917,7 +917,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -950,7 +950,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -981,7 +981,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -1012,7 +1012,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -1058,7 +1058,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -1089,7 +1089,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -1120,7 +1120,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -1151,7 +1151,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -1182,7 +1182,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -1214,7 +1214,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -1245,7 +1245,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -1276,7 +1276,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -1307,7 +1307,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -1338,7 +1338,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -1384,7 +1384,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -1415,7 +1415,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -1448,7 +1448,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -1481,7 +1481,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -1514,7 +1514,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -1547,7 +1547,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -1580,7 +1580,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -1613,7 +1613,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -1646,7 +1646,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -1679,7 +1679,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -1727,7 +1727,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -1760,7 +1760,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -1793,7 +1793,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -1826,7 +1826,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -1859,7 +1859,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -1892,7 +1892,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -1925,7 +1925,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -1958,7 +1958,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -1991,7 +1991,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -2024,7 +2024,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -2073,7 +2073,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -2106,7 +2106,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -2139,7 +2139,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -2172,7 +2172,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -2205,7 +2205,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -2236,7 +2236,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -2267,7 +2267,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -2298,7 +2298,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -2329,7 +2329,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -2364,7 +2364,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -2412,7 +2412,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -2445,7 +2445,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -2480,7 +2480,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -2513,7 +2513,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -2546,7 +2546,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -2579,7 +2579,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -2612,7 +2612,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -2645,7 +2645,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -2678,7 +2678,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
@@ -2713,7 +2713,7 @@ INSERT ignore INTO watchalert.rule_templates (
         ),
         JSON_OBJECT(
             'project', '',
-            'logstore', '',
+            'logstore', JSON_ARRAY(''),
             'logQL', '',
             'logScope', 0,
             'evalCondition', JSON_OBJECT('type', '', 'operator', '', 'queryValue', 0, 'value', 0)
