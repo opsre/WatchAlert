@@ -7,8 +7,8 @@ type DutyManagement struct {
 	Manager     DutyUser   `json:"manager" gorm:"manager;serializer:json"`
 	Description string     `json:"description"`
 	CurDutyUser []DutyUser `json:"curDutyUser" gorm:"curDutyUser;serializer:json"`
-	CreateBy    string     `json:"create_by"`
-	CreateAt    int64      `json:"create_at"`
+	UpdateBy    string     `json:"updateBy"`
+	UpdateAt    int64      `json:"updateAt"`
 }
 
 type CalendarStatus string

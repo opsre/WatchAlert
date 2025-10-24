@@ -2,15 +2,16 @@ package services
 
 import (
 	"fmt"
-	"github.com/bytedance/sonic"
-	"github.com/zeromicro/go-zero/core/logc"
-	"gopkg.in/yaml.v3"
 	"time"
 	"watchAlert/alert"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
 	"watchAlert/internal/types"
 	"watchAlert/pkg/tools"
+
+	"github.com/bytedance/sonic"
+	"github.com/zeromicro/go-zero/core/logc"
+	"gopkg.in/yaml.v3"
 )
 
 type ruleService struct {
@@ -65,6 +66,8 @@ func (rs ruleService) Create(req interface{}) (interface{}, interface{}) {
 		ElasticSearchConfig:  r.ElasticSearchConfig,
 		LogEvalCondition:     r.LogEvalCondition,
 		FaultCenterId:        r.FaultCenterId,
+		UpdateAt:             time.Now().Unix(),
+		UpdateBy:             r.UpdateBy,
 		Enabled:              r.Enabled,
 	}
 
@@ -130,6 +133,8 @@ func (rs ruleService) Update(req interface{}) (interface{}, interface{}) {
 		ElasticSearchConfig:  r.ElasticSearchConfig,
 		LogEvalCondition:     r.LogEvalCondition,
 		FaultCenterId:        r.FaultCenterId,
+		UpdateAt:             time.Now().Unix(),
+		UpdateBy:             r.UpdateBy,
 		Enabled:              r.Enabled,
 	}
 

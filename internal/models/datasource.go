@@ -13,6 +13,8 @@ type AlertDataSource struct {
 	ClickHouseConfig DsClickHouseConfig     `json:"clickhouseConfig" gorm:"clickhouseConfig;serializer:json"`
 	Description      string                 `json:"description"`
 	KubeConfig       string                 `json:"kubeConfig"`
+	UpdateBy         string                 `json:"updateBy"`
+	UpdateAt         int64                  `json:"updateAt"`
 	Enabled          *bool                  `json:"enabled" `
 }
 

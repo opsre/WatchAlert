@@ -13,6 +13,8 @@ type ProbingRule struct {
 	NoticeId              string                `json:"noticeId"`
 	Annotations           string                `json:"annotations"`
 	RecoverNotify         *bool                 `json:"recoverNotify"`
+	UpdateAt              int64                 `json:"updateAt"`
+	UpdateBy              string                `json:"updateBy"`
 	Enabled               *bool                 `json:"enabled" gorm:"enabled"`
 }
 

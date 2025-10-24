@@ -1,11 +1,12 @@
 package initialization
 
 import (
-	"github.com/zeromicro/go-zero/core/logc"
-	"gorm.io/gorm"
 	"time"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
+
+	"github.com/zeromicro/go-zero/core/logc"
+	"gorm.io/gorm"
 )
 
 var perms []models.UserPermissions
@@ -31,7 +32,7 @@ func InitUserRolesSQL(ctx *ctx.Context) {
 		Name:        "admin",
 		Description: "system",
 		Permissions: perms,
-		CreateAt:    time.Now().Unix(),
+		UpdateAt:    time.Now().Unix(),
 	}
 
 	err := db.Where("name = ?", "admin").First(&adminRole).Error

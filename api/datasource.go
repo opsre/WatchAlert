@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"net/url"
 	"strconv"
 	"strings"
@@ -15,6 +14,9 @@ import (
 	"watchAlert/internal/types"
 	"watchAlert/pkg/provider"
 	"watchAlert/pkg/tools"
+	jwtUtils "watchAlert/pkg/tools"
+
+	"github.com/gin-gonic/gin"
 )
 
 type datasourceController struct{}
@@ -64,14 +66,17 @@ func (datasourceController datasourceController) API(gin *gin.RouterGroup) {
 }
 
 func (datasourceController datasourceController) Create(ctx *gin.Context) {
-	d := new(types.RequestDatasourceCreate)
-	BindJson(ctx, d)
-
-	tid, _ := ctx.Get("TenantID")
-	d.TenantId = tid.(string)
+	r := new(types.RequestDatasourceCreate)
+	BindJson(ctx, r)
 
 	Service(ctx, func() (interface{}, interface{}) {
-		return services.DatasourceService.Create(d)
+		userName := jwtUtils.GetUser(ctx.Request.Header.Get("Authorization"))
+		r.UpdateBy = userName
+
+		tid, _ := ctx.Get("TenantID")
+		r.TenantId = tid.(string)
+
+		return services.DatasourceService.Create(r)
 	})
 }
 
@@ -103,10 +108,13 @@ func (datasourceController datasourceController) Update(ctx *gin.Context) {
 	r := new(types.RequestDatasourceUpdate)
 	BindJson(ctx, r)
 
-	tid, _ := ctx.Get("TenantID")
-	r.TenantId = tid.(string)
-
 	Service(ctx, func() (interface{}, interface{}) {
+		userName := jwtUtils.GetUser(ctx.Request.Header.Get("Authorization"))
+		r.UpdateBy = userName
+
+		tid, _ := ctx.Get("TenantID")
+		r.TenantId = tid.(string)
+
 		return services.DatasourceService.Update(r)
 	})
 }

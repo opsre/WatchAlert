@@ -9,4 +9,6 @@ type NoticeTemplateExample struct {
 	TemplateFiring       string `json:"templateFiring"`
 	TemplateRecover      string `json:"templateRecover"`
 	EnableFeiShuJsonCard *bool  `json:"enableFeiShuJsonCard"`
+	UpdateAt             int64  `json:"updateAt"`
+	UpdateBy             string `json:"updateBy"`
 }

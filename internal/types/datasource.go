@@ -18,6 +18,7 @@ type RequestDatasourceCreate struct {
 	ClickHouseConfig models.DsClickHouseConfig `json:"clickhouseConfig"`
 	Description      string                    `json:"description"`
 	KubeConfig       string                    `json:"kubeConfig"`
+	UpdateBy         string                    `json:"updateBy"`
 	Enabled          *bool                     `json:"enabled" `
 }
 
@@ -34,6 +35,7 @@ type RequestDatasourceUpdate struct {
 	ClickHouseConfig models.DsClickHouseConfig `json:"clickhouseConfig"`
 	Description      string                    `json:"description"`
 	KubeConfig       string                    `json:"kubeConfig"`
+	UpdateBy         string                    `json:"updateBy"`
 	Enabled          *bool                     `json:"enabled" `
 }
 

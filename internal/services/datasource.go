@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"time"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
 	"watchAlert/internal/types"
@@ -45,6 +46,8 @@ func (ds datasourceService) Create(req interface{}) (interface{}, interface{}) {
 		ClickHouseConfig: dataSource.ClickHouseConfig,
 		Description:      dataSource.Description,
 		KubeConfig:       dataSource.KubeConfig,
+		UpdateBy:         dataSource.UpdateBy,
+		UpdateAt:         time.Now().Unix(),
 		Enabled:          dataSource.Enabled,
 	}
 
@@ -77,6 +80,8 @@ func (ds datasourceService) Update(req interface{}) (interface{}, interface{}) {
 		ClickHouseConfig: dataSource.ClickHouseConfig,
 		Description:      dataSource.Description,
 		KubeConfig:       dataSource.KubeConfig,
+		UpdateBy:         dataSource.UpdateBy,
+		UpdateAt:         time.Now().Unix(),
 		Enabled:          dataSource.Enabled,
 	}
 

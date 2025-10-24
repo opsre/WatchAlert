@@ -26,6 +26,7 @@ type RequestRuleCreate struct {
 	ElasticSearchConfig  models.ElasticSearchConfig `json:"elasticSearchConfig"`
 	LogEvalCondition     string                     `json:"logEvalCondition"`
 	FaultCenterId        string                     `json:"faultCenterId"`
+	UpdateBy             string                     `json:"updateBy"`
 	Enabled              *bool                      `json:"enabled"`
 }
 
@@ -62,6 +63,7 @@ type RequestRuleUpdate struct {
 	ElasticSearchConfig  models.ElasticSearchConfig `json:"elasticSearchConfig"`
 	LogEvalCondition     string                     `json:"logEvalCondition"`
 	FaultCenterId        string                     `json:"faultCenterId"`
+	UpdateBy             string                     `json:"updateBy"`
 	Enabled              *bool                      `json:"enabled"`
 }
 
