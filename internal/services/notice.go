@@ -3,13 +3,14 @@ package services
 import (
 	"errors"
 	"fmt"
-	"github.com/zeromicro/go-zero/core/logc"
 	"time"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
 	"watchAlert/internal/types"
 	"watchAlert/pkg/sender"
 	"watchAlert/pkg/tools"
+
+	"github.com/zeromicro/go-zero/core/logc"
 )
 
 type noticeService struct {
@@ -63,6 +64,8 @@ func (n noticeService) Create(req interface{}) (interface{}, interface{}) {
 		Routes:       r.Routes,
 		Email:        r.Email,
 		PhoneNumber:  r.PhoneNumber,
+		UpdateAt:     time.Now().Unix(),
+		UpdateBy:     r.UpdateBy,
 	})
 	if err != nil {
 		return nil, err
@@ -84,6 +87,8 @@ func (n noticeService) Update(req interface{}) (interface{}, interface{}) {
 		Routes:       r.Routes,
 		Email:        r.Email,
 		PhoneNumber:  r.PhoneNumber,
+		UpdateAt:     time.Now().Unix(),
+		UpdateBy:     r.UpdateBy,
 	})
 	if err != nil {
 		return nil, err

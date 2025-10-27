@@ -12,6 +12,8 @@ type AlertNotice struct {
 	Routes       []Route  `json:"routes" gorm:"column:routes;serializer:json"`
 	Email        Email    `json:"email" gorm:"email;serializer:json"`
 	PhoneNumber  []string `json:"phoneNumber" gorm:"phoneNumber;serializer:json"`
+	UpdateAt     int64    `json:"updateAt"`
+	UpdateBy     string   `json:"updateBy"`
 }
 
 func (alertNotice *AlertNotice) GetDutyId() *string {

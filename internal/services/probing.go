@@ -7,6 +7,8 @@ import (
 	"watchAlert/internal/types"
 	"watchAlert/pkg/provider"
 	"watchAlert/pkg/tools"
+
+	"time"
 )
 
 type (
@@ -49,6 +51,8 @@ func (m probingService) Create(req interface{}) (interface{}, interface{}) {
 		NoticeId:              r.NoticeId,
 		Annotations:           r.Annotations,
 		RecoverNotify:         r.RecoverNotify,
+		UpdateAt:              time.Now().Unix(),
+		UpdateBy:              r.UpdateBy,
 		Enabled:               r.Enabled,
 	}
 
@@ -78,6 +82,8 @@ func (m probingService) Update(req interface{}) (interface{}, interface{}) {
 		NoticeId:              r.NoticeId,
 		Annotations:           r.Annotations,
 		RecoverNotify:         r.RecoverNotify,
+		UpdateAt:              time.Now().Unix(),
+		UpdateBy:              r.UpdateBy,
 		Enabled:               r.Enabled,
 	}
 

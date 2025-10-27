@@ -1,11 +1,12 @@
 package api
 
 import (
-	"github.com/gin-gonic/gin"
 	middleware "watchAlert/internal/middleware"
 	"watchAlert/internal/services"
 	"watchAlert/internal/types"
 	jwtUtils "watchAlert/pkg/tools"
+
+	"github.com/gin-gonic/gin"
 )
 
 type dutyController struct{}
@@ -57,13 +58,13 @@ func (dutyController dutyController) Create(ctx *gin.Context) {
 	r := new(types.RequestDutyManagementCreate)
 	BindJson(ctx, r)
 
-	userName := jwtUtils.GetUser(ctx.Request.Header.Get("Authorization"))
-	r.CreateBy = userName
-
-	tid, _ := ctx.Get("TenantID")
-	r.TenantId = tid.(string)
-
 	Service(ctx, func() (interface{}, interface{}) {
+		userName := jwtUtils.GetUser(ctx.Request.Header.Get("Authorization"))
+		r.UpdateBy = userName
+
+		tid, _ := ctx.Get("TenantID")
+		r.TenantId = tid.(string)
+
 		return services.DutyManageService.Create(r)
 	})
 }
@@ -72,10 +73,13 @@ func (dutyController dutyController) Update(ctx *gin.Context) {
 	r := new(types.RequestDutyManagementUpdate)
 	BindJson(ctx, r)
 
-	tid, _ := ctx.Get("TenantID")
-	r.TenantId = tid.(string)
-
 	Service(ctx, func() (interface{}, interface{}) {
+		userName := jwtUtils.GetUser(ctx.Request.Header.Get("Authorization"))
+		r.UpdateBy = userName
+
+		tid, _ := ctx.Get("TenantID")
+		r.TenantId = tid.(string)
+
 		return services.DutyManageService.Update(r)
 	})
 }

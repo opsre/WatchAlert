@@ -13,6 +13,7 @@ type RequestNoticeCreate struct {
 	Routes       []models.Route `json:"routes" gorm:"column:routes;serializer:json"`
 	Email        models.Email   `json:"email" gorm:"email;serializer:json"`
 	PhoneNumber  []string       `json:"phoneNumber" gorm:"phoneNumber;serializer:json"`
+	UpdateBy     string         `json:"updateBy"`
 }
 
 type RequestNoticeUpdate struct {
@@ -27,6 +28,7 @@ type RequestNoticeUpdate struct {
 	Routes       []models.Route `json:"routes" gorm:"column:routes;serializer:json"`
 	Email        models.Email   `json:"email" gorm:"email;serializer:json"`
 	PhoneNumber  []string       `json:"phoneNumber" gorm:"phoneNumber;serializer:json"`
+	UpdateBy     string         `json:"updateBy"`
 }
 
 func (requestNoticeUpdate *RequestNoticeUpdate) GetDutyId() *string {

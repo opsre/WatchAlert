@@ -42,6 +42,8 @@ type AlertRule struct {
 	LogEvalCondition string `json:"logEvalCondition" gorm:"logEvalCondition;serializer:json"`
 
 	FaultCenterId string `json:"faultCenterId"`
+	UpdateAt      int64  `json:"updateAt"`
+	UpdateBy      string `json:"updateBy"`
 	Enabled       *bool  `json:"enabled" gorm:"enabled"`
 }
 

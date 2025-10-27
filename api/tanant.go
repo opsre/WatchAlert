@@ -1,11 +1,11 @@
 package api
 
 import (
-	"github.com/gin-gonic/gin"
 	middleware "watchAlert/internal/middleware"
 	"watchAlert/internal/services"
 	"watchAlert/internal/types"
-	jwtUtils "watchAlert/pkg/tools"
+
+	"github.com/gin-gonic/gin"
 )
 
 type tenantController struct{}
@@ -47,13 +47,6 @@ func (tenantController tenantController) API(gin *gin.RouterGroup) {
 func (tenantController tenantController) Create(ctx *gin.Context) {
 	r := new(types.RequestTenantCreate)
 	BindJson(ctx, r)
-
-	token := ctx.Request.Header.Get("Authorization")
-	r.CreateBy = jwtUtils.GetUser(token)
-	r.UserId = jwtUtils.GetUserID(token)
-	if r.UserId == "" {
-		r.UserId = "admin"
-	}
 
 	Service(ctx, func() (interface{}, interface{}) {
 		return services.TenantService.Create(r)

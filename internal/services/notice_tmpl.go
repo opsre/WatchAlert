@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"time"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
 	"watchAlert/internal/types"
@@ -47,6 +48,8 @@ func (nts noticeTmplService) Create(req interface{}) (interface{}, interface{}) 
 		TemplateFiring:       r.TemplateFiring,
 		TemplateRecover:      r.TemplateRecover,
 		EnableFeiShuJsonCard: r.EnableFeiShuJsonCard,
+		UpdateAt:             time.Now().Unix(),
+		UpdateBy:             r.UpdateBy,
 	})
 	if err != nil {
 		return nil, err
@@ -66,6 +69,8 @@ func (nts noticeTmplService) Update(req interface{}) (interface{}, interface{}) 
 		TemplateFiring:       r.TemplateFiring,
 		TemplateRecover:      r.TemplateRecover,
 		EnableFeiShuJsonCard: r.EnableFeiShuJsonCard,
+		UpdateAt:             time.Now().Unix(),
+		UpdateBy:             r.UpdateBy,
 	})
 	if err != nil {
 		return nil, err

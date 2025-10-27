@@ -12,7 +12,7 @@ services:
     ports:
       - "9001:9001"
     healthcheck:
-      test: ["CMD", "wget", "localhost:9001/hello"]
+      test: ["CMD", "wget", "-O", "hello", "localhost:9001/hello"]
       interval: 5s
       timeout: 2s
       retries: 10

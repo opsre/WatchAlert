@@ -1,10 +1,13 @@
 package api
 
 import (
-	"github.com/gin-gonic/gin"
+	"errors"
 	middleware "watchAlert/internal/middleware"
 	"watchAlert/internal/services"
 	"watchAlert/internal/types"
+	"watchAlert/pkg/tools"
+
+	"github.com/gin-gonic/gin"
 )
 
 type noticeController struct{}
@@ -67,10 +70,16 @@ func (noticeController noticeController) Create(ctx *gin.Context) {
 	r := new(types.RequestNoticeCreate)
 	BindJson(ctx, r)
 
-	tid, _ := ctx.Get("TenantID")
-	r.TenantId = tid.(string)
-
 	Service(ctx, func() (interface{}, interface{}) {
+		tokenStr := ctx.Request.Header.Get("Authorization")
+		if len(tokenStr) <= 0 {
+			return nil, errors.New("用户未登录")
+		}
+		r.UpdateBy = tools.GetUser(tokenStr)
+
+		tid, _ := ctx.Get("TenantID")
+		r.TenantId = tid.(string)
+
 		return services.NoticeService.Create(r)
 	})
 }
@@ -79,10 +88,16 @@ func (noticeController noticeController) Update(ctx *gin.Context) {
 	r := new(types.RequestNoticeUpdate)
 	BindJson(ctx, r)
 
-	tid, _ := ctx.Get("TenantID")
-	r.TenantId = tid.(string)
-
 	Service(ctx, func() (interface{}, interface{}) {
+		tokenStr := ctx.Request.Header.Get("Authorization")
+		if len(tokenStr) <= 0 {
+			return nil, errors.New("用户未登录")
+		}
+		r.UpdateBy = tools.GetUser(tokenStr)
+
+		tid, _ := ctx.Get("TenantID")
+		r.TenantId = tid.(string)
+
 		return services.NoticeService.Update(r)
 	})
 }
