@@ -7,11 +7,12 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/bytedance/sonic"
-	"github.com/zeromicro/go-zero/core/logc"
 	"strconv"
 	"time"
 	"watchAlert/internal/ctx"
+
+	"github.com/bytedance/sonic"
+	"github.com/zeromicro/go-zero/core/logc"
 
 	"watchAlert/pkg/tools"
 )
@@ -55,7 +56,7 @@ func (f *FeiShuSender) Test(params SendParams) error {
 func (f *FeiShuSender) post(hook, sign string, msg map[string]any) error {
 	if sign != "" {
 		timestamp := strconv.FormatInt(time.Now().Unix(), 10)
-		signature, err := generateSignature(hook, timestamp)
+		signature, err := generateSignature(sign, timestamp)
 		if err != nil {
 			return err
 		}
