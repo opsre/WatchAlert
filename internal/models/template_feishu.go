@@ -1,5 +1,23 @@
 package models
 
+// JsonCards 飞书卡片，兼容 1.0 / 2.0 的field
+type JsonCards struct {
+	Schema       string                   `json:"schema,omitempty"`
+	Config       map[string]interface{}   `json:"config,omitempty"`
+	CardLink     map[string]interface{}   `json:"card_link,omitempty"`
+	Header       map[string]interface{}   `json:"header,omitempty"`
+	Body         map[string]interface{}   `json:"body,omitempty"`
+	Elements     []map[string]interface{} `json:"elements,omitempty"`
+	I18nElements map[string]interface{}   `json:"i18n_elements,omitempty"`
+	Fallback     map[string]interface{}   `json:"fallback,omitempty"`
+}
+
+// FeiShuJsonCardMsg 飞书Json卡片消息结构体
+type FeiShuJsonCardMsg struct {
+	MsgType string    `json:"msg_type"`
+	Card    JsonCards `json:"card"`
+}
+
 // FeiShuMsg 飞书
 type FeiShuMsg struct {
 	MsgType string `json:"msg_type"`
