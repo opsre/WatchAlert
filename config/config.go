@@ -1,8 +1,9 @@
 package config
 
 import (
-	"github.com/spf13/viper"
 	"log"
+
+	"github.com/spf13/viper"
 )
 
 type App struct {
@@ -14,8 +15,9 @@ type App struct {
 }
 
 type Server struct {
-	Mode string `json:"mode"`
-	Port string `json:"port"`
+	Mode           string `json:"mode"`
+	Port           string `json:"port"`
+	EnableElection bool   `json:"enableElection"`
 }
 
 type MySQL struct {

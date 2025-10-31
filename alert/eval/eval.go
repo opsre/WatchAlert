@@ -63,6 +63,7 @@ type (
 		Eval(ctx context.Context, rule models.AlertRule)
 		Recover(tenantId, ruleId string, eventCacheKey models.AlertEventCacheKey, faultCenterInfoKey models.FaultCenterInfoCacheKey, curFingerprints []string)
 		RestartAllEvals()
+		StopAllEvals()
 	}
 
 	// AlertRule 告警规则
@@ -411,4 +412,25 @@ func (t *AlertRule) getRuleList() ([]models.AlertRule, error) {
 		return nil, fmt.Errorf("获取 Rule List 失败: %w", err)
 	}
 	return ruleList, nil
+}
+
+// StopAllEvals 停止所有评估器
+func (t *AlertRule) StopAllEvals() {
+	t.ctx.Mux.Lock()
+	defer t.ctx.Mux.Unlock()
+
+	count := len(t.ctx.ContextMap)
+	if count == 0 {
+		return
+	}
+
+	logc.Infof(t.ctx.Ctx, "停止 %d 个规则评估器...", count)
+
+	// 取消所有评估任务
+	for ruleId, cancel := range t.ctx.ContextMap {
+		cancel()
+		delete(t.ctx.ContextMap, ruleId)
+	}
+
+	logc.Infof(t.ctx.Ctx, "所有规则评估器已停止")
 }

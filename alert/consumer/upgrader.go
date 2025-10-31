@@ -1,14 +1,14 @@
 package consumer
 
 import (
-	"context"
 	"fmt"
-	"github.com/zeromicro/go-zero/core/logc"
 	"time"
 	"watchAlert/alert/mute"
 	"watchAlert/alert/process"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
+
+	"github.com/zeromicro/go-zero/core/logc"
 )
 
 // alarmUpgrade 处理告警升级主入口
@@ -17,7 +17,7 @@ func alarmUpgrade(ctx *ctx.Context, faultCenter models.FaultCenter, alerts map[s
 		return nil
 	}
 
-	filterAlerts := filterAlertEvents(ctx.Ctx, faultCenter, alerts)
+	filterAlerts := filterAlertEvents(faultCenter, alerts)
 	currentTime := time.Now().Unix()
 
 	confirmAggregated := createAggregatedAlert(models.ConfirmStatus, faultCenter)
@@ -139,7 +139,7 @@ func getContent(number int) string {
 }
 
 // filterAlertEvents 过滤告警事件
-func filterAlertEvents(ctx context.Context, faultCenter models.FaultCenter, alerts map[string]*models.AlertCurEvent) []*models.AlertCurEvent {
+func filterAlertEvents(faultCenter models.FaultCenter, alerts map[string]*models.AlertCurEvent) []*models.AlertCurEvent {
 	var newEvents []*models.AlertCurEvent
 	for _, event := range alerts {
 		// 过滤掉 预告警, 待恢复 状态的事件
@@ -175,10 +175,15 @@ func isMutedEvent(event *models.AlertCurEvent, faultCenter models.FaultCenter) b
 // sendAggregatedAlert 发送聚合后的告警函数
 func sendAggregatedAlert(ctx *ctx.Context, faultCenter models.FaultCenter, aggregated *AggregatedAlert) error {
 	var noticeId string
-	if aggregated.Status == models.ConfirmStatus {
-		noticeId = faultCenter.GetUpgradeNoticeId(models.ConfirmStatus)
-	} else if aggregated.Status == models.HandleStatus {
-		noticeId = faultCenter.GetUpgradeNoticeId(models.HandleStatus)
+	switch aggregated.Status {
+	case models.ConfirmStatus:
+		if faultCenter.GetStrategy(models.ConfirmStatus).GetEnabled() {
+			noticeId = faultCenter.GetUpgradeNoticeId(models.ConfirmStatus)
+		}
+	case models.HandleStatus:
+		if faultCenter.GetStrategy(models.HandleStatus).GetEnabled() {
+			noticeId = faultCenter.GetUpgradeNoticeId(models.HandleStatus)
+		}
 	}
 
 	logc.Alert(ctx.Ctx, fmt.Sprintf("Aggregated alarm %s timeout fingerprints: %v, exceeded %d min",

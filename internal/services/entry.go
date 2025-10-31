@@ -1,7 +1,6 @@
 package services
 
 import (
-	"watchAlert/alert"
 	"watchAlert/internal/ctx"
 	service2 "watchAlert/pkg/community/aws/cloudwatch/service"
 	"watchAlert/pkg/community/aws/service"
@@ -65,7 +64,7 @@ func NewServices(ctx *ctx.Context) {
 	ClientService = newInterClientService(ctx)
 	LdapService = newInterLdapService(ctx)
 	SubscribeService = newInterAlertSubscribe(ctx)
-	ProbingService = newInterProbingService(ctx, &alert.ProductProbing, &alert.ConsumeProbing)
+	ProbingService = newInterProbingService(ctx)
 	FaultCenterService = newInterFaultCenterService(ctx)
 	AiService = newInterAiService(ctx)
 	OidcService = newInterOidcService(ctx)

@@ -3,8 +3,6 @@ package consumer
 import (
 	"context"
 	"fmt"
-	"github.com/zeromicro/go-zero/core/logc"
-	"golang.org/x/sync/errgroup"
 	"regexp"
 	"runtime/debug"
 	"sort"
@@ -14,6 +12,9 @@ import (
 	"watchAlert/alert/process"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
+
+	"github.com/zeromicro/go-zero/core/logc"
+	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -30,6 +31,7 @@ type (
 		Stop(faultCenterId string)
 		Watch(ctx context.Context, faultCenter models.FaultCenter)
 		RestartAllConsumers()
+		StopAllConsumers()
 	}
 
 	Consume struct {
@@ -402,4 +404,25 @@ func (c *Consume) processSilenceRule(faultCenter models.FaultCenter) {
 
 		silenceCtx.PushAlertMute(*muteRule)
 	}
+}
+
+// StopAllConsumers 停止所有消费者
+func (c *Consume) StopAllConsumers() {
+	c.ctx.Mux.Lock()
+	defer c.ctx.Mux.Unlock()
+
+	count := len(c.ctx.ContextMap)
+	if count == 0 {
+		return
+	}
+
+	logc.Infof(c.ctx.Ctx, "停止 %d 个故障中心消费者...", count)
+
+	// 取消所有消费任务
+	for fcId, cancel := range c.ctx.ContextMap {
+		cancel()
+		delete(c.ctx.ContextMap, fcId)
+	}
+
+	logc.Infof(c.ctx.Ctx, "所有故障中心消费者已停止")
 }

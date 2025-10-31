@@ -3,8 +3,6 @@ package initialization
 import (
 	"context"
 	"fmt"
-	"github.com/zeromicro/go-zero/core/logc"
-	"golang.org/x/sync/errgroup"
 	"sync"
 	"watchAlert/alert"
 	"watchAlert/config"
@@ -16,6 +14,9 @@ import (
 	"watchAlert/internal/services"
 	"watchAlert/pkg/ai"
 	"watchAlert/pkg/tools"
+
+	"github.com/zeromicro/go-zero/core/logc"
+	"golang.org/x/sync/errgroup"
 )
 
 func InitBasic() {
@@ -121,6 +122,10 @@ func pushMuteRuleToRedis() {
 	})
 	if err != nil {
 		logc.Errorf(ctx.Ctx, "获取静默规则列表失败, err: %s", err.Error())
+		return
+	}
+
+	if len(list) == 0 {
 		return
 	}
 
