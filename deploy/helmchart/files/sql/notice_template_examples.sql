@@ -479,6 +479,47 @@ green
   },
   "tag": ""
 }','FeiShu'),
+	 ('nt-cqh4455d6gvj80netqr0','飞书卡片通知模版v2','发送飞书的高级消息卡片模版，兼容飞书卡片JSON 1.0 / 2.0','',1,'{
+  "schema": "2.0",
+  "config": {
+    "width_mode": "fill",
+    "enable_forward": true
+  },
+  "header": {
+    "template": "red",
+    "title": {
+      "tag": "plain_text",
+      "content": "【报警中】- WatchAlert 业务系统 🔥"
+    }
+  },
+  "body": {
+    "elements": [
+      { "tag": "markdown", "content": "**🤖 报警类型:** ${rule_name}\n**🫧 报警指纹:** ${fingerprint}\n**📌 报警等级:** ${severity}\n**🖥 报警主机:** ${labels.instance}\n**🕘 开始时间:** ${first_trigger_time_format}\n**👤 值班人员:** ${duty_user}\n**📝 报警事件:** ${annotations}\n[查看事件](http:\/\/localhost:3000\/faultCenter\/detail\/${faultCenterId}?tab=1&query=${rule_name})" },
+      { "tag": "hr"},
+      { "tag": "markdown", "content": "🧑‍💻 WatchAlert - 运维团队"}
+    ]
+  }
+}','{
+  "schema": "2.0",
+  "config": {
+    "width_mode": "fill",
+    "enable_forward": true
+  },
+  "header": {
+    "template": "green",
+    "title": {
+      "tag": "plain_text",
+      "content": "【已恢复】- WatchAlert 业务系统 ✨"
+    }
+  },
+  "body": {
+    "elements": [
+      { "tag": "markdown", "content": "**🤖 报警类型:** ${rule_name}\n**🫧 报警指纹:** ${fingerprint}\n**📌 报警等级:** ${severity}\n**🖥 报警主机:** ${labels.instance}\n**🕘 开始时间:** ${first_trigger_time_format}\n**🕘 恢复时间:** ${recover_time_format}\n**👤 值班人员:** ${duty_user}\n**📝 报警事件:** ${annotations}\n[查看事件](http:\/\/localhost:3000\/faultCenter\/detail\/${faultCenterId}?tab=1&query=${rule_name})" },
+      { "tag": "hr"},
+      { "tag": "markdown", "content": "🧑‍💻 WatchAlert - 运维团队"}
+    ]
+  }
+}','FeiShu'),
 	 ('nt-cqh4599d6gvj80netql0','邮件通知模版','发送邮件的普通消息模版','{{ define "Event" -}}
 {{- if not .IsRecovered -}}
 <p>==========<strong>告警通知</strong>==========</p>
