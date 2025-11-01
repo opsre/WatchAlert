@@ -3,13 +3,14 @@ package provider
 import (
 	"context"
 	"fmt"
-	"github.com/zeromicro/go-zero/core/logc"
 	"net/http"
 	"net/url"
 	"strconv"
 	"time"
 	"watchAlert/internal/models"
 	utilsHttp "watchAlert/pkg/tools"
+
+	"github.com/zeromicro/go-zero/core/logc"
 )
 
 type VictoriaMetricsProvider struct {
@@ -41,6 +42,7 @@ type VMData struct {
 type VMResult struct {
 	Metric map[string]interface{} `json:"metric"`
 	Value  []interface{}          `json:"value"`
+	Values [][]interface{}        `json:"values"` // for range query
 }
 
 func (v VictoriaMetricsProvider) Query(promQL string) ([]Metrics, error) {
@@ -70,6 +72,34 @@ func (v VictoriaMetricsProvider) Query(promQL string) ([]Metrics, error) {
 	return vmVectors(vmRespBody.VMData.VMResult), nil
 }
 
+func (v VictoriaMetricsProvider) QueryRange(promQL string, start, end time.Time, step time.Duration) ([]Metrics, error) {
+	params := url.Values{}
+	params.Add("query", promQL)
+	params.Add("start", strconv.FormatInt(start.Unix(), 10))
+	params.Add("end", strconv.FormatInt(end.Unix(), 10))
+	params.Add("step", fmt.Sprintf("%.0fs", step.Seconds()))
+	fullURL := fmt.Sprintf("%s%s?%s", v.address, "/api/v1/query_range", params.Encode())
+
+	resp, err := utilsHttp.Get(utilsHttp.CreateBasicAuthHeader(v.username, v.password), fullURL, 30)
+	if err != nil {
+		logc.Error(context.Background(), "VictoriaMetrics query_range failed", "error", err)
+		return nil, fmt.Errorf("query_range failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	var vmRespBody QueryResponse
+	if err := utilsHttp.ParseReaderBody(resp.Body, &vmRespBody); err != nil {
+		logc.Error(context.Background(), "Parse response failed", "error", err)
+		return nil, fmt.Errorf("parse response failed: %w", err)
+	}
+
+	return vmMatrix(vmRespBody.VMData.VMResult), nil
+}
+
 func vmVectors(res []VMResult) []Metrics {
 	var vectors []Metrics
 	for _, item := range res {
@@ -97,6 +127,39 @@ func vmVectors(res []VMResult) []Metrics {
 		})
 	}
 	return vectors
+}
+
+// vmMatrix 将 VictoriaMetrics QueryRange 结果转换为 Metrics 列表
+func vmMatrix(res []VMResult) []Metrics {
+	var metrics []Metrics
+	for _, item := range res {
+		// 遍历每个时间序列的所有时间点
+		for _, value := range item.Values {
+			if len(value) < 2 {
+				continue
+			}
+
+			timestamp, ok1 := value[0].(float64)
+			valueStr, ok2 := value[1].(string)
+			if !ok1 || !ok2 {
+				logc.Error(context.Background(), "Invalid value format")
+				continue
+			}
+
+			valueFloat, err := strconv.ParseFloat(valueStr, 64)
+			if err != nil {
+				logc.Error(context.Background(), "Value conversion failed", "error", err)
+				continue
+			}
+
+			metrics = append(metrics, Metrics{
+				Metric:    item.Metric,
+				Value:     valueFloat,
+				Timestamp: timestamp,
+			})
+		}
+	}
+	return metrics
 }
 
 func (v VictoriaMetricsProvider) Check() (bool, error) {

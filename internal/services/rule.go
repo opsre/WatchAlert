@@ -160,7 +160,7 @@ func (rs ruleService) Update(req interface{}) (interface{}, interface{}) {
 	}
 
 	// 判断当前节点角色并处理
-	if action != ""{
+	if action != "" {
 		if alert.IsLeader() {
 			// Leader: 直接操作协程
 			if action == tools.ActionDisable || action == tools.ActionUpdate {

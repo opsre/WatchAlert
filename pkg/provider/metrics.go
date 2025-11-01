@@ -3,6 +3,7 @@ package provider
 import (
 	"fmt"
 	"strconv"
+	"time"
 	"watchAlert/pkg/tools"
 )
 
@@ -13,6 +14,7 @@ const (
 
 type MetricsFactoryProvider interface {
 	Query(promQL string) ([]Metrics, error)
+	QueryRange(promQL string, start, end time.Time, step time.Duration) ([]Metrics, error)
 	Check() (bool, error)
 	GetExternalLabels() map[string]interface{}
 }
