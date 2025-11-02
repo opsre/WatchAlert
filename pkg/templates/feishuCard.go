@@ -1,40 +1,43 @@
 package templates
 
 import (
-	"github.com/bytedance/sonic"
 	"strings"
-	models "watchAlert/internal/models"
+	"watchAlert/internal/models"
 	"watchAlert/pkg/tools"
+
+	"github.com/bytedance/sonic"
 )
 
 // Template 飞书消息卡片模版
 func feishuTemplate(alert models.AlertCurEvent, noticeTmpl models.NoticeTemplateExample) string {
 
-	defaultTemplate := models.FeiShuMsg{
-		MsgType: "interactive",
-		Card: models.Cards{
-			Config: models.Configs{
-				WideScreenMode: true,
-				EnableForward:  true,
-			},
-		},
-	}
-
 	var cardContentString string
 	if *noticeTmpl.EnableFeiShuJsonCard {
-		var tmplC models.Cards
+		defaultTemplate := models.FeiShuJsonCardMsg{
+			MsgType: "interactive",
+		}
+		var tmplC models.JsonCards
 		switch alert.IsRecovered {
 		case false:
-			_ = sonic.Unmarshal([]byte(noticeTmpl.TemplateFiring), &tmplC)
+			cardContentString = noticeTmpl.TemplateFiring
 		case true:
-			_ = sonic.Unmarshal([]byte(noticeTmpl.TemplateRecover), &tmplC)
+			cardContentString = noticeTmpl.TemplateRecover
 		}
-		defaultTemplate.Card.Elements = tmplC.Elements
-		defaultTemplate.Card.Header = tmplC.Header
-		cardContentString = tools.JsonMarshalToString(defaultTemplate)
 		cardContentString = ParserTemplate("Card", alert, cardContentString)
+		_ = sonic.Unmarshal([]byte(cardContentString), &tmplC)
+		defaultTemplate.Card = tmplC
+		cardContentString = tools.JsonMarshalToString(defaultTemplate)
 
 	} else {
+		defaultTemplate := models.FeiShuMsg{
+			MsgType: "interactive",
+			Card: models.Cards{
+				Config: models.Configs{
+					WideScreenMode: true,
+					EnableForward:  true,
+				},
+			},
+		}
 		cardHeader := models.Headers{
 			Template: ParserTemplate("TitleColor", alert, noticeTmpl.Template),
 			Title: models.Titles{
