@@ -167,11 +167,12 @@ func RecordAlertHisEvent(ctx *ctx.Context, alert models.AlertCurEvent) error {
 		FaultCenterId:    alert.FaultCenterId,
 		UpgradeState:     alert.UpgradeState,
 		AlarmDuration:    alert.RecoverTime - alert.FirstTriggerTime,
+		SearchQL:         alert.SearchQL,
 	}
 
 	err := ctx.DB.Event().CreateHistoryEvent(hisData)
 	if err != nil {
-		return fmt.Errorf("RecordAlertHisEvent -> %s", err)
+		return fmt.Errorf("RecordAlertHisEvent, 恢复告警记录失败, err: %s", err)
 	}
 
 	return nil

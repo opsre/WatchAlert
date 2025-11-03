@@ -18,4 +18,5 @@ type AlertHisEvent struct {
 	FaultCenterId    string                 `json:"faultCenterId"`
 	UpgradeState     UpgradeState           `json:"upgradeState" gorm:"metric;serializer:json"`
 	AlarmDuration    int64                  `json:"alarmDuration"` // 告警持续时长
+	SearchQL         string                 `json:"searchQL"`
 }

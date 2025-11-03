@@ -3,15 +3,16 @@ package probing
 import (
 	"context"
 	"fmt"
-	"github.com/go-redis/redis"
-	"github.com/zeromicro/go-zero/core/logc"
-	"golang.org/x/sync/errgroup"
 	"time"
 	"watchAlert/alert/process"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
 	"watchAlert/pkg/provider"
 	"watchAlert/pkg/tools"
+
+	"github.com/go-redis/redis"
+	"github.com/zeromicro/go-zero/core/logc"
+	"golang.org/x/sync/errgroup"
 )
 
 type ProductProbing struct {
@@ -124,7 +125,6 @@ func (t *ProductProbing) worker(rule models.ProbingRule) {
 	}
 
 	t.Evaluation(event, option)
-	return
 }
 
 func (t *ProductProbing) runProbing(rule models.ProbingRule) (provider.EndpointValue, error) {
@@ -238,6 +238,27 @@ func (t *ProductProbing) RePushRule(consumer *ConsumeProbing) {
 	if err := g.Wait(); err != nil {
 		logc.Errorf(t.ctx.Ctx, err.Error())
 	}
+}
+
+// StopAllTasks 停止所有拨测任务
+func (t *ProductProbing) StopAllTasks() {
+	t.ctx.Mux.Lock()
+	defer t.ctx.Mux.Unlock()
+
+	count := len(t.WatchCtxMap)
+	if count == 0 {
+		return
+	}
+
+	logc.Infof(t.ctx.Ctx, "停止 %d 个拨测生产任务...", count)
+
+	// 取消所有拨测任务
+	for ruleId, cancel := range t.WatchCtxMap {
+		cancel()
+		delete(t.WatchCtxMap, ruleId)
+	}
+
+	logc.Infof(t.ctx.Ctx, "所有拨测生产任务已停止")
 }
 
 func (t *ProductProbing) setFrequency(frequencyStorage map[string]int, ruleId string) {

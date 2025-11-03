@@ -6,6 +6,7 @@ import (
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
 	"watchAlert/internal/types"
+	"watchAlert/pkg/client"
 	"watchAlert/pkg/tools"
 )
 
@@ -56,7 +57,20 @@ func (f faultCenterService) Create(req interface{}) (data interface{}, err inter
 	}
 
 	f.ctx.Redis.FaultCenter().PushFaultCenterInfo(fc)
-	alert.ConsumerWork.Submit(fc)
+
+	// 判断当前节点角色
+	if alert.IsLeader() {
+		// Leader: 直接启动消费协程
+		alert.ConsumerWork.Submit(fc)
+	} else {
+		// Follower: 发布消息通知 Leader
+		tools.PublishReloadMessage(f.ctx.Ctx, client.Redis, tools.ChannelFaultCenterReload, tools.ReloadMessage{
+			Action:   tools.ActionCreate,
+			ID:       fc.ID,
+			TenantID: fc.TenantId,
+			Name:     fc.Name,
+		})
+	}
 
 	return nil, nil
 }
@@ -86,8 +100,21 @@ func (f faultCenterService) Update(req interface{}) (data interface{}, err inter
 	}
 
 	f.ctx.Redis.FaultCenter().PushFaultCenterInfo(fc)
-	alert.ConsumerWork.Stop(r.ID)
-	alert.ConsumerWork.Submit(fc)
+
+	// 判断当前节点角色
+	if alert.IsLeader() {
+		// Leader: 直接重启消费协程
+		alert.ConsumerWork.Stop(r.ID)
+		alert.ConsumerWork.Submit(fc)
+	} else {
+		// Follower: 发布消息通知 Leader
+		tools.PublishReloadMessage(f.ctx.Ctx, client.Redis, tools.ChannelFaultCenterReload, tools.ReloadMessage{
+			Action:   tools.ActionUpdate,
+			ID:       fc.ID,
+			TenantID: fc.TenantId,
+			Name:     fc.Name,
+		})
+	}
 
 	return nil, nil
 }
@@ -100,7 +127,20 @@ func (f faultCenterService) Delete(req interface{}) (data interface{}, err inter
 	}
 
 	f.ctx.Redis.FaultCenter().RemoveFaultCenterInfo(models.BuildFaultCenterInfoCacheKey(r.TenantId, r.ID))
-	alert.ConsumerWork.Stop(r.ID)
+
+	// 判断当前节点角色
+	if alert.IsLeader() {
+		// Leader: 直接停止消费协程
+		alert.ConsumerWork.Stop(r.ID)
+	} else {
+		// Follower: 发布消息通知 Leader
+		tools.PublishReloadMessage(f.ctx.Ctx, client.Redis, tools.ChannelFaultCenterReload, tools.ReloadMessage{
+			Action:   tools.ActionDelete,
+			ID:       r.ID,
+			TenantID: r.TenantId,
+			Name:     r.ID,
+		})
+	}
 
 	return nil, nil
 }
@@ -155,10 +195,26 @@ func (f faultCenterService) Reset(req interface{}) (data interface{}, err interf
 		return nil, err
 	}
 
-	alert.ConsumerWork.Stop(r.ID)
 	data, err = f.ctx.DB.FaultCenter().Get(r.TenantId, r.ID, r.Name)
+	if err != nil {
+		return nil, err
+	}
 	f.ctx.Redis.FaultCenter().PushFaultCenterInfo(data.(models.FaultCenter))
-	alert.ConsumerWork.Submit(data.(models.FaultCenter))
+
+	// 判断当前节点角色
+	if alert.IsLeader() {
+		// Leader: 直接重启消费协程
+		alert.ConsumerWork.Stop(r.ID)
+		alert.ConsumerWork.Submit(data.(models.FaultCenter))
+	} else {
+		// Follower: 发布消息通知 Leader
+		tools.PublishReloadMessage(f.ctx.Ctx, client.Redis, tools.ChannelFaultCenterReload, tools.ReloadMessage{
+			Action:   tools.ActionUpdate,
+			ID:       r.ID,
+			TenantID: r.TenantId,
+			Name:     r.Name,
+		})
+	}
 
 	return nil, nil
 }

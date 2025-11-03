@@ -3,8 +3,6 @@ package probing
 import (
 	"context"
 	"fmt"
-	"github.com/go-redis/redis"
-	"github.com/zeromicro/go-zero/core/logc"
 	"strings"
 	"time"
 	"watchAlert/alert/process"
@@ -13,6 +11,9 @@ import (
 	"watchAlert/pkg/sender"
 	"watchAlert/pkg/templates"
 	"watchAlert/pkg/tools"
+
+	"github.com/go-redis/redis"
+	"github.com/zeromicro/go-zero/core/logc"
 )
 
 type ConsumeProbing struct {
@@ -160,4 +161,25 @@ func buildEvent(event models.ProbingEvent) models.AlertCurEvent {
 		RecoverTimeFormat:      event.RecoverTimeFormat,
 		DutyUser:               event.DutyUser,
 	}
+}
+
+// StopAllTasks 停止所有拨测消费任务
+func (m *ConsumeProbing) StopAllTasks() {
+	m.ctx.Mux.Lock()
+	defer m.ctx.Mux.Unlock()
+
+	count := len(m.consumerPool)
+	if count == 0 {
+		return
+	}
+
+	logc.Infof(m.ctx.Ctx, "停止 %d 个拨测消费任务...", count)
+
+	// 取消所有消费任务
+	for ruleId, cancel := range m.consumerPool {
+		cancel()
+		delete(m.consumerPool, ruleId)
+	}
+
+	logc.Infof(m.ctx.Ctx, "所有拨测消费任务已停止")
 }

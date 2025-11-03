@@ -3,50 +3,50 @@ package templates
 import (
 	"bytes"
 	"context"
-	"github.com/zeromicro/go-zero/core/logc"
+	"fmt"
 	"text/template"
 	"time"
 	"watchAlert/internal/global"
 	"watchAlert/internal/models"
 	"watchAlert/pkg/tools"
-)
 
-var tmpl *template.Template
+	"github.com/zeromicro/go-zero/core/logc"
+)
 
 // ParserTemplate 处理告警推送的消息模版
 func ParserTemplate(defineName string, alert models.AlertCurEvent, templateStr string) string {
+	// 预处理时间格式化
+	alert = prepareAlertData(alert)
 
-	firstTriggerTime := time.Unix(alert.FirstTriggerTime, 0).Format(global.Layout)
-	recoverTime := time.Unix(alert.RecoverTime, 0).Format(global.Layout)
-	alert.FirstTriggerTimeFormat = firstTriggerTime
-	alert.RecoverTimeFormat = recoverTime
-
-	tmpl = template.Must(template.New("tmpl").Parse(templateStr))
-
-	var (
-		buf bytes.Buffer
-		err error
-	)
-
-	if defineName == "Card" {
-		err = tmpl.Execute(&buf, alert)
-		// 当前告警的 json 反序列化成 map 对象, 用于解析报警事件详情中的 ${xx} 变量
-		data := tools.ConvertEventToMap(alert)
-		return tools.ParserVariables(buf.String(), data)
-	}
-
-	err = tmpl.ExecuteTemplate(&buf, defineName, alert)
+	// 解析模板
+	tmpl, err := template.New("tmpl").Parse(templateStr)
 	if err != nil {
-		logc.Error(context.Background(), "告警模版执行失败 ->", err.Error())
+		logc.Error(context.Background(), "模板解析失败", "error", err, "template", templateStr)
 		return ""
 	}
 
-	// 前面只会渲染出模版框架, 下面来渲染告警数据内容
-	if defineName == "Event" {
-		data := tools.ConvertEventToMap(alert)
-		return tools.ParserVariables(buf.String(), data)
+	return renderNamedTemplate(tmpl, defineName, alert)
+}
+
+// prepareAlertData 预处理告警数据，格式化时间字段
+func prepareAlertData(alert models.AlertCurEvent) models.AlertCurEvent {
+	alert.FirstTriggerTimeFormat = time.Unix(alert.FirstTriggerTime, 0).Format(global.Layout)
+	alert.RecoverTimeFormat = time.Unix(alert.RecoverTime, 0).Format(global.Layout)
+	return alert
+}
+
+// renderNamedTemplate 渲染模板
+func renderNamedTemplate(tmpl *template.Template, name string, alert models.AlertCurEvent) string {
+	var buf bytes.Buffer
+	if err := tmpl.ExecuteTemplate(&buf, name, alert); err != nil {
+		// 如果命名模板不存在，尝试直接执行主模板
+		if err := tmpl.Execute(&buf, alert); err != nil {
+			logc.Error(context.Background(), fmt.Sprintf("%s模板执行失败", name), "error", err)
+			return ""
+		}
 	}
 
-	return buf.String()
-
+	// 解析变量并返回
+	data := tools.ConvertEventToMap(alert)
+	return tools.ParserVariables(buf.String(), data)
 }

@@ -1,10 +1,12 @@
 package services
 
 import (
+	"watchAlert/alert"
 	"watchAlert/alert/probing"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
 	"watchAlert/internal/types"
+	"watchAlert/pkg/client"
 	"watchAlert/pkg/provider"
 	"watchAlert/pkg/tools"
 
@@ -13,9 +15,7 @@ import (
 
 type (
 	probingService struct {
-		ctx          *ctx.Context
-		ProductTask  *probing.ProductProbing
-		ConsumerTask *probing.ConsumeProbing
+		ctx *ctx.Context
 	}
 
 	InterProbingService interface {
@@ -30,11 +30,9 @@ type (
 	}
 )
 
-func newInterProbingService(ctx *ctx.Context, NetworkMonProduct *probing.ProductProbing, NetworkMonConsumer *probing.ConsumeProbing) InterProbingService {
+func newInterProbingService(ctx *ctx.Context) InterProbingService {
 	return &probingService{
-		ctx:          ctx,
-		ProductTask:  NetworkMonProduct,
-		ConsumerTask: NetworkMonConsumer,
+		ctx: ctx,
 	}
 }
 
@@ -61,10 +59,22 @@ func (m probingService) Create(req interface{}) (interface{}, interface{}) {
 		return nil, err
 	}
 
+	// 判断当前节点角色
 	if *r.GetEnabled() {
-		m.ProductTask.Add(data)
+		if alert.IsLeader() {
+			// Leader: 直接启动拨测协程
+			alert.ProductProbing.Add(data)
+			alert.ConsumeProbing.Add(data)
+		} else {
+			// Follower: 发布消息通知 Leader
+			tools.PublishReloadMessage(m.ctx.Ctx, client.Redis, tools.ChannelProbingReload, tools.ReloadMessage{
+				Action:   tools.ActionCreate,
+				ID:       data.RuleId,
+				TenantID: data.TenantId,
+				Name:     data.RuleName,
+			})
+		}
 	}
-	m.ConsumerTask.Add(data)
 
 	return nil, nil
 }
@@ -97,11 +107,23 @@ func (m probingService) Update(req interface{}) (interface{}, interface{}) {
 		return nil, err
 	}
 
-	m.ProductTask.Stop(r.RuleId)
-	m.ConsumerTask.Stop(r.RuleId)
-	if *r.GetEnabled() {
-		m.ProductTask.Add(data)
-		m.ConsumerTask.Add(data)
+	// 判断当前节点角色
+	if alert.LeaderElector != nil && alert.LeaderElector.IsLeader() {
+		// Leader: 直接重启拨测协程
+		alert.ProductProbing.Stop(r.RuleId)
+		alert.ConsumeProbing.Stop(r.RuleId)
+		if *r.GetEnabled() {
+			alert.ProductProbing.Add(data)
+			alert.ConsumeProbing.Add(data)
+		}
+	} else {
+		// Follower: 发布消息通知 Leader
+		tools.PublishReloadMessage(m.ctx.Ctx, client.Redis, tools.ChannelProbingReload, tools.ReloadMessage{
+			Action:   tools.ActionUpdate,
+			ID:       r.RuleId,
+			TenantID: r.TenantId,
+			Name:     r.RuleName,
+		})
 	}
 
 	return nil, nil
@@ -119,8 +141,21 @@ func (m probingService) Delete(req interface{}) (interface{}, interface{}) {
 		return nil, err
 	}
 
-	m.ProductTask.Stop(r.RuleId)
-	m.ConsumerTask.Stop(r.RuleId)
+	// 判断当前节点角色
+	if alert.LeaderElector != nil && alert.LeaderElector.IsLeader() {
+		// Leader: 直接停止拨测协程
+		alert.ProductProbing.Stop(r.RuleId)
+		alert.ConsumeProbing.Stop(r.RuleId)
+	} else {
+		// Follower: 发布消息通知 Leader
+		tools.PublishReloadMessage(m.ctx.Ctx, client.Redis, tools.ChannelProbingReload, tools.ReloadMessage{
+			Action:   tools.ActionDelete,
+			ID:       r.RuleId,
+			TenantID: r.TenantId,
+			Name:     res.RuleName,
+		})
+	}
+
 	err = m.ctx.Redis.Redis().Del(string(models.BuildProbingEventCacheKey(res.TenantId, res.RuleId)), string(models.BuildProbingValueCacheKey(res.TenantId, res.RuleId))).Err()
 	if err != nil {
 		return nil, err
@@ -221,24 +256,40 @@ func (m probingService) GetHistory(req interface{}) (interface{}, interface{}) {
 
 func (m probingService) ChangeState(req interface{}) (interface{}, interface{}) {
 	r := req.(*types.RequestProbeChangeState)
+	var action string
 	switch *r.GetEnabled() {
 	case true:
-		rule, err := m.ctx.DB.Probing().Search(r.TenantId, r.RuleId)
-		if err != nil {
-			return nil, err
-		}
-
-		m.ProductTask.Add(rule)
-		m.ConsumerTask.Add(rule)
+		action = tools.ActionEnable
 	case false:
-		m.ProductTask.Stop(r.RuleId)
-		m.ConsumerTask.Stop(r.RuleId)
+		action = tools.ActionDisable
 		m.ctx.Redis.Probing().DelProbingEventCache(models.BuildProbingEventCacheKey(r.TenantId, r.RuleId))
 	}
 
 	err := m.ctx.DB.Probing().ChangeState(r.TenantId, r.RuleId, r.GetEnabled())
 	if err != nil {
 		return nil, err
+	}
+
+	// 判断当前节点角色
+	rule, _ := m.ctx.DB.Probing().Search(r.TenantId, r.RuleId)
+	if alert.LeaderElector != nil && alert.LeaderElector.IsLeader() {
+		// Leader: 直接操作协程
+		switch *r.GetEnabled() {
+		case true:
+			alert.ProductProbing.Add(rule)
+			alert.ConsumeProbing.Add(rule)
+		case false:
+			alert.ProductProbing.Stop(r.RuleId)
+			alert.ConsumeProbing.Stop(r.RuleId)
+		}
+	} else {
+		// Follower: 发布消息通知 Leader
+		tools.PublishReloadMessage(m.ctx.Ctx, client.Redis, tools.ChannelProbingReload, tools.ReloadMessage{
+			Action:   action,
+			ID:       r.RuleId,
+			TenantID: r.TenantId,
+			Name:     rule.RuleName,
+		})
 	}
 
 	return nil, nil
