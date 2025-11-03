@@ -18,18 +18,6 @@ type FeiShuJsonCardMsg struct {
 	Card    JsonCards `json:"card"`
 }
 
-// FeiShuMsg 飞书
-type FeiShuMsg struct {
-	MsgType string `json:"msg_type"`
-	Card    Cards  `json:"card"`
-}
-
-type Cards struct {
-	Config   Configs    `json:"config"`
-	Elements []Elements `json:"elements"`
-	Header   Headers    `json:"header"`
-}
-
 type Actions struct {
 	Tag      string      `json:"tag"`
 	Text     ActionsText `json:"text"`
@@ -58,9 +46,18 @@ type ActionsText struct {
 }
 
 type Configs struct {
-	WideScreenMode bool `json:"wide_screen_mode"`
-	EnableForward  bool `json:"enable_forward"`
+	WideScreenMode bool      `json:"wide_screen_mode,omitempty"` // 最新文档中没有找到该配置项，先保留，允许为空
+	WidthMode      WidthMode `json:"width_mode,omitempty"`       // 卡片宽度模式。支持 "compact"（紧凑宽度 400px）模式、"fill"（撑满聊天窗口宽度）模式和 "default" 默认模式(宽度上限为 600px)。
+	EnableForward  bool      `json:"enable_forward,omitempty"`
 }
+
+type WidthMode string
+
+const (
+	WidthModeDefault WidthMode = "default" // 宽度上限 600px
+	WidthModeFill    WidthMode = "fill"    // 撑满聊天窗口宽度
+	WidthModeCompact WidthMode = "compact" // 紧凑宽度 400px
+)
 
 type Elements struct {
 	Tag            string             `json:"tag"`

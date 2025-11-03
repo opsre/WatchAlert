@@ -47,6 +47,6 @@ func renderNamedTemplate(tmpl *template.Template, name string, alert models.Aler
 	}
 
 	// 解析变量并返回
-	data := tools.ConvertEventToMap(alert)
+	data := tools.ConvertStructToMap(alert)
 	return tools.ParserVariables(buf.String(), data)
 }

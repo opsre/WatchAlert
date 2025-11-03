@@ -29,13 +29,13 @@ func feishuTemplate(alert models.AlertCurEvent, noticeTmpl models.NoticeTemplate
 		cardContentString = tools.JsonMarshalToString(defaultTemplate)
 
 	} else {
-		defaultTemplate := models.FeiShuMsg{
+		defaultTemplate := models.FeiShuJsonCardMsg{
 			MsgType: "interactive",
-			Card: models.Cards{
-				Config: models.Configs{
-					WideScreenMode: true,
-					EnableForward:  true,
-				},
+			Card: models.JsonCards{
+				Config: tools.ConvertStructToMap(models.Configs{
+					EnableForward: true,
+					WidthMode:     models.WidthModeDefault,
+				}),
 			},
 		}
 		cardHeader := models.Headers{
@@ -82,8 +82,8 @@ func feishuTemplate(alert models.AlertCurEvent, noticeTmpl models.NoticeTemplate
 			},
 		}
 
-		defaultTemplate.Card.Elements = cardElements
-		defaultTemplate.Card.Header = cardHeader
+		defaultTemplate.Card.Elements = tools.ConvertSliceToMapList(cardElements)
+		defaultTemplate.Card.Header = tools.ConvertStructToMap(cardHeader)
 		cardContentString = tools.JsonMarshalToString(defaultTemplate)
 
 	}
