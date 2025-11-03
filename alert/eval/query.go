@@ -2,8 +2,6 @@ package eval
 
 import (
 	"fmt"
-	"github.com/zeromicro/go-zero/core/logc"
-	v1 "k8s.io/api/core/v1"
 	"sort"
 	"strings"
 	"time"
@@ -14,6 +12,9 @@ import (
 	"watchAlert/pkg/community/aws/cloudwatch/types"
 	"watchAlert/pkg/provider"
 	"watchAlert/pkg/tools"
+
+	"github.com/zeromicro/go-zero/core/logc"
+	v1 "k8s.io/api/core/v1"
 )
 
 // Metrics 包含 Prometheus、VictoriaMetrics 数据源
@@ -107,7 +108,7 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 			event.Severity = ruleExpr.Severity
 			event.SearchQL = rule.PrometheusConfig.PromQL
 			event.ForDuration = rule.GetForDuration(ruleExpr.Severity)
-			event.Annotations = tools.ParserVariables(rule.PrometheusConfig.Annotations, tools.ConvertEventToMap(event))
+			event.Annotations = tools.ParserVariables(rule.PrometheusConfig.Annotations, tools.ConvertStructToMap(event))
 
 			// 告警评估
 			if process.EvalCondition(option) {
