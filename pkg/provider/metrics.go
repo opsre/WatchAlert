@@ -25,15 +25,12 @@ type Metrics struct {
 	Timestamp float64
 }
 
-func (m Metrics) GetFingerprint(ruleId string) string {
+func (m Metrics) GetFingerprint() string {
 	var labels = m.Metric
 
 	if len(labels) == 0 {
 		return strconv.FormatUint(tools.HashNew(), 10)
 	}
-
-	// 避免不同规则相同 label 出现相同指纹；
-	labels["rule_id"] = ruleId
 
 	var result uint64
 	for labelName, labelValue := range labels {

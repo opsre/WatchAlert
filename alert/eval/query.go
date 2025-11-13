@@ -25,8 +25,8 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 		externalLabels map[string]interface{}
 		// 当前活跃告警的指纹列表
 		curFingerprints []string
-		// 按指纹分组存储事件，每个指纹只保留最高优先级的事件
-		highestPriorityEvents = make(map[string]models.AlertCurEvent)
+		// 按指纹分组存储事件，相同规则只保留最高优先级的事件
+		highestPriorityEvents = make(map[string]struct{})
 	)
 
 	cli, err := pools.GetClient(datasourceId)
@@ -65,43 +65,59 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 	rules := sortRulesByPriority(rule.PrometheusConfig.Rules)
 
 	for _, v := range resQuery {
+		// 避免共享引用导致的指纹不一致问题
+		metricLabels := make(map[string]interface{})
+		for k, val := range v.GetMetric() {
+			metricLabels[k] = val
+		}
+
+		// 使用独立的标签副本来生成指纹，避免修改原始数据
+		fingerprintLabels := make(map[string]interface{})
+		for k, val := range metricLabels {
+			fingerprintLabels[k] = val
+		}
+		fingerprintLabels["rule_id"] = rule.RuleId
+		fingerprintLabels["rule_name"] = rule.RuleName
+
 		// 遍历按优先级排序后的规则
 		for _, ruleExpr := range rules {
+			fingerprintLabels["severity"] = ruleExpr.Severity
 			operator, value, err := tools.ProcessRuleExpr(ruleExpr.Expr)
 			if err != nil {
 				logc.Errorf(ctx.Ctx, err.Error())
 				continue
 			}
 
-			option := models.EvalCondition{
-				Operator:      operator,
-				QueryValue:    v.Value,
-				ExpectedValue: value,
+			fingerprintMetric := provider.Metrics{
+				Metric: fingerprintLabels,
 			}
+			fingerprint := fingerprintMetric.GetFingerprint()
 
-			fingerprint := v.GetFingerprint(rule.RuleId)
 			event := process.BuildEvent(rule, func() map[string]interface{} {
-				metric := v.GetMetric()
-				metric["rule_name"] = rule.RuleName
-				metric["fingerprint"] = fingerprint
-				metric["severity"] = ruleExpr.Severity
-				metric["value"] = v.Value
+				newMetric := make(map[string]interface{})
+				for k, val := range metricLabels {
+					newMetric[k] = val
+				}
+				newMetric["rule_name"] = rule.RuleName
+				newMetric["fingerprint"] = fingerprint
+				newMetric["severity"] = ruleExpr.Severity
+				newMetric["value"] = v.Value
 				for ek, ev := range externalLabels {
-					metric[ek] = ev
+					newMetric[ek] = ev
 				}
 				for ek, ev := range rule.ExternalLabels {
-					metric[ek] = ev
+					newMetric[ek] = ev
 				}
 
 				// 获取初次触发值
 				data, err := ctx.Redis.Alert().GetEventFromCache(rule.TenantId, rule.FaultCenterId, fingerprint)
 				if err == nil && data.Labels["first_value"] != nil {
-					metric["first_value"] = data.Labels["first_value"]
+					newMetric["first_value"] = data.Labels["first_value"]
 				} else {
-					metric["first_value"] = v.Value
+					newMetric["first_value"] = v.Value
 				}
 
-				return metric
+				return newMetric
 			})
 			event.DatasourceId = datasourceId
 			event.Fingerprint = fingerprint
@@ -109,18 +125,22 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 			event.SearchQL = rule.PrometheusConfig.PromQL
 			event.ForDuration = rule.GetForDuration(ruleExpr.Severity)
 			event.Annotations = tools.ParserVariables(rule.PrometheusConfig.Annotations, tools.ConvertStructToMap(event))
+			event.Status = models.StatePreAlert
 
 			// 告警评估
-			if process.EvalCondition(option) {
-				// 如果条件满足，检查是否已经有更高优先级的事件
-				if _, exists := highestPriorityEvents[fingerprint]; !exists {
-					// 如果该指纹还没有事件，添加当前事件
-					event.Status = models.StatePreAlert
-					highestPriorityEvents[fingerprint] = event
-					curFingerprints = append(curFingerprints, fingerprint)
+			if process.EvalCondition(models.EvalCondition{
+				Operator:      operator,
+				QueryValue:    v.Value,
+				ExpectedValue: value,
+			}) {
+				if len(highestPriorityEvents) > 0 {
+					// 如果有高优先级告警，则抑制掉低级告警
+					event.LastSendTime = time.Now().Unix()
 				}
-				// 找到符合条件的规则后，跳过该指标的其他规则
-				break
+				highestPriorityEvents[fingerprint] = struct{}{}
+				event.Status = models.StatePreAlert
+				process.PushEventToFaultCenter(ctx, &event)
+				curFingerprints = append(curFingerprints, fingerprint)
 			} else {
 				// 更新恢复时最新值
 				cache, err := ctx.Redis.Alert().GetEventFromCache(event.TenantId, event.FaultCenterId, event.Fingerprint)
@@ -132,11 +152,6 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 				}
 			}
 		}
-	}
-
-	// 推送最高优先级的事件
-	for _, event := range highestPriorityEvents {
-		process.PushEventToFaultCenter(ctx, &event)
 	}
 
 	return curFingerprints
