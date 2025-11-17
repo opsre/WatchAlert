@@ -14,6 +14,7 @@ func BuildEvent(rule models.AlertRule, labels func() map[string]interface{}) mod
 	return models.AlertCurEvent{
 		TenantId:             rule.TenantId,
 		DatasourceType:       rule.DatasourceType,
+		RuleGroupId:          rule.RuleGroupId,
 		RuleId:               rule.RuleId,
 		RuleName:             rule.RuleName,
 		Labels:               labels(),
@@ -43,7 +44,7 @@ func PushEventToFaultCenter(ctx *ctx.Context, event *models.AlertCurEvent) {
 	event.FirstTriggerTime = cache.Alert().GetFirstTime(event.TenantId, event.FaultCenterId, event.Fingerprint)
 	event.LastEvalTime = cache.Alert().GetLastEvalTime()
 	event.LastSendTime = cache.Alert().GetLastSendTime(event.TenantId, event.FaultCenterId, event.Fingerprint)
-	event.UpgradeState = cache.Alert().GetLastUpgradeState(event.TenantId, event.FaultCenterId, event.Fingerprint)
+	event.ConfirmState = cache.Alert().GetLastConfirmState(event.TenantId, event.FaultCenterId, event.Fingerprint)
 	event.FaultCenter = cache.FaultCenter().GetFaultCenterInfo(models.BuildFaultCenterInfoCacheKey(event.TenantId, event.FaultCenterId))
 
 	// 获取当前缓存中的状态
@@ -165,7 +166,7 @@ func RecordAlertHisEvent(ctx *ctx.Context, alert models.AlertCurEvent) error {
 		LastSendTime:     alert.LastSendTime,
 		RecoverTime:      alert.RecoverTime,
 		FaultCenterId:    alert.FaultCenterId,
-		UpgradeState:     alert.UpgradeState,
+		ConfirmState:     alert.ConfirmState,
 		AlarmDuration:    alert.RecoverTime - alert.FirstTriggerTime,
 		SearchQL:         alert.SearchQL,
 	}

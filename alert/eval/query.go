@@ -122,7 +122,7 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 			event.DatasourceId = datasourceId
 			event.Fingerprint = fingerprint
 			event.Severity = ruleExpr.Severity
-			event.SearchQL = rule.PrometheusConfig.PromQL
+			event.SearchQL = fmt.Sprintf("%s %s %v", rule.PrometheusConfig.PromQL, operator, value)
 			event.ForDuration = rule.GetForDuration(ruleExpr.Severity)
 			event.Annotations = tools.ParserVariables(rule.PrometheusConfig.Annotations, tools.ConvertStructToMap(event))
 			event.Status = models.StatePreAlert

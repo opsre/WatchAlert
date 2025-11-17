@@ -5,7 +5,6 @@ import "watchAlert/internal/models"
 // RequestProcessAlertEvent 请求处理告警事件
 type RequestProcessAlertEvent struct {
 	TenantId      string   `json:"tenantId"`
-	State         int64    `json:"state"`
 	FaultCenterId string   `json:"faultCenterId"`
 	Fingerprints  []string `json:"fingerprints"`
 	Time          int64    `json:"time"`

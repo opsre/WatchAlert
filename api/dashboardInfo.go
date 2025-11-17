@@ -1,13 +1,14 @@
 package api
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/zeromicro/go-zero/core/logc"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/middleware"
 	"watchAlert/internal/models"
 	"watchAlert/internal/types"
 	"watchAlert/pkg/response"
+
+	"github.com/gin-gonic/gin"
+	"github.com/zeromicro/go-zero/core/logc"
 )
 
 type dashboardInfoController struct{}
@@ -82,17 +83,24 @@ func getUserNumber(ctx *ctx.Context) int64 {
 }
 
 // getAlertList 获取当前告警 annotations 列表
-func getAlertList(ctx *ctx.Context, faultCenter models.FaultCenter) []string {
+
+func getAlertList(ctx *ctx.Context, faultCenter models.FaultCenter) []types.AlertList {
 	events, err := ctx.Redis.Alert().GetAllEvents(models.BuildAlertEventCacheKey(faultCenter.TenantId, faultCenter.ID))
 	if err != nil {
 		return nil
 	}
 
-	var annotations []string
+	var list []types.AlertList
+	var uniq = make(map[string]struct{})
 	for _, event := range events {
-		annotations = append(annotations, event.Annotations)
+		if _, ok := uniq[event.RuleName]; ok {
+			continue
+		}
+
+		list = append(list, types.AlertList{Severity: event.Severity, RuleName: event.RuleName, FaultCenterId: event.FaultCenterId})
+		uniq[event.RuleName] = struct{}{}
 	}
-	return annotations
+	return list
 }
 
 // getAlarmDistribution 获取告警分布

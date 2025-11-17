@@ -19,6 +19,7 @@ const (
 
 type AlertCurEvent struct {
 	TenantId               string                 `json:"tenantId"`
+	RuleGroupId            string                 `json:"rule_group_id"`
 	RuleId                 string                 `json:"rule_id"`
 	RuleName               string                 `json:"rule_name"`
 	DatasourceType         string                 `json:"datasource_type"`
@@ -43,20 +44,15 @@ type AlertCurEvent struct {
 	EffectiveTime          EffectiveTime          `json:"effectiveTime" gorm:"effectiveTime;serializer:json"`
 	FaultCenterId          string                 `json:"faultCenterId"`
 	FaultCenter            FaultCenter            `json:"faultCenter" gorm:"-"`
-	UpgradeState           UpgradeState           `json:"upgradeState" gorm:"-"`
+	ConfirmState           ConfirmState           `json:"confirmState" gorm:"-"`
 	Status                 AlertStatus            `json:"status" gorm:"-"` // 事件状态
 }
 
-type UpgradeState struct {
-	IsConfirm       bool   `json:"isConfirm"`       // 是否已认领
-	ConfirmOkTime   int64  `json:"confirmOkTime"`   // 点击认领时间
-	ConfirmSendTime int64  `json:"confirmSendTime"` // 认领超时通知时间
-	WhoAreConfirm   string `json:"whoAreConfirm"`
-
-	IsHandle       bool   `json:"isHandle"`       // 是否已处理
-	HandleOkTime   int64  `json:"HandleOkTime"`   // 点击处理时间
-	HandleSendTime int64  `json:"handleSendTime"` // 处理超时通知时间
-	WhoAreHandle   string `json:"whoAreHandle"`
+type ConfirmState struct {
+	IsOk                   bool   `json:"isOk"`                   // 是否已认领
+	ConfirmActionTime      int64  `json:"confirmActionTime"`      // 点击认领时间
+	ConfirmTimeoutSendTime int64  `json:"confirmTimeoutSendTime"` // 认领超时通知时间
+	ConfirmUsername        string `json:"confirmUsername"`
 }
 
 const (

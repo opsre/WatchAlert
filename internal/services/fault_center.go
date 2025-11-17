@@ -284,7 +284,7 @@ func (f faultCenterService) calculateMTTARange(eventsList []models.AlertHisEvent
 	var ackCount int
 
 	for _, ev := range eventsList {
-		ack := ev.UpgradeState.ConfirmOkTime
+		ack := ev.ConfirmState.ConfirmActionTime
 		first := ev.FirstTriggerTime
 		if ack <= 0 || first <= 0 {
 			continue

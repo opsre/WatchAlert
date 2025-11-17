@@ -32,7 +32,7 @@ type (
 		GetEventStatus(tenantId, faultCenterId, fingerprint string) models.AlertStatus
 		GetLastFiringValue(tenantId, faultCenterId, fingerprint string) float64
 		GetEventFromCache(tenantId, faultCenterId, fingerprint string) (models.AlertCurEvent, error)
-		GetLastUpgradeState(tenantId, faultCenterId, fingerprint string) models.UpgradeState
+		GetLastConfirmState(tenantId, faultCenterId, fingerprint string) models.ConfirmState
 	}
 )
 
@@ -164,13 +164,13 @@ func (a *AlertCache) GetLastFiringValue(tenantId, faultCenterId, fingerprint str
 	return v.(float64)
 }
 
-// GetLastUpgradeState 获取最新升级策略信息
-func (a *AlertCache) GetLastUpgradeState(tenantId, faultCenterId, fingerprint string) models.UpgradeState {
+// GetLastConfirmState 获取最新告警升级认领状态
+func (a *AlertCache) GetLastConfirmState(tenantId, faultCenterId, fingerprint string) models.ConfirmState {
 	event, err := a.GetEventFromCache(tenantId, faultCenterId, fingerprint)
 	if err != nil {
-		return models.UpgradeState{}
+		return models.ConfirmState{}
 	}
-	return event.UpgradeState
+	return event.ConfirmState
 }
 
 // 封装 Redis 操作

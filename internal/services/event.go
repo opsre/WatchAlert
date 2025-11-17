@@ -44,24 +44,13 @@ func (e eventService) ProcessAlertEvent(req interface{}) (interface{}, interface
 				return
 			}
 
-			switch r.State {
-			case 1:
-				if cache.UpgradeState.IsConfirm {
-					return
-				}
-
-				cache.UpgradeState.IsConfirm = true
-				cache.UpgradeState.WhoAreConfirm = r.Username
-				cache.UpgradeState.ConfirmOkTime = r.Time
-			case 2:
-				if !cache.UpgradeState.IsConfirm && cache.UpgradeState.IsHandle {
-					return
-				}
-
-				cache.UpgradeState.IsHandle = true
-				cache.UpgradeState.WhoAreHandle = r.Username
-				cache.UpgradeState.HandleOkTime = r.Time
+			if cache.ConfirmState.IsOk {
+				return
 			}
+
+			cache.ConfirmState.IsOk = true
+			cache.ConfirmState.ConfirmUsername = r.Username
+			cache.ConfirmState.ConfirmActionTime = r.Time
 
 			e.ctx.Redis.Alert().PushAlertEvent(&cache)
 		}(fingerprint)
