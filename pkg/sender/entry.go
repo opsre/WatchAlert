@@ -2,12 +2,14 @@ package sender
 
 import (
 	"fmt"
-	"github.com/bytedance/sonic"
 	"time"
 	"watchAlert/internal/ctx"
 
-	"github.com/zeromicro/go-zero/core/logc"
+	"github.com/bytedance/sonic"
+
 	"watchAlert/internal/models"
+
+	"github.com/zeromicro/go-zero/core/logc"
 )
 
 type (
@@ -15,6 +17,7 @@ type (
 	SendParams struct {
 		// 基础
 		TenantId string
+		EventId  string
 		RuleName string
 		Severity string
 		// 通知
@@ -59,7 +62,7 @@ func Sender(ctx *ctx.Context, sendParams SendParams) error {
 	}
 
 	// 记录成功发送的日志
-	addRecord(ctx, sendParams, 0, sendParams.Content, "")
+	addRecord(ctx, sendParams, 0, sendParams.Content, "success")
 	logc.Info(ctx.Ctx, fmt.Sprintf("Send alarm ok, msg: %s", sendParams.Content))
 	return nil
 }
@@ -104,6 +107,7 @@ func senderFactory(noticeType string) (SendInter, error) {
 // addRecord 记录通知发送结果
 func addRecord(ctx *ctx.Context, sendParams SendParams, status int, msg, errMsg string) {
 	err := ctx.DB.Notice().AddRecord(models.NoticeRecord{
+		EventId:  sendParams.EventId,
 		Date:     time.Now().Format("2006-01-02"),
 		CreateAt: time.Now().Unix(),
 		TenantId: sendParams.TenantId,

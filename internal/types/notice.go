@@ -40,6 +40,7 @@ func (requestNoticeUpdate *RequestNoticeUpdate) GetDutyId() *string {
 
 type RequestNoticeQuery struct {
 	TenantId     string `json:"tenantId" form:"tenantId"`
+	EventId      string `json:"eventId" form:"eventId"`
 	Uuid         string `json:"uuid" form:"uuid"`
 	Name         string `json:"name" form:"name"`
 	NoticeTmplId string `json:"noticeTmplId" form:"noticeTmplId"`

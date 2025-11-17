@@ -39,16 +39,18 @@ func PushEventToFaultCenter(ctx *ctx.Context, event *models.AlertCurEvent) {
 	}
 
 	cache := ctx.Redis
+	cacheEvent, _ := cache.Alert().GetEventFromCache(event.TenantId, event.FaultCenterId, event.Fingerprint)
 
 	// 获取基础信息
-	event.FirstTriggerTime = cache.Alert().GetFirstTime(event.TenantId, event.FaultCenterId, event.Fingerprint)
-	event.LastEvalTime = cache.Alert().GetLastEvalTime()
-	event.LastSendTime = cache.Alert().GetLastSendTime(event.TenantId, event.FaultCenterId, event.Fingerprint)
-	event.ConfirmState = cache.Alert().GetLastConfirmState(event.TenantId, event.FaultCenterId, event.Fingerprint)
+	event.FirstTriggerTime = cacheEvent.GetFirstTime()
+	event.LastEvalTime = cacheEvent.GetLastEvalTime()
+	event.LastSendTime = cacheEvent.GetLastSendTime()
+	event.ConfirmState = cacheEvent.GetLastConfirmState()
+	event.EventId = cacheEvent.GetEventId()
 	event.FaultCenter = cache.FaultCenter().GetFaultCenterInfo(models.BuildFaultCenterInfoCacheKey(event.TenantId, event.FaultCenterId))
 
 	// 获取当前缓存中的状态
-	currentStatus := cache.Alert().GetEventStatus(event.TenantId, event.FaultCenterId, event.Fingerprint)
+	currentStatus := cacheEvent.GetEventStatus()
 
 	// 如果是新的告警事件，设置为 StatePreAlert
 	if currentStatus == "" {
@@ -152,6 +154,7 @@ func GetDutyUserPhoneNumber(ctx *ctx.Context, noticeData models.AlertNotice) []s
 func RecordAlertHisEvent(ctx *ctx.Context, alert models.AlertCurEvent) error {
 	hisData := models.AlertHisEvent{
 		TenantId:         alert.TenantId,
+		EventId:          alert.EventId,
 		DatasourceType:   alert.DatasourceType,
 		DatasourceId:     alert.DatasourceId,
 		Fingerprint:      alert.Fingerprint,

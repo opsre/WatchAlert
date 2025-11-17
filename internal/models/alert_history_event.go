@@ -2,6 +2,7 @@ package models
 
 type AlertHisEvent struct {
 	TenantId         string                 `json:"tenantId"`
+	EventId          string                 `json:"eventId"`
 	DatasourceId     string                 `json:"datasource_id" gorm:"datasource_id"`
 	DatasourceType   string                 `json:"datasource_type"`
 	Fingerprint      string                 `json:"fingerprint"`

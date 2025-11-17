@@ -127,18 +127,6 @@ func (noticeController noticeController) Get(ctx *gin.Context) {
 
 }
 
-func (noticeController noticeController) Check(ctx *gin.Context) {
-	r := new(types.RequestNoticeQuery)
-	BindQuery(ctx, r)
-
-	tid, _ := ctx.Get("TenantID")
-	r.TenantId = tid.(string)
-
-	Service(ctx, func() (interface{}, interface{}) {
-		return services.NoticeService.Check(r)
-	})
-}
-
 func (noticeController noticeController) ListRecord(ctx *gin.Context) {
 	r := new(types.RequestNoticeQuery)
 	BindQuery(ctx, r)

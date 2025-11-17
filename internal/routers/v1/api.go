@@ -1,8 +1,9 @@
 package v1
 
 import (
-	"github.com/gin-gonic/gin"
 	"watchAlert/api"
+
+	"github.com/gin-gonic/gin"
 )
 
 func Router(engine *gin.Engine) {
@@ -14,7 +15,6 @@ func Router(engine *gin.Engine) {
 			system.POST("register", api.UserController.Register)
 			system.POST("login", api.UserController.Login)
 			system.GET("checkUser", api.UserController.CheckUser)
-			system.GET("checkNoticeStatus", api.NoticeController.Check)
 			system.GET("userInfo", api.UserController.GetUserInfo)
 		}
 

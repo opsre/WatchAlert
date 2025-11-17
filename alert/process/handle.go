@@ -2,8 +2,6 @@ package process
 
 import (
 	"fmt"
-	"github.com/zeromicro/go-zero/core/logc"
-	"golang.org/x/sync/errgroup"
 	"strings"
 	"time"
 	"watchAlert/internal/ctx"
@@ -11,6 +9,9 @@ import (
 	"watchAlert/pkg/sender"
 	"watchAlert/pkg/templates"
 	"watchAlert/pkg/tools"
+
+	"github.com/zeromicro/go-zero/core/logc"
+	"golang.org/x/sync/errgroup"
 )
 
 // HandleAlert 处理告警逻辑
@@ -61,8 +62,9 @@ func HandleAlert(ctx *ctx.Context, faultCenter models.FaultCenter, noticeId stri
 				event.DutyUser = strings.Join(GetDutyUsers(ctx, noticeData), " ")
 				event.DutyUserPhoneNumber = GetDutyUserPhoneNumber(ctx, noticeData)
 				content := generateAlertContent(ctx, event, noticeData)
-				return sender.Sender(ctx, sender.SendParams{
+				err := sender.Sender(ctx, sender.SendParams{
 					TenantId:    event.TenantId,
+					EventId:     event.EventId,
 					RuleName:    event.RuleName,
 					Severity:    event.Severity,
 					NoticeType:  noticeData.NoticeType,
@@ -75,6 +77,9 @@ func HandleAlert(ctx *ctx.Context, faultCenter models.FaultCenter, noticeId stri
 					PhoneNumber: phoneNumber,
 					Sign:        Sign,
 				})
+				if err != nil {
+					logc.Error(ctx.Ctx, fmt.Sprintf("Failed to send alert: %v", err))
+				}
 			}
 			return nil
 		})

@@ -43,6 +43,7 @@ type Email struct {
 }
 
 type NoticeRecord struct {
+	EventId  string `json:"eventId"`  // 事件ID
 	Date     string `json:"date"`     // 记录日期
 	CreateAt int64  `json:"createAt"` // 记录时间
 	TenantId string `json:"tenantId"` // 租户

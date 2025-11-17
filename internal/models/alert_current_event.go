@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"time"
+	"watchAlert/pkg/tools"
 )
 
 // AlertStatus 定义状态类型
@@ -19,6 +20,7 @@ const (
 
 type AlertCurEvent struct {
 	TenantId               string                 `json:"tenantId"`
+	EventId                string                 `json:"eventId"`
 	RuleGroupId            string                 `json:"rule_group_id"`
 	RuleId                 string                 `json:"rule_id"`
 	RuleName               string                 `json:"rule_name"`
@@ -152,4 +154,43 @@ func (e StateTransitionError) Error() string {
 // IsArriveForDuration 比对持续时间
 func (alert *AlertCurEvent) IsArriveForDuration() bool {
 	return alert.LastEvalTime-alert.FirstTriggerTime > alert.ForDuration
+}
+
+// GetLastSendTime 获取故障中心事件的最后发送时间
+func (alert *AlertCurEvent) GetLastSendTime() int64 {
+	return alert.LastSendTime
+}
+
+// GetLastEvalTime 获取故障中心事件的最后评估时间
+func (alert *AlertCurEvent) GetLastEvalTime() int64 {
+	return time.Now().Unix()
+}
+
+// GetFirstTime 获取故障中心事件的首次触发时间
+func (alert *AlertCurEvent) GetFirstTime() int64 {
+	if alert.FirstTriggerTime == 0 {
+		return time.Now().Unix()
+	}
+	return alert.FirstTriggerTime
+}
+
+// GetLastConfirmState 获取最新告警升级认领状态
+func (alert *AlertCurEvent) GetLastConfirmState() ConfirmState {
+	return alert.ConfirmState
+}
+
+// GetEventStatus 获取事件状态
+func (alert *AlertCurEvent) GetEventStatus() AlertStatus {
+	if alert.Status == "" {
+		return StatePreAlert
+	}
+	return alert.Status
+}
+
+// GetEventId 获取告警事件ID
+func (alert *AlertCurEvent) GetEventId() string {
+	if alert.EventId == "" {
+		return tools.RandId()
+	}
+	return alert.EventId
 }
