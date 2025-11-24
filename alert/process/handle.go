@@ -15,7 +15,7 @@ import (
 )
 
 // HandleAlert 处理告警逻辑
-func HandleAlert(ctx *ctx.Context, faultCenter models.FaultCenter, noticeId string, alerts []*models.AlertCurEvent) error {
+func HandleAlert(ctx *ctx.Context, processType string, faultCenter models.FaultCenter, noticeId string, alerts []*models.AlertCurEvent) error {
 	curTime := time.Now().Unix()
 	g := new(errgroup.Group)
 
@@ -33,7 +33,13 @@ func HandleAlert(ctx *ctx.Context, faultCenter models.FaultCenter, noticeId stri
 	}
 
 	// 告警聚合
-	aggregationEvents := alarmAggregation(ctx, faultCenter, severityGroups)
+	var aggregationEvents map[string][]*models.AlertCurEvent
+	if processType == "alarm" {
+		aggregationEvents = alarmAggregation(ctx, processType, faultCenter, severityGroups)
+	} else {
+		aggregationEvents = severityGroups
+	}
+
 	for severity, events := range aggregationEvents {
 		g.Go(func() error {
 			if events == nil {
@@ -44,7 +50,7 @@ func HandleAlert(ctx *ctx.Context, faultCenter models.FaultCenter, noticeId stri
 			Hook, Sign := getNoticeHookUrlAndSign(noticeData, severity)
 
 			for _, event := range events {
-				if !event.IsRecovered {
+				if processType == "alarm" && !event.IsRecovered {
 					event.LastSendTime = curTime
 					ctx.Redis.Alert().PushAlertEvent(event)
 				}
@@ -89,7 +95,12 @@ func HandleAlert(ctx *ctx.Context, faultCenter models.FaultCenter, noticeId stri
 }
 
 // alarmAggregation 告警聚合
-func alarmAggregation(ctx *ctx.Context, faultCenter models.FaultCenter, alertGroups map[string][]*models.AlertCurEvent) map[string][]*models.AlertCurEvent {
+func alarmAggregation(ctx *ctx.Context, processType string, faultCenter models.FaultCenter, alertGroups map[string][]*models.AlertCurEvent) map[string][]*models.AlertCurEvent {
+	// 仅当 processType 为 "alarm" 时执行聚合
+	if processType != "alarm" {
+		return alertGroups
+	}
+
 	curTime := time.Now().Unix()
 	newAlertGroups := alertGroups
 	switch faultCenter.GetAlarmAggregationType() {
@@ -160,10 +171,34 @@ func getNoticeEmail(notice models.AlertNotice, severity string) models.Email {
 	return notice.Email
 }
 
+type WebhookContent struct {
+	Alarm     *models.AlertCurEvent `json:"alarm"`
+	DutyUsers []models.DutyUser     `json:"dutyUsers"`
+}
+
 // generateAlertContent 生成告警内容
 func generateAlertContent(ctx *ctx.Context, alert *models.AlertCurEvent, noticeData models.AlertNotice) string {
 	if noticeData.NoticeType == "CustomHook" {
-		return tools.JsonMarshalToString(alert)
+		users, ok := ctx.DB.DutyCalendar().GetDutyUserInfo(*noticeData.GetDutyId(), time.Now().Format("2006-1-2"))
+		if !ok || len(users) == 0 {
+			logc.Error(ctx.Ctx, "Failed to get duty users, noticeName: ", noticeData.Name)
+		}
+
+		var dutyUsers = []models.DutyUser{}
+		for _, user := range users {
+			dutyUsers = append(dutyUsers, models.DutyUser{
+				Email:    user.Email,
+				Mobile:   user.Phone,
+				UserId:   user.UserId,
+				Username: user.UserName,
+			})
+		}
+		content := WebhookContent{
+			Alarm:     alert,
+			DutyUsers: dutyUsers,
+		}
+
+		return tools.JsonMarshalToString(content)
 	}
 	return templates.NewTemplate(ctx, *alert, noticeData).CardContentMsg
 }

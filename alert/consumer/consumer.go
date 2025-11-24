@@ -322,7 +322,7 @@ func (c *Consume) sendAlerts(faultCenter models.FaultCenter, aggEvents *AlertGro
 func (c *Consume) processAlertGroup(faultCenter models.FaultCenter, noticeId string, alerts []*models.AlertCurEvent) {
 	g := new(errgroup.Group)
 	g.Go(func() error { return c.handleSubscribe(alerts) })
-	g.Go(func() error { return process.HandleAlert(c.ctx, faultCenter, noticeId, alerts) })
+	g.Go(func() error { return process.HandleAlert(c.ctx, "alarm", faultCenter, noticeId, alerts) })
 
 	if err := g.Wait(); err != nil {
 		logc.Error(c.ctx.Ctx, fmt.Sprintf("Alert group processing failed: %v", err))

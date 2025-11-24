@@ -185,7 +185,7 @@ func sendAggregatedAlert(ctx *ctx.Context, faultCenter models.FaultCenter, aggre
 		aggregated.Fingerprints,
 		aggregated.Timeout))
 
-	return process.HandleAlert(ctx, faultCenter, noticeId, aggregated.Events)
+	return process.HandleAlert(ctx, "upgrade", faultCenter, noticeId, aggregated.Events)
 }
 
 // getContent 生成聚合通知内容
