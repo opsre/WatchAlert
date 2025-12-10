@@ -236,6 +236,10 @@ func (c *Consume) filterAlertEvents(faultCenter models.FaultCenter, alerts map[s
 	var newEvents []*models.AlertCurEvent
 
 	for _, event := range alerts {
+		if event.Fingerprint == "" {
+			continue
+		}
+
 		// 过滤掉 预告警, 待恢复 状态的事件
 		if event.Status == models.StatePreAlert || event.Status == models.StatePendingRecovery {
 			continue

@@ -18,4 +18,5 @@ type AlertList struct {
 	RuleName      string `json:"ruleName"`
 	Severity      string `json:"severity"`
 	FaultCenterId string `json:"faultCenterId"`
+	TiggerTime    int64  `json:"tiggerTime"`
 }

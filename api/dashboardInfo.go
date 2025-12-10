@@ -97,7 +97,7 @@ func getAlertList(ctx *ctx.Context, faultCenter models.FaultCenter) []types.Aler
 			continue
 		}
 
-		list = append(list, types.AlertList{Severity: event.Severity, RuleName: event.RuleName, FaultCenterId: event.FaultCenterId})
+		list = append(list, types.AlertList{Severity: event.Severity, RuleName: event.RuleName, FaultCenterId: event.FaultCenterId, TiggerTime: event.FirstTriggerTime})
 		uniq[event.RuleName] = struct{}{}
 	}
 	return list

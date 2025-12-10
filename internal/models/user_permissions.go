@@ -363,5 +363,17 @@ func PermissionsInfo() map[string]UserPermissions {
 			Key: "删除评论",
 			API: "/api/w8t/event/deleteComment",
 		},
+		"createTopology": {
+			Key: "创建拓扑",
+			API: "/api/w8t/topology/create",
+		},
+		"updateTopology": {
+			Key: "更新拓扑",
+			API: "/api/w8t/topology/update",
+		},
+		"deleteTopology": {
+			Key: "删除拓扑",
+			API: "/api/w8t/topology/delete",
+		},
 	}
 }

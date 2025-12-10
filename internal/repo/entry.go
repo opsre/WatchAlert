@@ -1,9 +1,10 @@
 package repo
 
 import (
-	"gorm.io/gorm"
 	"watchAlert/internal/global"
 	"watchAlert/pkg/client"
+
+	"gorm.io/gorm"
 )
 
 type (
@@ -37,6 +38,7 @@ type (
 		FaultCenter() InterFaultCenterRepo
 		Ai() InterAiRepo
 		Comment() InterCommentRepo
+		Topology() InterTopologyRepo
 	}
 )
 
@@ -85,3 +87,4 @@ func (e *entryRepo) Probing() InterProbingRepo         { return newProbingRepoIn
 func (e *entryRepo) FaultCenter() InterFaultCenterRepo { return newInterFaultCenterRepo(e.db, e.g) }
 func (e *entryRepo) Ai() InterAiRepo                   { return newAiRepoInterface(e.db, e.g) }
 func (e *entryRepo) Comment() InterCommentRepo         { return newCommentInterface(e.db, e.g) }
+func (e *entryRepo) Topology() InterTopologyRepo       { return newInterTopologyRepo(e.db, e.g) }
