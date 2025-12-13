@@ -7,6 +7,7 @@ type AlertDataSource struct {
 	Labels           map[string]interface{} `json:"labels" gorm:"labels;serializer:json"` // 额外标签，会添加到事件Metric中，可用于区分数据来源；
 	Type             string                 `json:"type"`
 	HTTP             HTTP                   `json:"http" gorm:"http;serializer:json"`
+	Write            Write                  `json:"write" gorm:"write;serializer:json"`
 	Auth             Auth                   `json:"Auth" gorm:"auth;serializer:json"`
 	DsAliCloudConfig DsAliCloudConfig       `json:"dsAliCloudConfig" gorm:"dsAliCloudConfig;serializer:json"`
 	AWSCloudWatch    AWSCloudWatch          `json:"awsCloudwatch" gorm:"awsCloudwatch;serializer:json"`
@@ -16,6 +17,11 @@ type AlertDataSource struct {
 	UpdateBy         string                 `json:"updateBy"`
 	UpdateAt         int64                  `json:"updateAt"`
 	Enabled          *bool                  `json:"enabled" `
+}
+
+type Write struct {
+	Enabled string `json:"enabled" `
+	URL     string `json:"url"`
 }
 
 type HTTP struct {

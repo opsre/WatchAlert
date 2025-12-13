@@ -37,7 +37,6 @@ func (probingController probingController) API(gin *gin.RouterGroup) {
 	{
 		b.GET("listProbing", probingController.List)
 		b.GET("searchProbing", probingController.Search)
-		b.GET("getProbingHistory", probingController.GetHistory)
 	}
 
 	c := gin.Group("probing")
@@ -129,15 +128,6 @@ func (probingController probingController) Once(ctx *gin.Context) {
 
 	Service(ctx, func() (interface{}, interface{}) {
 		return services.ProbingService.Once(r)
-	})
-}
-
-func (probingController probingController) GetHistory(ctx *gin.Context) {
-	r := new(types.RequestProbingHistoryRecord)
-	BindQuery(ctx, r)
-
-	Service(ctx, func() (interface{}, interface{}) {
-		return services.ProbingService.GetHistory(r)
 	})
 }
 

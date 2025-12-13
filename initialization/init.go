@@ -13,7 +13,6 @@ import (
 	"watchAlert/internal/repo"
 	"watchAlert/internal/services"
 	"watchAlert/pkg/ai"
-	"watchAlert/pkg/tools"
 
 	"github.com/zeromicro/go-zero/core/logc"
 	"golang.org/x/sync/errgroup"
@@ -41,9 +40,6 @@ func InitBasic() {
 
 	// 导入数据源 Client 到存储池
 	importClientPools(ctx)
-
-	// 定时任务，清理历史通知记录和历史拨测数据
-	go gcHistoryData(ctx)
 
 	// 加载静默规则
 	go pushMuteRuleToRedis()
@@ -93,26 +89,6 @@ func importClientPools(ctx *ctx.Context) {
 			return nil
 		})
 	}
-}
-
-func gcHistoryData(ctx *ctx.Context) {
-	// gc probe history data and notice history record
-	tools.NewCronjob("00 00 */1 * *", func() {
-		err := ctx.DB.Probing().DeleteRecord()
-		if err != nil {
-			logc.Errorf(ctx.Ctx, "fail to delete probe history data, %s", err.Error())
-		} else {
-			logc.Info(ctx.Ctx, "success delete probe history data")
-		}
-
-		err = ctx.DB.Notice().DeleteRecord()
-		if err != nil {
-			logc.Errorf(ctx.Ctx, "fail to delete notice history record, %s", err.Error())
-		} else {
-			logc.Info(ctx.Ctx, "success delete notice history record")
-		}
-	})
-
 }
 
 func pushMuteRuleToRedis() {

@@ -2,10 +2,10 @@ package repo
 
 import (
 	"context"
+	"watchAlert/internal/models"
+
 	"github.com/zeromicro/go-zero/core/logc"
 	"gorm.io/gorm"
-	"time"
-	"watchAlert/internal/models"
 )
 
 type (
@@ -14,14 +14,11 @@ type (
 	}
 
 	InterProbingRepo interface {
-		Create(d models.ProbingRule) error
-		Update(d models.ProbingRule) error
+		Create(d models.ProbeRule) error
+		Update(d models.ProbeRule) error
 		Delete(tenantId, ruleId string) error
-		List(tenantId, ruleType, query string) ([]models.ProbingRule, error)
-		Search(tenantId, ruleId string) (models.ProbingRule, error)
-		AddRecord(history models.ProbingHistory) error
-		GetRecord(ruleId string, dateRange int64) ([]models.ProbingHistory, error)
-		DeleteRecord() error
+		List(tenantId, ruleType, query string) ([]models.ProbeRule, error)
+		Search(tenantId, ruleId string) (models.ProbeRule, error)
 		ChangeState(tenantId, ruleId string, state *bool) error
 	}
 )
@@ -35,9 +32,9 @@ func newProbingRepoInterface(db *gorm.DB, g InterGormDBCli) InterProbingRepo {
 	}
 }
 
-func (p ProbingRepo) Create(d models.ProbingRule) error {
+func (p ProbingRepo) Create(d models.ProbeRule) error {
 
-	err := p.g.Create(models.ProbingRule{}, d)
+	err := p.g.Create(models.ProbeRule{}, d)
 	if err != nil {
 		logc.Errorf(context.Background(), err.Error())
 		return err
@@ -45,9 +42,9 @@ func (p ProbingRepo) Create(d models.ProbingRule) error {
 	return nil
 }
 
-func (p ProbingRepo) Update(d models.ProbingRule) error {
+func (p ProbingRepo) Update(d models.ProbeRule) error {
 	u := Updates{
-		Table: &models.ProbingRule{},
+		Table: &models.ProbeRule{},
 		Where: map[string]interface{}{
 			"tenant_id = ?": d.TenantId,
 			"rule_id = ?":   d.RuleId,
@@ -64,7 +61,7 @@ func (p ProbingRepo) Update(d models.ProbingRule) error {
 
 func (p ProbingRepo) Delete(tenantId, ruleId string) error {
 	del := Delete{
-		Table: &models.ProbingRule{},
+		Table: &models.ProbeRule{},
 		Where: map[string]interface{}{
 			"tenant_id = ?": tenantId,
 			"rule_id = ?":   ruleId,
@@ -78,10 +75,10 @@ func (p ProbingRepo) Delete(tenantId, ruleId string) error {
 	return nil
 }
 
-func (p ProbingRepo) List(tenantId, ruleType, query string) ([]models.ProbingRule, error) {
+func (p ProbingRepo) List(tenantId, ruleType, query string) ([]models.ProbeRule, error) {
 	var (
-		data []models.ProbingRule
-		db   = p.db.Model(&models.ProbingRule{})
+		data []models.ProbeRule
+		db   = p.db.Model(&models.ProbeRule{})
 	)
 
 	db.Where("tenant_id = ?", tenantId)
@@ -102,10 +99,10 @@ func (p ProbingRepo) List(tenantId, ruleType, query string) ([]models.ProbingRul
 	return data, nil
 }
 
-func (p ProbingRepo) Search(tenantId, ruleId string) (models.ProbingRule, error) {
+func (p ProbingRepo) Search(tenantId, ruleId string) (models.ProbeRule, error) {
 	var (
-		data models.ProbingRule
-		db   = p.db.Model(&models.ProbingRule{})
+		data models.ProbeRule
+		db   = p.db.Model(&models.ProbeRule{})
 	)
 
 	if tenantId != "" {
@@ -123,59 +120,6 @@ func (p ProbingRepo) Search(tenantId, ruleId string) (models.ProbingRule, error)
 	return data, nil
 }
 
-func (p ProbingRepo) AddRecord(history models.ProbingHistory) error {
-	err := p.g.Create(models.ProbingHistory{}, history)
-	if err != nil {
-		logc.Errorf(context.Background(), err.Error())
-		return err
-	}
-	return nil
-}
-
-func (p ProbingRepo) GetRecord(ruleId string, dateRange int64) ([]models.ProbingHistory, error) {
-	var (
-		data []models.ProbingHistory
-		db   = p.db.Model(&models.ProbingHistory{})
-	)
-
-	// 计算起始时间戳（秒）
-	now := time.Now().Unix()
-	startTime := now - dateRange
-
-	db.Where("rule_id = ?", ruleId).
-		Where("timestamp BETWEEN ? AND ?", startTime, now)
-
-	err := db.Find(&data).Error
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return data, nil
-		}
-		return data, err
-	}
-
-	return data, nil
-}
-
-func (p ProbingRepo) DeleteRecord() error {
-	var saveDays int64 = 3600 * 24
-
-	now := time.Now().Unix()
-	startTime := now - saveDays
-
-	del := Delete{
-		Table: &models.ProbingHistory{},
-		Where: map[string]interface{}{
-			"timestamp < ?": startTime,
-		},
-	}
-	err := p.g.Delete(del)
-	if err != nil {
-		logc.Errorf(context.Background(), err.Error())
-		return err
-	}
-	return nil
-}
-
 func (p ProbingRepo) ChangeState(tenantId, ruleId string, state *bool) error {
-	return p.db.Model(&models.ProbingRule{}).Where("tenant_id = ? AND rule_id = ?", tenantId, ruleId).Update("enabled", state).Error
+	return p.db.Model(&models.ProbeRule{}).Where("tenant_id = ? AND rule_id = ?", tenantId, ruleId).Update("enabled", state).Error
 }

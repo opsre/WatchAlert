@@ -347,10 +347,6 @@ func PermissionsInfo() map[string]UserPermissions {
 			Key: "认领/处理告警",
 			API: "/api/w8t/event/processAlertEvent",
 		},
-		"getProbingHistory": {
-			Key: "获取拨测历史详情",
-			API: "/api/w8t/probing/getProbingHistory",
-		},
 		"listComments": {
 			Key: "查看评论",
 			API: "/api/w8t/event/listComments",

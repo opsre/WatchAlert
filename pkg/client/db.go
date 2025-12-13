@@ -3,12 +3,13 @@ package client
 import (
 	"context"
 	"fmt"
+	"watchAlert/internal/global"
+	"watchAlert/internal/models"
+
 	"github.com/zeromicro/go-zero/core/logc"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-	"watchAlert/internal/global"
-	"watchAlert/internal/models"
 )
 
 type DBConfig struct {
@@ -63,10 +64,9 @@ func NewDBClient(config DBConfig) *gorm.DB {
 		&models.DashboardFolders{},
 		&models.AlertSubscribe{},
 		&models.NoticeRecord{},
-		&models.ProbingRule{},
+		&models.ProbeRule{},
 		&models.FaultCenter{},
 		&models.AiContentRecord{},
-		&models.ProbingHistory{},
 		&models.Comment{},
 		&models.Topology{},
 	)

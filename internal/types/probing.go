@@ -9,10 +9,7 @@ type RequestProbingRuleCreate struct {
 	RuleType              string                       `json:"ruleType"`
 	RepeatNoticeInterval  int64                        `json:"repeatNoticeInterval"`
 	ProbingEndpointConfig models.ProbingEndpointConfig `json:"probingEndpointConfig" `
-	ProbingEndpointValues models.ProbingEndpointValues `json:"probingEndpointValues" `
-	NoticeId              string                       `json:"noticeId"`
-	Annotations           string                       `json:"annotations"`
-	RecoverNotify         *bool                        `json:"recoverNotify"`
+	DatasourceId          string                       `json:"datasourceId"`
 	UpdateAt              int64                        `json:"updateAt"`
 	UpdateBy              string                       `json:"updateBy"`
 	Enabled               *bool                        `json:"enabled" `
@@ -34,10 +31,7 @@ type RequestProbingRuleUpdate struct {
 	RuleType              string                       `json:"ruleType"`
 	RepeatNoticeInterval  int64                        `json:"repeatNoticeInterval"`
 	ProbingEndpointConfig models.ProbingEndpointConfig `json:"probingEndpointConfig" `
-	ProbingEndpointValues models.ProbingEndpointValues `json:"probingEndpointValues" `
-	NoticeId              string                       `json:"noticeId"`
-	Annotations           string                       `json:"annotations"`
-	RecoverNotify         *bool                        `json:"recoverNotify"`
+	DatasourceId          string                       `json:"datasourceId"`
 	UpdateAt              int64                        `json:"updateAt"`
 	UpdateBy              string                       `json:"updateBy"`
 	Enabled               *bool                        `json:"enabled" `
@@ -64,12 +58,6 @@ type RequestProbingRuleQuery struct {
 type RequestProbingOnce struct {
 	RuleType              string                       `json:"ruleType"`
 	ProbingEndpointConfig models.ProbingEndpointConfig `json:"probingEndpointConfig"`
-}
-
-// RequestProbingHistoryRecord 获取历史拨测记录
-type RequestProbingHistoryRecord struct {
-	RuleId    string `json:"ruleId" form:"ruleId"`
-	DateRange int64  `json:"dateRange" form:"dateRange"`
 }
 
 // RequestProbeChangeState 修改拨测规则状态

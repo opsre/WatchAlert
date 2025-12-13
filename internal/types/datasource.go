@@ -17,6 +17,7 @@ type RequestDatasourceCreate struct {
 	Labels           map[string]interface{}    `json:"labels"` // 额外标签，会添加到事件Metric中，可用于区分数据来源；
 	Type             string                    `json:"type"`
 	HTTP             models.HTTP               `json:"http"`
+	Write            models.Write              `json:"write" gorm:"write;serializer:json"`
 	Auth             models.Auth               `json:"Auth"`
 	DsAliCloudConfig models.DsAliCloudConfig   `json:"dsAliCloudConfig" `
 	AWSCloudWatch    models.AWSCloudWatch      `json:"awsCloudwatch" `
@@ -34,6 +35,7 @@ type RequestDatasourceUpdate struct {
 	Labels           map[string]interface{}    `json:"labels" ` // 额外标签，会添加到事件Metric中，可用于区分数据来源；
 	Type             string                    `json:"type"`
 	HTTP             models.HTTP               `json:"http"`
+	Write            models.Write              `json:"write" gorm:"write;serializer:json"`
 	Auth             models.Auth               `json:"Auth"`
 	DsAliCloudConfig models.DsAliCloudConfig   `json:"dsAliCloudConfig" `
 	AWSCloudWatch    models.AWSCloudWatch      `json:"awsCloudwatch" `

@@ -4,7 +4,7 @@ import (
 	"context"
 	"watchAlert/alert/consumer"
 	"watchAlert/alert/eval"
-	"watchAlert/alert/probing"
+	probing "watchAlert/alert/probe"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/global"
 	"watchAlert/pkg/client"
@@ -17,8 +17,7 @@ var (
 	AlertRule    eval.AlertRuleEval
 	ConsumerWork consumer.ConsumeInterface
 
-	ProductProbing probing.ProductProbing
-	ConsumeProbing probing.ConsumeProbing
+	Probe *probing.ProbeService
 
 	// Leader 选举器
 	LeaderElector *tools.LeaderElector
@@ -36,8 +35,7 @@ func Initialize(ctx *ctx.Context) {
 	ConsumerWork = consumer.NewConsumerWork(ctx)
 
 	// 初始化拨测任务
-	ConsumeProbing = probing.NewProbingConsumerTask(ctx)
-	ProductProbing = probing.NewProbingTask(ctx)
+	Probe = probing.NewProbeService(ctx)
 
 	// 检查 Leader 选举是否启用
 	leaderElectionEnabled = global.Config.Server.EnableElection
@@ -69,7 +67,9 @@ func loadRules() {
 	ConsumerWork.RestartAllConsumers()
 
 	// 重启所有拨测任务
-	ProductProbing.RePushRule(&ConsumeProbing)
+	if err := Probe.RePushRule(); err != nil {
+		logc.Errorf(ctx.Ctx, "重启拨测任务失败: %v", err)
+	}
 
 	// 启动 Redis 消息订阅，监听规则变更
 	startMessageSubscribers()
@@ -168,24 +168,31 @@ func handleProbingReload(msg tools.ReloadMessage) {
 	switch msg.Action {
 	case tools.ActionCreate, tools.ActionEnable:
 		if rule.Enabled != nil && *rule.Enabled {
-			ProductProbing.Add(rule)
-			ConsumeProbing.Add(rule)
-			logc.Infof(ctx.Ctx, "[Leader] 已启动拨测任务: %s", msg.Name)
+			if err := Probe.Add(rule); err != nil {
+				logc.Errorf(ctx.Ctx, "[Leader] 启动拨测任务失败: %s, err: %v", msg.Name, err)
+			} else {
+				logc.Infof(ctx.Ctx, "[Leader] 已启动拨测任务: %s", msg.Name)
+			}
 		}
 
 	case tools.ActionUpdate:
-		ProductProbing.Stop(msg.ID)
-		ConsumeProbing.Stop(msg.ID)
+		if err := Probe.Stop(msg.ID); err != nil {
+			logc.Errorf(ctx.Ctx, "[Leader] 停止拨测任务失败: %s, err: %v", msg.Name, err)
+		}
 		if rule.Enabled != nil && *rule.Enabled {
-			ProductProbing.Add(rule)
-			ConsumeProbing.Add(rule)
-			logc.Infof(ctx.Ctx, "[Leader] 已重启拨测任务: %s", msg.Name)
+			if err := Probe.Add(rule); err != nil {
+				logc.Errorf(ctx.Ctx, "[Leader] 重启拨测任务失败: %s, err: %v", msg.Name, err)
+			} else {
+				logc.Infof(ctx.Ctx, "[Leader] 已重启拨测任务: %s", msg.Name)
+			}
 		}
 
 	case tools.ActionDelete, tools.ActionDisable:
-		ProductProbing.Stop(msg.ID)
-		ConsumeProbing.Stop(msg.ID)
-		logc.Infof(ctx.Ctx, "[Leader] 已停止拨测任务: %s", msg.Name)
+		if err := Probe.Stop(msg.ID); err != nil {
+			logc.Errorf(ctx.Ctx, "[Leader] 停止拨测任务失败: %s, err: %v", msg.Name, err)
+		} else {
+			logc.Infof(ctx.Ctx, "[Leader] 已停止拨测任务: %s", msg.Name)
+		}
 	}
 }
 
@@ -203,8 +210,9 @@ func unloadRules() {
 	ConsumerWork.StopAllConsumers()
 
 	// 停止所有拨测任务
-	ProductProbing.StopAllTasks()
-	ConsumeProbing.StopAllTasks()
+	if err := Probe.StopAll(); err != nil {
+		logc.Errorf(ctx.Ctx, "停止所有拨测任务失败: %v", err)
+	}
 }
 
 // IsLeader 判断节点角色
