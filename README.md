@@ -82,10 +82,10 @@ WatchAlert 是一款专为云原生环境设计 的轻量级监控告警引擎�
 
 | ![Login](assets/login.png) | ![Home](assets/home.png)            |
 |:--------------------------:|------------------------------|
-|    ![rules](assets/rules.png)     | ![img.png](assets/faultcenter.png)  |
-|   ![notice](assets/notice.png)    | ![duty](assets/duty.png)            |
-|  ![probing](assets/probing.png)   | ![datasource](assets/datasource.png) |
-|     ![user](assets/user.png)      | ![log](assets/log.png)              |
+|    ![rule](assets/rule.png)     | ![faultcenter](assets/faultcenter.png)  |
+|   ![topology](assets/topology.png)    | ![duty](assets/duty.png)           |
+|  ![probe](assets/probe.png)   | ![datasource](assets/datasource.png)|
+|   ![tenant](assets/tenant.png)      | ![notity](assets/notify.png)             |
 
 ## 🎸 支持
 - 如果你觉得 WatchAlert 还不错，可以通过 Star 来表示你的喜欢
