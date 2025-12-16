@@ -23,9 +23,9 @@ func (topologyController topologyController) API(gin *gin.RouterGroup) {
 		middleware.AuditingLog(),
 	)
 	{
-		a.POST("create", topologyController.Create)
-		a.POST("update", topologyController.Update)
-		a.POST("delete", topologyController.Delete)
+		a.POST("createTopology", topologyController.Create)
+		a.POST("updateTopology", topologyController.Update)
+		a.POST("deleteTopology", topologyController.Delete)
 	}
 
 	b := gin.Group("topology")
@@ -34,8 +34,8 @@ func (topologyController topologyController) API(gin *gin.RouterGroup) {
 		middleware.ParseTenant(),
 	)
 	{
-		b.GET("list", topologyController.List)
-		b.GET("getDetail", topologyController.GetDetail)
+		b.GET("listTopology", topologyController.List)
+		b.GET("getTopologyDetail", topologyController.GetDetail)
 	}
 }
 
