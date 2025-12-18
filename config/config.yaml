@@ -3,13 +3,18 @@ Server:
   # release / debug / test
   mode: "release"
 
-MySQL:
+Database:
+  # 数据库类型: mysql 或 sqlite (默认: mysql)
+  type: mysql
+  # MySQL 配置 (当 type 为 mysql 时使用)
   host: w8t-mysql
   port: 3306
   user: root
   pass: w8t.123
   dbName: watchalert
   timeout: 10s
+  # SQLite 配置 (当 type 为 sqlite 时使用)
+  path: data/w8t.db
 
 Redis:
   host: w8t-redis

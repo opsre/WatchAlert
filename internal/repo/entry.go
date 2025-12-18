@@ -43,14 +43,16 @@ type (
 )
 
 func NewRepoEntry() InterEntryRepo {
-	sql := global.Config.MySQL
+	dbConfig := global.Config.Database
 	db := client.NewDBClient(client.DBConfig{
-		Host:    sql.Host,
-		Port:    sql.Port,
-		User:    sql.User,
-		Pass:    sql.Pass,
-		DBName:  sql.DBName,
-		Timeout: sql.Timeout,
+		Type:    dbConfig.Type,
+		Host:    dbConfig.Host,
+		Port:    dbConfig.Port,
+		User:    dbConfig.User,
+		Pass:    dbConfig.Pass,
+		DBName:  dbConfig.DBName,
+		Timeout: dbConfig.Timeout,
+		Path:    dbConfig.Path,
 	})
 	g := NewInterGormDBCli(db)
 	return &entryRepo{
