@@ -8,9 +8,9 @@ import (
 	"watchAlert/internal/global"
 	"watchAlert/internal/models"
 
+	"github.com/glebarez/sqlite"
 	"github.com/zeromicro/go-zero/core/logc"
 	"gorm.io/driver/mysql"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
