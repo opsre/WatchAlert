@@ -32,8 +32,6 @@ type (
 		Email models.Email
 		// 消息
 		Content string
-		// 电话号码
-		PhoneNumber []string
 		// 签名
 		Sign string `json:"sign,omitempty"`
 	}
@@ -93,10 +91,8 @@ func senderFactory(noticeType string) (SendInter, error) {
 		return NewDingSender(), nil
 	case "WeChat":
 		return NewWeChatSender(), nil
-	case "CustomHook":
+	case "WebHook":
 		return NewWebHookSender(), nil
-	case "PhoneCall":
-		return NewPhoneCallSender(), nil
 	case "Slack":
 		return NewSlackSender(), nil
 	default:
@@ -113,7 +109,7 @@ func addRecord(ctx *ctx.Context, sendParams SendParams, status int, msg, errMsg 
 		TenantId: sendParams.TenantId,
 		RuleName: sendParams.RuleName,
 		NType:    sendParams.NoticeType,
-		NObj:     sendParams.NoticeName + " (" + sendParams.NoticeId + ")",
+		NObj:     sendParams.NoticeId,
 		Severity: sendParams.Severity,
 		Status:   status,
 		AlarmMsg: msg,

@@ -9,9 +9,10 @@ type Template struct {
 	CardContentMsg string
 }
 
-func NewTemplate(ctx *ctx.Context, alert models.AlertCurEvent, notice models.AlertNotice) Template {
-	noticeTmpl := ctx.DB.NoticeTmpl().Get(notice.NoticeTmplId)
-	switch notice.NoticeType {
+// NewTemplate 创建模板
+func NewTemplate(ctx *ctx.Context, alert models.AlertCurEvent, route models.Route) Template {
+	noticeTmpl := ctx.DB.NoticeTmpl().Get(route.NoticeTmplId)
+	switch route.NoticeType {
 	case "FeiShu":
 		return Template{CardContentMsg: feishuTemplate(alert, noticeTmpl)}
 	case "DingDing":
@@ -23,7 +24,7 @@ func NewTemplate(ctx *ctx.Context, alert models.AlertCurEvent, notice models.Ale
 	case "PhoneCall":
 		return Template{CardContentMsg: phoneCallTemplate(alert, noticeTmpl)}
 	case "Slack":
-		return Template{slackTemplate(alert, noticeTmpl)}
+		return Template{CardContentMsg: slackTemplate(alert, noticeTmpl)}
 	}
 
 	return Template{}

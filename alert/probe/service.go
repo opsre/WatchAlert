@@ -257,7 +257,7 @@ func (s *ProbeService) getOrCreateWriter(datasourceId string) (MetricsWriter, er
 	}
 
 	// 检查数据源是否启用
-	if !*datasource.GetEnabled() || datasource.Write.Enabled == "Off" {
+	if !datasource.GetEnabled() || datasource.Write.Enabled == "Off" {
 		logc.Infof(s.ctx.Ctx, "数据源 %s 已禁用或未开启写入，跳过指标写入", datasourceId)
 		return nil, nil
 	}

@@ -66,10 +66,10 @@ type AWSCloudWatch struct {
 //	Value  []interface{}          `json:"value"`
 //}
 
-func (d *AlertDataSource) GetEnabled() *bool {
+func (d *AlertDataSource) GetEnabled() bool {
 	if d.Enabled == nil {
 		isOk := false
-		return &isOk
+		return isOk
 	}
-	return d.Enabled
+	return *d.Enabled
 }

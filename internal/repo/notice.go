@@ -23,7 +23,7 @@ type (
 		Update(r models.AlertNotice) error
 		Delete(tenantId, id string) error
 		AddRecord(r models.NoticeRecord) error
-		ListRecord(tenantId, eventId, severity, status, query string, page models.Page) (models.ResponseNoticeRecords, error)
+		ListRecord(tenantId, eventId, severity, status, noticeId, query string, page models.Page) (models.ResponseNoticeRecords, error)
 		CountRecord(r models.CountRecord) (int64, error)
 		DeleteRecord() error
 	}
@@ -150,7 +150,7 @@ func (nr NoticeRepo) AddRecord(r models.NoticeRecord) error {
 	return nil
 }
 
-func (nr NoticeRepo) ListRecord(tenantId, eventId, severity, status, query string, page models.Page) (models.ResponseNoticeRecords, error) {
+func (nr NoticeRepo) ListRecord(tenantId, eventId, severity, status, noticeId, query string, page models.Page) (models.ResponseNoticeRecords, error) {
 	var (
 		records []models.NoticeRecord
 		count   int64
@@ -166,6 +166,9 @@ func (nr NoticeRepo) ListRecord(tenantId, eventId, severity, status, query strin
 	}
 	if status != "" {
 		db.Where("status = ?", status)
+	}
+	if noticeId != "" {
+		db.Where("n_obj LIKE ?", "%"+noticeId+"%")
 	}
 	if query != "" {
 		db.Where("rule_name LIKE ? OR alarm_msg LIKE ? OR err_msg LIKE ?", "%"+query+"%", "%"+query+"%", "%"+query+"%")

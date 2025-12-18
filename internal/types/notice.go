@@ -3,32 +3,20 @@ package types
 import "watchAlert/internal/models"
 
 type RequestNoticeCreate struct {
-	TenantId     string         `json:"tenantId"`
-	Name         string         `json:"name"`
-	DutyId       *string        `json:"dutyId"`
-	NoticeType   string         `json:"noticeType"`
-	NoticeTmplId string         `json:"noticeTmplId"`
-	DefaultHook  string         `json:"hook" gorm:"column:hook"`
-	DefaultSign  string         `json:"sign" gorm:"column:sign"`
-	Routes       []models.Route `json:"routes" gorm:"column:routes;serializer:json"`
-	Email        models.Email   `json:"email" gorm:"email;serializer:json"`
-	PhoneNumber  []string       `json:"phoneNumber" gorm:"phoneNumber;serializer:json"`
-	UpdateBy     string         `json:"updateBy"`
+	TenantId string         `json:"tenantId"`
+	Name     string         `json:"name"`
+	DutyId   *string        `json:"dutyId"`
+	Routes   []models.Route `json:"routes" gorm:"column:routes;serializer:json"`
+	UpdateBy string         `json:"updateBy"`
 }
 
 type RequestNoticeUpdate struct {
-	TenantId     string         `json:"tenantId"`
-	Uuid         string         `json:"uuid"`
-	Name         string         `json:"name"`
-	DutyId       *string        `json:"dutyId"`
-	NoticeType   string         `json:"noticeType"`
-	NoticeTmplId string         `json:"noticeTmplId"`
-	DefaultHook  string         `json:"hook" gorm:"column:hook"`
-	DefaultSign  string         `json:"sign" gorm:"column:sign"`
-	Routes       []models.Route `json:"routes" gorm:"column:routes;serializer:json"`
-	Email        models.Email   `json:"email" gorm:"email;serializer:json"`
-	PhoneNumber  []string       `json:"phoneNumber" gorm:"phoneNumber;serializer:json"`
-	UpdateBy     string         `json:"updateBy"`
+	TenantId string         `json:"tenantId"`
+	Uuid     string         `json:"uuid"`
+	Name     string         `json:"name"`
+	DutyId   *string        `json:"dutyId"`
+	Routes   []models.Route `json:"routes" gorm:"column:routes;serializer:json"`
+	UpdateBy string         `json:"updateBy"`
 }
 
 func (requestNoticeUpdate *RequestNoticeUpdate) GetDutyId() *string {
@@ -51,9 +39,8 @@ type RequestNoticeQuery struct {
 }
 
 type RequestNoticeTest struct {
-	NoticeType  string         `json:"noticeType"`
-	DefaultHook string         `json:"hook"`
-	DefaultSign string         `json:"sign"`
-	Routes      []models.Route `json:"routes"`
-	Email       models.Email   `json:"email"`
+	NoticeType string       `json:"noticeType"`
+	Hook       string       `json:"hook"`
+	Sign       string       `json:"sign"`
+	Email      models.Email `json:"email"`
 }

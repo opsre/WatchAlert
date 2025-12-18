@@ -2,6 +2,7 @@ package process
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 	"watchAlert/internal/ctx"
@@ -46,47 +47,53 @@ func HandleAlert(ctx *ctx.Context, processType string, faultCenter models.FaultC
 				return nil
 			}
 
-			// 获取当前事件等级对应的 Hook 和 Sign
-			Hook, Sign := getNoticeHookUrlAndSign(noticeData, severity)
-
+			// 获取当前事件等级对应的路由配置
+			routes := getNoticeRoutes(noticeData, severity)
 			for _, event := range events {
 				if processType == "alarm" && !event.IsRecovered {
 					event.LastSendTime = curTime
 					ctx.Redis.Alert().PushAlertEvent(event)
 				}
 
-				phoneNumber := func() []string {
-					if len(event.DutyUserPhoneNumber) > 0 {
-						return event.DutyUserPhoneNumber
-					}
-					if len(noticeData.PhoneNumber) > 0 {
-						return noticeData.PhoneNumber
-					}
-					return []string{}
-				}()
+				if len(routes) == 0 {
+					logc.Infof(ctx.Ctx, "没用匹配的通知策略, 告警事件名称: %s, 通知对象名称: %s", event.RuleName, noticeData.Name)
+				}
 
-				event.DutyUser = strings.Join(GetDutyUsers(ctx, noticeData), " ")
-				event.DutyUserPhoneNumber = GetDutyUserPhoneNumber(ctx, noticeData)
-				content := generateAlertContent(ctx, event, noticeData)
-				err := sender.Sender(ctx, sender.SendParams{
-					TenantId:    event.TenantId,
-					EventId:     event.EventId,
-					RuleName:    event.RuleName,
-					Severity:    event.Severity,
-					NoticeType:  noticeData.NoticeType,
-					NoticeId:    noticeId,
-					NoticeName:  noticeData.Name,
-					IsRecovered: event.IsRecovered,
-					Hook:        Hook,
-					Email:       getNoticeEmail(noticeData, severity),
-					Content:     content,
-					PhoneNumber: phoneNumber,
-					Sign:        Sign,
-				})
-				if err != nil {
-					logc.Error(ctx.Ctx, fmt.Sprintf("Failed to send alert: %v", err))
+				for _, route := range routes {
+					// 设置值班用户信息
+					event.DutyUser = strings.Join(GetDutyUsers(ctx, noticeData, route.NoticeType), " ")
+
+					// 生成告警内容
+					content := generateAlertContent(ctx, event, noticeData, route)
+
+					// 构建邮件信息
+					email := models.Email{
+						Subject: route.Subject,
+						To:      route.To,
+						CC:      route.CC,
+					}
+
+					// 发送告警
+					err := sender.Sender(ctx, sender.SendParams{
+						TenantId:    event.TenantId,
+						EventId:     event.EventId,
+						RuleName:    event.RuleName,
+						Severity:    event.Severity,
+						NoticeType:  route.NoticeType,
+						NoticeId:    noticeId,
+						NoticeName:  noticeData.Name,
+						IsRecovered: event.IsRecovered,
+						Hook:        route.Hook,
+						Email:       email,
+						Content:     content,
+						Sign:        route.Sign,
+					})
+					if err != nil {
+						logc.Error(ctx.Ctx, fmt.Sprintf("Failed to send alert: %v", err))
+					}
 				}
 			}
+
 			return nil
 		})
 	}
@@ -143,32 +150,18 @@ func getNoticeData(ctx *ctx.Context, tenantId, noticeId string) (models.AlertNot
 	return ctx.DB.Notice().Get(tenantId, noticeId)
 }
 
-// getNoticeHookUrlAndSign 获取事件等级对应的 Hook 和 Sign
-func getNoticeHookUrlAndSign(notice models.AlertNotice, severity string) (string, string) {
-	if notice.Routes != nil {
-		for _, hook := range notice.Routes {
-			if hook.Severity == severity {
-				return hook.Hook, hook.Sign
-			}
-		}
-	}
-	return notice.DefaultHook, notice.DefaultSign
-}
-
-// getNoticeEmail 获取事件等级对应的 Email
-func getNoticeEmail(notice models.AlertNotice, severity string) models.Email {
+// getNoticeRoutes 获取事件等级对应的路由配置
+func getNoticeRoutes(notice models.AlertNotice, severity string) []models.Route {
+	var routes []models.Route
 	if notice.Routes != nil {
 		for _, route := range notice.Routes {
-			if route.Severity == severity {
-				return models.Email{
-					Subject: notice.Email.Subject,
-					To:      route.To,
-					CC:      route.CC,
-				}
+			if slices.Contains(route.Severitys, severity) {
+				routes = append(routes, route)
 			}
 		}
 	}
-	return notice.Email
+
+	return routes
 }
 
 type WebhookContent struct {
@@ -177,8 +170,8 @@ type WebhookContent struct {
 }
 
 // generateAlertContent 生成告警内容
-func generateAlertContent(ctx *ctx.Context, alert *models.AlertCurEvent, noticeData models.AlertNotice) string {
-	if noticeData.NoticeType == "CustomHook" {
+func generateAlertContent(ctx *ctx.Context, alert *models.AlertCurEvent, noticeData models.AlertNotice, route models.Route) string {
+	if route.NoticeType == "WebHook" {
 		users, ok := ctx.DB.DutyCalendar().GetDutyUserInfo(*noticeData.GetDutyId(), time.Now().Format("2006-1-2"))
 		if !ok || len(users) == 0 {
 			logc.Error(ctx.Ctx, "Failed to get duty users, noticeName: ", noticeData.Name)
@@ -200,5 +193,7 @@ func generateAlertContent(ctx *ctx.Context, alert *models.AlertCurEvent, noticeD
 
 		return tools.JsonMarshalToString(content)
 	}
-	return templates.NewTemplate(ctx, *alert, noticeData).CardContentMsg
+
+	// 使用新的模板系统
+	return templates.NewTemplate(ctx, *alert, route).CardContentMsg
 }

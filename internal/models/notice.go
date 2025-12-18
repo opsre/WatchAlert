@@ -1,19 +1,13 @@
 package models
 
 type AlertNotice struct {
-	TenantId     string   `json:"tenantId"`
-	Uuid         string   `json:"uuid"`
-	Name         string   `json:"name"`
-	DutyId       *string  `json:"dutyId"`
-	NoticeType   string   `json:"noticeType"`
-	NoticeTmplId string   `json:"noticeTmplId"`
-	DefaultHook  string   `json:"hook" gorm:"column:hook"`
-	DefaultSign  string   `json:"sign" gorm:"column:sign"`
-	Routes       []Route  `json:"routes" gorm:"column:routes;serializer:json"`
-	Email        Email    `json:"email" gorm:"email;serializer:json"`
-	PhoneNumber  []string `json:"phoneNumber" gorm:"phoneNumber;serializer:json"`
-	UpdateAt     int64    `json:"updateAt"`
-	UpdateBy     string   `json:"updateBy"`
+	TenantId string  `json:"tenantId"`
+	Uuid     string  `json:"uuid"`
+	Name     string  `json:"name"`
+	DutyId   *string `json:"dutyId"`
+	Routes   []Route `json:"routes" gorm:"column:routes;serializer:json"`
+	UpdateAt int64   `json:"updateAt"`
+	UpdateBy string  `json:"updateBy"`
 }
 
 func (alertNotice *AlertNotice) GetDutyId() *string {
@@ -24,12 +18,18 @@ func (alertNotice *AlertNotice) GetDutyId() *string {
 }
 
 type Route struct {
+	// 通知类型
+	NoticeType string `json:"noticeType"`
+	// 通知模版 ID
+	NoticeTmplId string `json:"noticeTmplId"`
 	// 告警等级
-	Severity string `json:"severity"`
+	Severitys []string `json:"severitys"`
 	// WebHook
 	Hook string `json:"hook"`
 	// 签名
 	Sign string `json:"sign"`
+	// 邮件主题
+	Subject string `json:"subject"`
 	// 收件人
 	To []string `json:"to" gorm:"column:to;serializer:json"`
 	// 抄送人

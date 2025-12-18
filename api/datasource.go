@@ -151,6 +151,11 @@ func (datasourceController datasourceController) PromQuery(ctx *gin.Context) {
 			if err != nil {
 				return nil, err
 			}
+
+			if !source.GetEnabled() {
+				return nil, fmt.Errorf("数据源「%s」已被禁用!", source.Name)
+			}
+
 			fullURL := fmt.Sprintf("%s%s?%s", source.HTTP.URL, path, params.Encode())
 			get, err := tools.Get(tools.CreateBasicAuthHeader(source.Auth.User, source.Auth.Pass), fullURL, 10)
 			if err != nil {
@@ -195,6 +200,11 @@ func (datasourceController datasourceController) PromQueryRange(ctx *gin.Context
 			if err != nil {
 				return nil, err
 			}
+
+			if !source.GetEnabled() {
+				return nil, fmt.Errorf("数据源「%s」已被禁用!", source.Name)
+			}
+
 			fullURL := fmt.Sprintf("%s%s?%s", source.HTTP.URL, path, params.Encode())
 			get, err := tools.Get(tools.CreateBasicAuthHeader(source.Auth.User, source.Auth.Pass), fullURL, 10)
 			if err != nil {

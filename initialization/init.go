@@ -77,7 +77,7 @@ func importClientPools(ctx *ctx.Context) {
 	g := new(errgroup.Group)
 	for _, datasource := range list {
 		ds := datasource
-		if !*ds.GetEnabled() {
+		if !ds.GetEnabled() {
 			continue
 		}
 		g.Go(func() error {

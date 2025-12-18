@@ -2,13 +2,14 @@ package consumer
 
 import (
 	"fmt"
-	"github.com/zeromicro/go-zero/core/logc"
 	"strings"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
 	"watchAlert/pkg/sender"
 	"watchAlert/pkg/templates"
 	"watchAlert/pkg/tools"
+
+	"github.com/zeromicro/go-zero/core/logc"
 )
 
 type toUser struct {
@@ -85,7 +86,7 @@ func sendToSubscribeUser(ctx *ctx.Context, alert models.AlertCurEvent, toUsers [
 				// 释放信号量
 				<-sem
 			}()
-			emailTemp := templates.NewTemplate(ctx, alert, models.AlertNotice{NoticeType: "Email", NoticeTmplId: u.NoticeTemplateId})
+			emailTemp := templates.NewTemplate(ctx, alert, models.Route{NoticeType: "Email", NoticeTmplId: u.NoticeTemplateId})
 			err := sender.NewEmailSender().Send(sender.SendParams{
 				IsRecovered: alert.IsRecovered,
 				Email: models.Email{
