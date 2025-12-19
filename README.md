@@ -89,83 +89,18 @@ WatchAlert 是一款专为云原生环境设计 的轻量级监控告警引擎�
 
 ## 🏆 感谢赞助者
 
-感谢以下朋友对 WatchAlert 项目的支持与赞助，向下滑动看更多：
-<div style="max-height: 300px; overflow-y: auto; border: 1px solid #000000ff; border-radius: 8px; padding: 15px; background-color: #000000ff;">
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px;">
-    <!-- 赞助者 -->
-    <div style="text-align: center; padding: 10px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-      <img src="https://avatars.githubusercontent.com/u/9?v=4" width="50" style="border-radius: 50%; border: 2px solid #28a745;" alt="赞助者" />
-      <br />
-      <sub style="color: #000000ff; font-weight: bold;"><b>蜘蛛侠</b></sub>
-      <br />
-      <sub style="color: #28a745; font-weight: bold;">¥168.09</sub>
-    </div>
-    <!-- 赞助者 -->
-    <div style="text-align: center; padding: 10px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-      <img src="https://avatars.githubusercontent.com/u/9?v=4" width="50" style="border-radius: 50%; border: 2px solid #28a745;" alt="赞助者" />
-      <br />
-      <sub style="color: #000000ff; font-weight: bold;"><b>迷吧</b></sub>
-      <br />
-      <sub style="color: #28a745; font-weight: bold;">¥133.32</sub>
-    </div>
-    <!-- 赞助者 -->
-    <div style="text-align: center; padding: 10px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-      <img src="https://avatars.githubusercontent.com/u/9?v=4" width="50" style="border-radius: 50%; border: 2px solid #28a745;" alt="赞助者" />
-      <br />
-      <sub style="color: #000000ff; font-weight: bold;"><b>予清</b></sub>
-      <br />
-      <sub style="color: #28a745; font-weight: bold;">¥100</sub>
-    </div>
-    <!-- 赞助者 -->
-    <div style="text-align: center; padding: 10px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-      <img src="https://avatars.githubusercontent.com/u/9?v=4" width="50" style="border-radius: 50%; border: 2px solid #28a745;" alt="赞助者" />
-      <br />
-      <sub style="color: #000000ff; font-weight: bold;"><b>J.</b></sub>
-      <br />
-      <sub style="color: #28a745; font-weight: bold;">一台服务器</sub>
-    </div>
-    <!-- 赞助者 -->
-    <div style="text-align: center; padding: 10px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-      <img src="https://avatars.githubusercontent.com/u/9?v=4" width="50" style="border-radius: 50%; border: 2px solid #28a745;" alt="赞助者" />
-      <br />
-      <sub style="color: #000000ff; font-weight: bold;"><b>srebro</b></sub>
-      <br />
-      <sub style="color: #28a745; font-weight: bold;">¥100</sub>
-    </div>
-    <!-- 赞助者 -->
-    <div style="text-align: center; padding: 10px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-      <img src="https://avatars.githubusercontent.com/u/9?v=4" width="50" style="border-radius: 50%; border: 2px solid #28a745;" alt="赞助者" />
-      <br />
-      <sub style="color: #000000ff; font-weight: bold;"><b>刘亦菲-许昌分菲</b></sub>
-      <br />
-      <sub style="color: #28a745; font-weight: bold;">¥20</sub>
-    </div>
-    <!-- 赞助者 -->
-    <div style="text-align: center; padding: 10px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-      <img src="https://avatars.githubusercontent.com/u/9?v=4" width="50" style="border-radius: 50%; border: 2px solid #28a745;" alt="赞助者" />
-      <br />
-      <sub style="color: #000000ff; font-weight: bold;"><b>DoubleDouble</b></sub>
-      <br />
-      <sub style="color: #28a745; font-weight: bold;">¥8</sub>
-    </div>
-    <!-- 赞助者 -->
-    <div style="text-align: center; padding: 10px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-      <img src="https://avatars.githubusercontent.com/u/9?v=4" width="50" style="border-radius: 50%; border: 2px solid #28a745;" alt="赞助者" />
-      <br />
-      <sub style="color: #000000ff; font-weight: bold;"><b>大白、同学</b></sub>
-      <br />
-      <sub style="color: #28a745; font-weight: bold;">¥10</sub>
-    </div>
-    <!-- 赞助者 -->
-    <div style="text-align: center; padding: 10px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-      <img src="https://avatars.githubusercontent.com/u/9?v=4" width="50" style="border-radius: 50%; border: 2px solid #28a745;" alt="赞助者" />
-      <br />
-      <sub style="color: #000000ff; font-weight: bold;"><b>三味线</b></sub>
-      <br />
-      <sub style="color: #28a745; font-weight: bold;">¥10</sub>
-    </div>
-  </div>
-</div>
+感谢以下朋友对 WatchAlert 项目的支持与赞助：
+| 赞助人 |   价值  |  
+|:-------:|:-------:|
+| 蜘蛛侠 | ¥168.09 |
+| 迷吧 | ¥133.32 |
+| 予清 | ¥100 |
+| J. | 一台服务器 |
+| srebro | ¥100 |
+| 刘亦菲-许昌分菲 | ¥20 |
+| DoubleDouble | ¥8 |
+| 大白、同学 | ¥10 |
+| 三味线 | ¥10 |
 
 > 💝 如果你也想出现在这里，欢迎通过上方赞赏按钮进行打赏，并在备注中留下你的 GitHub 用户名或昵称！
 
