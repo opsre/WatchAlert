@@ -25,7 +25,7 @@ func InitPermissionsSQL(ctx *ctx.Context) {
 
 func InitUserRolesSQL(ctx *ctx.Context) {
 	var adminRole models.UserRole
-	var db = ctx.DB.DB().Model(&models.UserRole{})
+	var db = ctx.DB.DB()
 
 	roles := models.UserRole{
 		ID:          "admin",
@@ -35,10 +35,10 @@ func InitUserRolesSQL(ctx *ctx.Context) {
 		UpdateAt:    time.Now().Unix(),
 	}
 
-	err := db.Where("name = ?", "admin").First(&adminRole).Error
+	err := db.Model(&models.UserRole{}).Where("name = ?", "admin").First(&adminRole).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			err = ctx.DB.DB().Create(&roles).Error
+			err = db.Create(&roles).Error
 		}
 	} else {
 		err = db.Where("name = ?", "admin").Updates(models.UserRole{Permissions: perms}).Error
