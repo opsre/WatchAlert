@@ -88,7 +88,8 @@ WatchAlert 是一款专为云原生环境设计 的轻量级监控告警引擎�
 
 ## 🏆 感谢赞助者
 
-[前往查看](./sponsors-alternative.md)
+- [前往查看](./sponsors-alternative.md)
+- 欢迎通过项目顶部的 "**Sponsor**" 按钮支持我们！
 
 ## 🎸 支持
 - 如果你觉得 WatchAlert 还不错，可以通过 Star 来表示你的喜欢
