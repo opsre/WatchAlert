@@ -44,6 +44,10 @@
   <a href="#"><img src="https://avatars.githubusercontent.com/u/1?v=4" width="60" style="border-radius: 50%;"/></a><br/>
   <sub><b>三味线</b></sub>
 </td>
+<td align="center" width="120">
+  <a href="#"><img src="https://avatars.githubusercontent.com/u/1?v=4" width="60" style="border-radius: 50%;"/></a><br/>
+  <sub><b>张有为</b></sub>
+</td>
 </tr>
 </table>
 
