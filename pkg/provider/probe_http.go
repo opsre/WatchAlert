@@ -39,11 +39,11 @@ func (h HTTPer) PilotWithMetrics(option EndpointOption, ruleInfo ProbeRuleInfo) 
 
 	// 创建基础标签
 	baseLabels := map[string]any{
-		"tenant_id": ruleInfo.TenantID,
-		"rule_id":   ruleInfo.RuleID,
-		"rule_name": ruleInfo.RuleName,
-		"rule_type": ruleInfo.RuleType,
-		"endpoint":  ruleInfo.Endpoint,
+		"tenant_id":  ruleInfo.TenantID,
+		"probe_id":   ruleInfo.RuleID,
+		"probe_name": ruleInfo.RuleName,
+		"probe_type": ruleInfo.RuleType,
+		"endpoint":   ruleInfo.Endpoint,
 	}
 
 	// 添加HTTP特定标签

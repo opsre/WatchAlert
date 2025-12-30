@@ -105,6 +105,18 @@ func (s *ProbeService) GetActiveRules() int {
 	return len(s.watchCtxMap)
 }
 
+func (s *ProbeService) ResetWriteCache(datasourceId string, writer MetricsWriter) {
+	s.writerCacheMu.Lock()
+	s.writerCache[datasourceId] = writer
+	s.writerCacheMu.Unlock()
+}
+
+func (s *ProbeService) DeleteWriteCache(datasourceId string) {
+	s.writerCacheMu.Lock()
+	delete(s.writerCache, datasourceId)
+	s.writerCacheMu.Unlock()
+}
+
 // runProbing 运行拨测
 func (s *ProbeService) runProbing(ctx context.Context, rule models.ProbeRule) {
 	timer := time.NewTicker(time.Second * time.Duration(rule.ProbingEndpointConfig.Strategy.EvalInterval))

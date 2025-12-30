@@ -56,12 +56,12 @@ func (p Pinger) PilotWithMetrics(option EndpointOption, ruleInfo ProbeRuleInfo) 
 
 	// 创建基础标签
 	baseLabels := map[string]any{
-		"tenant_id": ruleInfo.TenantID,
-		"rule_id":   ruleInfo.RuleID,
-		"rule_name": ruleInfo.RuleName,
-		"rule_type": ruleInfo.RuleType,
-		"endpoint":  ruleInfo.Endpoint,
-		"ip_addr":   detail.IPAddr,
+		"tenant_id":  ruleInfo.TenantID,
+		"rule_id":    ruleInfo.RuleID,
+		"probe_name": ruleInfo.RuleName,
+		"probe_type": ruleInfo.RuleType,
+		"endpoint":   ruleInfo.Endpoint,
+		"ip_addr":    detail.IPAddr,
 	}
 
 	// 创建ICMP指标
@@ -122,12 +122,12 @@ func (p Pinger) PilotWithMetrics(option EndpointOption, ruleInfo ProbeRuleInfo) 
 // createFailureMetrics 创建失败时的指标
 func (p Pinger) createFailureMetrics(ruleInfo ProbeRuleInfo, timestamp int64, errorMsg string) []ProbeMetric {
 	baseLabels := map[string]any{
-		"tenant_id": ruleInfo.TenantID,
-		"rule_id":   ruleInfo.RuleID,
-		"rule_name": ruleInfo.RuleName,
-		"rule_type": ruleInfo.RuleType,
-		"endpoint":  ruleInfo.Endpoint,
-		"error":     errorMsg,
+		"tenant_id":  ruleInfo.TenantID,
+		"probe_id":   ruleInfo.RuleID,
+		"probe_name": ruleInfo.RuleName,
+		"probe_type": ruleInfo.RuleType,
+		"endpoint":   ruleInfo.Endpoint,
+		"error":      errorMsg,
 	}
 
 	return []ProbeMetric{
