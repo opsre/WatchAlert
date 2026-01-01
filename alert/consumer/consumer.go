@@ -250,6 +250,12 @@ func (c *Consume) filterAlertEvents(faultCenter models.FaultCenter, alerts map[s
 			if event.Status == models.StateRecovered {
 				c.ctx.Redis.Alert().RemoveAlertEvent(event.TenantId, event.FaultCenterId, event.Fingerprint)
 			}
+
+			// 如果是在静默范围内，但当前状态是非静默状态，则更新该告警为静默状态
+			if event.Status != models.StateSilenced {
+				event.TransitionStatus(models.StateSilenced)
+				c.ctx.Redis.Alert().PushAlertEvent(event)
+			}
 			continue
 		}
 

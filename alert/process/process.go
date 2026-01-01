@@ -80,7 +80,7 @@ func PushEventToFaultCenter(ctx *ctx.Context, event *models.AlertCurEvent) {
 	case models.StateSilenced:
 		// 如果不再静默，转换回预告警状态
 		if !isSilenced {
-			event.TransitionStatus(models.StatePreAlert)
+			event.TransitionStatus(models.StateAlerting)
 		}
 	}
 
