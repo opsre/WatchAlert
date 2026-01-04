@@ -27,6 +27,7 @@ type InterRuleService interface {
 	Get(req interface{}) (interface{}, interface{})
 	ChangeStatus(req interface{}) (interface{}, interface{})
 	Import(req interface{}) (interface{}, interface{})
+	Change(req interface{}) (interface{}, interface{})
 }
 
 func newInterRuleService(ctx *ctx.Context) InterRuleService {
@@ -399,6 +400,119 @@ func (rs ruleService) Import(req interface{}) (interface{}, interface{}) {
 		if err != nil {
 			logc.Errorf(rs.ctx.Ctx, err.Error())
 			continue
+		}
+	}
+
+	return nil, nil
+}
+
+func (rs ruleService) Change(req interface{}) (interface{}, interface{}) {
+	r := req.(*types.RequestRuleChange)
+
+	if len(r.RuleIds) == 0 {
+		return nil, fmt.Errorf("rule_ids 不能为空")
+	}
+
+	if len(r.Change) == 0 {
+		return nil, fmt.Errorf("change 参数不能为空")
+	}
+
+	// 遍历所有要更新的规则ID
+	for _, ruleId := range r.RuleIds {
+		// 获取当前规则
+		rule := models.AlertRule{}
+		err := rs.ctx.DB.DB().Model(&models.AlertRule{}).
+			Where("tenant_id = ? AND rule_id = ?", r.TenantId, ruleId).
+			First(&rule).Error
+		if err != nil {
+			return nil, fmt.Errorf("获取规则失败, ruleId: %s, error: %v", ruleId, err)
+		}
+
+		rule.UpdateAt = time.Now().Unix()
+		rule.UpdateBy = r.UpdateBy
+
+		// 根据 change 参数动态更新字段
+		for field, value := range r.Change {
+			switch field {
+			case "rule_group_id":
+				if v, ok := value.(string); ok {
+					rule.RuleGroupId = v
+				} else {
+					return nil, fmt.Errorf("字段 %s 的值类型错误", field)
+				}
+				break
+			case "datasource_ids":
+				if v, ok := value.([]interface{}); ok {
+					var datasourceIds []string
+					for _, val := range v {
+						datasourceIds = append(datasourceIds, fmt.Sprintf("%v", val))
+					}
+					rule.DatasourceIdList = datasourceIds
+				} else if v, ok := value.([]string); ok {
+					rule.DatasourceIdList = v
+				} else {
+					return nil, fmt.Errorf("字段 %s 的值类型错误", field)
+				}
+				break
+			case "fault_center_id":
+				if v, ok := value.(string); ok {
+					rule.FaultCenterId = v
+				} else {
+					return nil, fmt.Errorf("필드 %s 의 값 타입이 잘못되었습니다", field)
+				}
+				break
+			case "enabled":
+				if v, ok := value.(bool); ok {
+					isEnabled := v
+					rule.Enabled = &isEnabled
+				} else {
+					return nil, fmt.Errorf("필드 %s 의 값 타입이 잘못되었습니다", field)
+				}
+				break
+			default:
+				return nil, fmt.Errorf("지원되지 않는 필드: %s", field)
+			}
+		}
+
+		// 데이터베이스 업데이트
+		err = rs.ctx.DB.Rule().Update(rule)
+		if err != nil {
+			return nil, fmt.Errorf("규칙 업데이트 실패, ruleId: %s, 오류: %v", ruleId, err)
+		}
+
+		// 규칙 활성화 상태에 따라 적절한 처리
+		if *rule.Enabled {
+			if alert.IsLeader() {
+				// 리더: 기존 평가 고루틴을 중지하고 새로운 것을 시작합니다
+				alert.AlertRule.Stop(ruleId)
+				alert.AlertRule.Submit(rule)
+			} else {
+				tools.PublishReloadMessage(rs.ctx.Ctx, client.Redis, tools.ChannelRuleReload, tools.ReloadMessage{
+					Action:   tools.ActionUpdate,
+					ID:       rule.RuleId,
+					TenantID: rule.TenantId,
+					Name:     rule.RuleName,
+				})
+			}
+		} else {
+			// 删除缓存
+			fingerprints := rs.ctx.Redis.Alert().GetFingerprintsByRuleId(r.TenantId, rule.FaultCenterId, rule.RuleId)
+			for _, fingerprint := range fingerprints {
+				rs.ctx.Redis.Alert().RemoveAlertEvent(r.TenantId, rule.FaultCenterId, fingerprint)
+			}
+
+			if alert.IsLeader() {
+				// 리더: 평가 고루틴 중지
+				alert.AlertRule.Stop(ruleId)
+			} else {
+				// 팔로워: 비활성화 메시지를 발행하여 리더에게 알림
+				tools.PublishReloadMessage(rs.ctx.Ctx, client.Redis, tools.ChannelRuleReload, tools.ReloadMessage{
+					Action:   tools.ActionDisable,
+					ID:       rule.RuleId,
+					TenantID: rule.TenantId,
+					Name:     rule.RuleName,
+				})
+			}
 		}
 	}
 

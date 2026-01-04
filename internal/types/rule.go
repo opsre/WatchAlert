@@ -144,3 +144,11 @@ func (r Rule) GetEnable() *bool {
 	var enable = false
 	return &enable
 }
+
+// RequestRuleChange 请求修改规则的任意字段
+type RequestRuleChange struct {
+	TenantId string                 `json:"tenantId"`
+	RuleIds  []string               `json:"rule_ids"`
+	Change   map[string]interface{} `json:"change"`
+	UpdateBy string                 `json:"updateBy"`
+}
