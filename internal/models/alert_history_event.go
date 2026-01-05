@@ -6,6 +6,7 @@ type AlertHisEvent struct {
 	DatasourceId     string                 `json:"datasource_id" gorm:"datasource_id"`
 	DatasourceType   string                 `json:"datasource_type"`
 	Fingerprint      string                 `json:"fingerprint"`
+	RuleGroupId      string                 `json:"rule_group_id"`
 	RuleId           string                 `json:"rule_id"`
 	RuleName         string                 `json:"rule_name"`
 	Severity         string                 `json:"severity"`

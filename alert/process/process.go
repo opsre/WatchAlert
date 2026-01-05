@@ -140,6 +140,7 @@ func GetDutyUsers(ctx *ctx.Context, noticeData models.AlertNotice, noticeType st
 func RecordAlertHisEvent(ctx *ctx.Context, alert models.AlertCurEvent) error {
 	hisData := models.AlertHisEvent{
 		TenantId:         alert.TenantId,
+		RuleGroupId:      alert.RuleGroupId,
 		EventId:          alert.EventId,
 		DatasourceType:   alert.DatasourceType,
 		DatasourceId:     alert.DatasourceId,
