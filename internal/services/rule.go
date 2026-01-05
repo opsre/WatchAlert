@@ -445,9 +445,18 @@ func (rs ruleService) Change(req interface{}) (interface{}, interface{}) {
 				if v, ok := value.([]interface{}); ok {
 					var datasourceIds []string
 					for _, val := range v {
+						ds, err := rs.ctx.DB.Datasource().Get(val.(string))
+						if err != nil {
+							logc.Errorf(rs.ctx.Ctx, "获取数据源信息错误, id: %s, error: %v", val.(string), err)
+						}
+						if ds.Type != rule.DatasourceType {
+							continue
+						}
 						datasourceIds = append(datasourceIds, fmt.Sprintf("%v", val))
 					}
-					rule.DatasourceIdList = datasourceIds
+					if len(datasourceIds) != 0 {
+						rule.DatasourceIdList = datasourceIds
+					}
 				} else if v, ok := value.([]string); ok {
 					rule.DatasourceIdList = v
 				} else {
