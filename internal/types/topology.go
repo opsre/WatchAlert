@@ -29,10 +29,16 @@ type RequestTopologyQuery struct {
 	ID       string `form:"id"`
 	Name     string `form:"name"`
 	Query    string `form:"query"`
+	models.Page
 }
 
 // RequestTopologyDelete 请求删除拓扑图
 type RequestTopologyDelete struct {
 	TenantId string `json:"tenantId"`
 	ID       string `json:"id"`
+}
+
+type ResponseTopologyList struct {
+	List []models.TopologyList `json:"list"`
+	models.Page
 }

@@ -1,8 +1,9 @@
 package repo
 
 import (
-	"gorm.io/gorm"
 	"watchAlert/internal/models"
+
+	"gorm.io/gorm"
 )
 
 type (
@@ -14,7 +15,7 @@ type (
 		Create(params models.Topology) error
 		Update(params models.Topology) error
 		Delete(tenantId, id string) error
-		List(tenantId, query string) ([]models.TopologyList, error)
+		List(tenantId, query string, page models.Page) ([]models.TopologyList, int64, error)
 		Get(tenantId, id string) (models.Topology, error)
 		GetDetail(tenantId, id string) (models.Topology, error)
 	}
@@ -68,10 +69,11 @@ func (t topologyRepo) Delete(tenantId, id string) error {
 	return nil
 }
 
-func (t topologyRepo) List(tenantId, query string) ([]models.TopologyList, error) {
+func (t topologyRepo) List(tenantId, query string, page models.Page) ([]models.TopologyList, int64, error) {
 	var (
-		data []models.TopologyList
-		db   = t.db.Model(&models.Topology{})
+		data  []models.TopologyList
+		db    = t.db.Model(&models.Topology{})
+		count int64
 	)
 
 	if tenantId != "" {
@@ -81,12 +83,14 @@ func (t topologyRepo) List(tenantId, query string) ([]models.TopologyList, error
 		db.Where("name LIKE ? OR id LIKE ?", "%"+query+"%", "%"+query+"%")
 	}
 
+	db.Count(&count)
+	db.Limit(int(page.Size)).Offset(int((page.Index - 1) * page.Size))
 	err := db.Find(&data).Error
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	return data, nil
+	return data, count, nil
 }
 
 func (t topologyRepo) Get(tenantId, id string) (models.Topology, error) {

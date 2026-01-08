@@ -86,11 +86,19 @@ func (t topologyService) Delete(req interface{}) (data interface{}, err interfac
 
 func (t topologyService) List(req interface{}) (data interface{}, err interface{}) {
 	r := req.(*types.RequestTopologyQuery)
-	data, err = t.ctx.DB.Topology().List(r.TenantId, r.Query)
+	list, count, err := t.ctx.DB.Topology().List(r.TenantId, r.Query, r.Page)
 	if err != nil {
 		return nil, err
 	}
-	return data, nil
+
+	return types.ResponseTopologyList{
+		List: list,
+		Page: models.Page{
+			Total: count,
+			Index: r.Page.Index,
+			Size:  r.Page.Size,
+		},
+	}, nil
 }
 
 // GetDetail 获取拓扑的完整信息，包括nodes和edges
