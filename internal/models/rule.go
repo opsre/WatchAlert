@@ -1,5 +1,9 @@
 package models
 
+import (
+	"fmt"
+)
+
 type AlertRule struct {
 	//gorm.Model
 	TenantId             string            `json:"tenantId"`
@@ -10,7 +14,6 @@ type AlertRule struct {
 	DatasourceIdList     []string          `json:"datasourceId" gorm:"datasourceId;serializer:json"`
 	RuleName             string            `json:"ruleName"`
 	EvalInterval         int64             `json:"evalInterval"`
-	EvalTimeType         string            `json:"evalTimeType"` // second, millisecond
 	RepeatNoticeInterval int64             `json:"repeatNoticeInterval"`
 	Description          string            `json:"description"`
 	EffectiveTime        EffectiveTime     `json:"effectiveTime" gorm:"effectiveTime;serializer:json"`
@@ -172,4 +175,11 @@ func (a *AlertRule) GetForDuration(severity string) int64 {
 		}
 	}
 	return 0
+}
+
+func (t *AlertRule) Validate() error {
+	if t.EvalInterval < 5 {
+		return fmt.Errorf("EvalInterval must be greater than 5")
+	}
+	return nil
 }

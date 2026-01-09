@@ -10,7 +10,6 @@ type RequestRuleCreate struct {
 	DatasourceIdList     []string                   `json:"datasourceId"`
 	RuleName             string                     `json:"ruleName"`
 	EvalInterval         int64                      `json:"evalInterval"`
-	EvalTimeType         string                     `json:"evalTimeType"` // second, millisecond
 	RepeatNoticeInterval int64                      `json:"repeatNoticeInterval"`
 	Description          string                     `json:"description"`
 	EffectiveTime        models.EffectiveTime       `json:"effectiveTime"`
@@ -47,7 +46,6 @@ type RequestRuleUpdate struct {
 	DatasourceIdList     []string                   `json:"datasourceId"`
 	RuleName             string                     `json:"ruleName"`
 	EvalInterval         int64                      `json:"evalInterval"`
-	EvalTimeType         string                     `json:"evalTimeType"` // second, millisecond
 	RepeatNoticeInterval int64                      `json:"repeatNoticeInterval"`
 	Description          string                     `json:"description"`
 	EffectiveTime        models.EffectiveTime       `json:"effectiveTime"`

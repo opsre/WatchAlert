@@ -30,10 +30,6 @@ const (
 	DatasourceTypeCloudWatch      = "CloudWatch"
 	DatasourceTypeKubernetesEvent = "KubernetesEvent"
 
-	// 时间类型
-	TimeTypeMillisecond = "millisecond"
-	TimeTypeSecond      = "second"
-
 	// 默认恢复等待时间
 	DefaultRecoverWaitTime = 1
 
@@ -103,8 +99,14 @@ func (t *AlertRule) Restart(rule models.AlertRule) {
 }
 
 func (t *AlertRule) Eval(ctx context.Context, rule models.AlertRule) {
+	err := rule.Validate()
+	if err != nil {
+		logc.Errorf(t.ctx.Ctx, fmt.Sprintf("Rule validation failed, RuleName: %s, RuleId: %s, Error: %v", rule.RuleName, rule.RuleId, err))
+		return
+	}
+
 	taskChan := make(chan struct{}, TaskChannelBufferSize)
-	timer := time.NewTicker(t.getEvalTimeDuration(rule.EvalTimeType, rule.EvalInterval))
+	timer := time.NewTicker(t.getEvalTimeDuration(rule.EvalInterval))
 	defer func() {
 		timer.Stop()
 		if r := recover(); r != nil {
@@ -125,7 +127,7 @@ func (t *AlertRule) Eval(ctx context.Context, rule models.AlertRule) {
 			logc.Infof(t.ctx.Ctx, fmt.Sprintf("停止 RuleId: %v, RuleName: %s 的 Watch 协程", rule.RuleId, rule.RuleName))
 			return
 		}
-		timer.Reset(t.getEvalTimeDuration(rule.EvalTimeType, rule.EvalInterval))
+		timer.Reset(t.getEvalTimeDuration(rule.EvalInterval))
 	}
 }
 
@@ -214,13 +216,8 @@ func (t *AlertRule) processSingleDatasource(dsId string, rule models.AlertRule) 
 }
 
 // getEvalTimeDuration 获取评估时间间隔
-func (t *AlertRule) getEvalTimeDuration(evalTimeType string, evalInterval int64) time.Duration {
-	switch evalTimeType {
-	case TimeTypeMillisecond:
-		return time.Duration(evalInterval) * time.Millisecond
-	default:
-		return time.Duration(evalInterval) * time.Second
-	}
+func (t *AlertRule) getEvalTimeDuration(evalInterval int64) time.Duration {
+	return time.Duration(evalInterval) * time.Second
 }
 
 func (t *AlertRule) Recover(tenantId, ruleId string, eventCacheKey models.AlertEventCacheKey, faultCenterInfoKey models.FaultCenterInfoCacheKey, curFingerprints []string) {
