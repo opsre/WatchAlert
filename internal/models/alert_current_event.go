@@ -77,9 +77,6 @@ func (alert *AlertCurEvent) TransitionStatus(newStatus AlertStatus) error {
 		return err
 	}
 
-	// 更新状态
-	alert.Status = newStatus
-
 	return nil
 }
 
@@ -120,19 +117,20 @@ func (alert *AlertCurEvent) validateTransition(newState AlertStatus) error {
 func (alert *AlertCurEvent) handleStateTransition(newState AlertStatus) error {
 	now := time.Now().Unix()
 
+	// 更新状态
+	alert.Status = newState
+
 	switch newState {
 	case StatePreAlert:
 		alert.FirstTriggerTime = now
 		alert.LastEvalTime = now
+
 	case StateAlerting:
 	case StateRecovered:
-		if alert.IsRecovered == true && alert.Status == StateRecovered {
-			return nil
-		}
-
 		alert.LastSendTime = 0
 		alert.RecoverTime = now
 		alert.IsRecovered = true
+
 	case StateSilenced:
 	}
 

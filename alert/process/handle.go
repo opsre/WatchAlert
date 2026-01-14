@@ -128,19 +128,16 @@ func withRuleGroupByAlerts(ctx *ctx.Context, timeInt int64, alerts []*models.Ale
 		return alerts
 	}
 
-	var aggregatedAlert *models.AlertCurEvent
 	for i := range alerts {
 		alert := alerts[i]
-		if !strings.Contains(alert.Annotations, "聚合") {
-			alert.Annotations += fmt.Sprintf("\n聚合 %d 条告警\n", len(alerts))
-		}
-		aggregatedAlert = alert
-
 		if !alert.IsRecovered {
 			alert.LastSendTime = timeInt
 			ctx.Redis.Alert().PushAlertEvent(alert)
 		}
 	}
+
+	aggregatedAlert := alerts[0]
+	aggregatedAlert.Annotations += fmt.Sprintf("\n聚合 %d 条消息，详情请前往 WatchAlert 查看\n", len(alerts))
 
 	return []*models.AlertCurEvent{aggregatedAlert}
 }

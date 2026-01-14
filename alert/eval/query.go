@@ -145,7 +145,7 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 				// 更新恢复时最新值
 				cache, err := ctx.Redis.Alert().GetEventFromCache(event.TenantId, event.FaultCenterId, event.Fingerprint)
 				if err == nil {
-					if !cache.IsRecovered || cache.Status != models.StateRecovered {
+					if !cache.IsRecovered && cache.Status != models.StateRecovered {
 						event.Labels["value"] = v.GetValue()
 						process.PushEventToFaultCenter(ctx, &event)
 					}
