@@ -31,7 +31,7 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 
 	cli, err := pools.GetClient(datasourceId)
 	if err != nil {
-		logc.Errorf(ctx.Ctx, err.Error())
+		logc.Errorf(ctx.Ctx, "获取数据源客户端失败, 规则ID: %s, 规则名称: %s, 数据源ID: %s, 错误: %v", rule.RuleId, rule.RuleName, datasourceId, err)
 		return nil
 	}
 
@@ -39,7 +39,7 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 	case provider.PrometheusDsProvider:
 		resQuery, err = cli.(provider.PrometheusProvider).Query(rule.PrometheusConfig.PromQL)
 		if err != nil {
-			logc.Error(ctx.Ctx, err.Error())
+			logc.Errorf(ctx.Ctx, "Prometheus查询失败, 规则ID: %s, 规则名称: %s, 数据源ID: %s, PromQL: %s, 错误: %v", rule.RuleId, rule.RuleName, datasourceId, rule.PrometheusConfig.PromQL, err)
 			return nil
 		}
 
@@ -47,13 +47,13 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 	case provider.VictoriaMetricsDsProvider:
 		resQuery, err = cli.(provider.VictoriaMetricsProvider).Query(rule.PrometheusConfig.PromQL)
 		if err != nil {
-			logc.Error(ctx.Ctx, err.Error())
+			logc.Errorf(ctx.Ctx, "VictoriaMetrics查询失败, 规则ID: %s, 规则名称: %s, 数据源ID: %s, PromQL: %s, 错误: %v", rule.RuleId, rule.RuleName, datasourceId, rule.PrometheusConfig.PromQL, err)
 			return nil
 		}
 
 		externalLabels = cli.(provider.VictoriaMetricsProvider).GetExternalLabels()
 	default:
-		logc.Errorf(ctx.Ctx, fmt.Sprintf("Unsupported metrics type, type: %s", datasourceType))
+		logc.Errorf(ctx.Ctx, "不支持的指标类型, 规则ID: %s, 规则名称: %s, 数据源ID: %s, 类型: %s", rule.RuleId, rule.RuleName, datasourceId, datasourceType)
 		return nil
 	}
 
@@ -84,7 +84,7 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 			fingerprintLabels["severity"] = ruleExpr.Severity
 			operator, value, err := tools.ProcessRuleExpr(ruleExpr.Expr)
 			if err != nil {
-				logc.Errorf(ctx.Ctx, err.Error())
+				logc.Errorf(ctx.Ctx, "处理规则表达式失败, 规则ID: %s, 规则名称: %s, 表达式: %s, 错误: %v", rule.RuleId, rule.RuleName, ruleExpr.Expr, err)
 				continue
 			}
 
@@ -205,7 +205,7 @@ func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.Ale
 	pools := ctx.Redis.ProviderPools()
 	cli, err := pools.GetClient(datasourceId)
 	if err != nil {
-		logc.Errorf(ctx.Ctx, err.Error())
+		logc.Errorf(ctx.Ctx, "获取数据源客户端失败, 规则ID: %s, 规则名称: %s, 数据源ID: %s, 错误: %v", rule.RuleId, rule.RuleName, datasourceId, err)
 		return []string{}
 	}
 
@@ -221,14 +221,14 @@ func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.Ale
 		}
 		log, count, err = cli.(provider.LokiProvider).Query(queryOptions)
 		if err != nil {
-			logc.Error(ctx.Ctx, err.Error())
+			logc.Errorf(ctx.Ctx, "Loki查询失败, 规则ID: %s, 规则名称: %s, 数据源ID: %s, LogQL: %s, 错误: %v", rule.RuleId, rule.RuleName, datasourceId, rule.LokiConfig.LogQL, err)
 			return []string{}
 		}
 
 		externalLabels = cli.(provider.LokiProvider).GetExternalLabels()
 		operator, value, err := tools.ProcessRuleExpr(rule.LogEvalCondition)
 		if err != nil {
-			logc.Errorf(ctx.Ctx, err.Error())
+			logc.Errorf(ctx.Ctx, "处理日志规则表达式失败, 规则ID: %s, 规则名称: %s, 表达式: %s, 错误: %v", rule.RuleId, rule.RuleName, rule.LogEvalCondition, err)
 			return []string{}
 		}
 
@@ -250,14 +250,14 @@ func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.Ale
 		}
 		log, count, err = cli.(provider.AliCloudSlsDsProvider).Query(queryOptions)
 		if err != nil {
-			logc.Error(ctx.Ctx, err.Error())
+			logc.Errorf(ctx.Ctx, "AliCloudSLS查询失败, 规则ID: %s, 规则名称: %s, 数据源ID: %s, LogQL: %s, 错误: %v", rule.RuleId, rule.RuleName, datasourceId, rule.AliCloudSLSConfig.LogQL, err)
 			return []string{}
 		}
 
 		externalLabels = cli.(provider.AliCloudSlsDsProvider).GetExternalLabels()
 		operator, value, err := tools.ProcessRuleExpr(rule.LogEvalCondition)
 		if err != nil {
-			logc.Errorf(ctx.Ctx, err.Error())
+			logc.Errorf(ctx.Ctx, "处理日志规则表达式失败, 规则ID: %s, 规则名称: %s, 表达式: %s, 错误: %v", rule.RuleId, rule.RuleName, rule.LogEvalCondition, err)
 			return []string{}
 		}
 
@@ -279,14 +279,14 @@ func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.Ale
 		}
 		log, count, err = cli.(provider.ElasticSearchDsProvider).Query(queryOptions)
 		if err != nil {
-			logc.Error(ctx.Ctx, err.Error())
+			logc.Errorf(ctx.Ctx, "ElasticSearch查询失败, 规则ID: %s, 规则名称: %s, 数据源ID: %s, 索引: %s, 错误: %v", rule.RuleId, rule.RuleName, datasourceId, rule.ElasticSearchConfig.Index, err)
 			return []string{}
 		}
 
 		externalLabels = cli.(provider.ElasticSearchDsProvider).GetExternalLabels()
 		operator, value, err := tools.ProcessRuleExpr(rule.LogEvalCondition)
 		if err != nil {
-			logc.Errorf(ctx.Ctx, err.Error())
+			logc.Errorf(ctx.Ctx, "处理日志规则表达式失败, 规则ID: %s, 规则名称: %s, 表达式: %s, 错误: %v", rule.RuleId, rule.RuleName, rule.LogEvalCondition, err)
 			return []string{}
 		}
 
@@ -307,14 +307,14 @@ func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.Ale
 		}
 		log, count, err = cli.(provider.VictoriaLogsProvider).Query(queryOptions)
 		if err != nil {
-			logc.Error(ctx.Ctx, err.Error())
+			logc.Errorf(ctx.Ctx, "VictoriaLogs查询失败, 规则ID: %s, 规则名称: %s, 数据源ID: %s, LogQL: %s, 错误: %v", rule.RuleId, rule.RuleName, datasourceId, rule.VictoriaLogsConfig.LogQL, err)
 			return []string{}
 		}
 
 		externalLabels = cli.(provider.VictoriaLogsProvider).GetExternalLabels()
 		operator, value, err := tools.ProcessRuleExpr(rule.LogEvalCondition)
 		if err != nil {
-			logc.Errorf(ctx.Ctx, err.Error())
+			logc.Errorf(ctx.Ctx, "处理日志规则表达式失败, 规则ID: %s, 规则名称: %s, 表达式: %s, 错误: %v", rule.RuleId, rule.RuleName, rule.LogEvalCondition, err)
 			return []string{}
 		}
 
@@ -331,14 +331,14 @@ func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.Ale
 		}
 		log, count, err = cli.(provider.ClickHouseProvider).Query(queryOptions)
 		if err != nil {
-			logc.Error(ctx.Ctx, err.Error())
+			logc.Errorf(ctx.Ctx, "ClickHouse查询失败, 规则ID: %s, 规则名称: %s, 数据源ID: %s, LogQL: %s, 错误: %v", rule.RuleId, rule.RuleName, datasourceId, rule.ClickHouseConfig.LogQL, err)
 			return []string{}
 		}
 
 		externalLabels = cli.(provider.ClickHouseProvider).GetExternalLabels()
 		operator, value, err := tools.ProcessRuleExpr(rule.LogEvalCondition)
 		if err != nil {
-			logc.Errorf(ctx.Ctx, err.Error())
+			logc.Errorf(ctx.Ctx, "处理日志规则表达式失败, 规则ID: %s, 规则名称: %s, 表达式: %s, 错误: %v", rule.RuleId, rule.RuleName, rule.LogEvalCondition, err)
 			return []string{}
 		}
 
@@ -421,7 +421,7 @@ func traces(ctx *ctx.Context, datasourceId, datasourceType string, rule models.A
 
 		cli, err := pools.GetClient(datasourceId)
 		if err != nil {
-			logc.Errorf(ctx.Ctx, err.Error())
+			logc.Errorf(ctx.Ctx, "获取Jaeger数据源客户端失败, 规则ID: %s, 规则名称: %s, 数据源ID: %s, 错误: %v", rule.RuleId, rule.RuleName, datasourceId, err)
 			return []string{}
 		}
 
@@ -433,7 +433,7 @@ func traces(ctx *ctx.Context, datasourceId, datasourceType string, rule models.A
 		}
 		queryRes, err = cli.(provider.JaegerDsProvider).Query(queryOptions)
 		if err != nil {
-			logc.Error(ctx.Ctx, err.Error())
+			logc.Errorf(ctx.Ctx, "Jaeger查询失败, 规则ID: %s, 规则名称: %s, 数据源ID: %s, 服务: %s, 错误: %v", rule.RuleId, rule.RuleName, datasourceId, rule.JaegerConfig.Service, err)
 			return []string{}
 		}
 
@@ -475,7 +475,7 @@ func cloudWatch(ctx *ctx.Context, datasourceId, datasourceType string, rule mode
 	pools := ctx.Redis.ProviderPools()
 	cfg, err := pools.GetClient(datasourceId)
 	if err != nil {
-		logc.Errorf(ctx.Ctx, err.Error())
+		logc.Errorf(ctx.Ctx, "获取CloudWatch数据源客户端失败, 规则ID: %s, 规则名称: %s, 数据源ID: %s, 错误: %v", rule.RuleId, rule.RuleName, datasourceId, err)
 		return []string{}
 	}
 
@@ -537,20 +537,20 @@ func kubernetesEvent(ctx *ctx.Context, datasourceId, datasourceType string, rule
 	var externalLabels map[string]interface{}
 	datasourceObj, err := ctx.DB.Datasource().GetInstance(datasourceId)
 	if err != nil {
-		logc.Error(ctx.Ctx, err.Error())
+		logc.Errorf(ctx.Ctx, "获取数据源实例失败, 规则ID: %s, 规则名称: %s, 数据源ID: %s, 错误: %v", rule.RuleId, rule.RuleName, datasourceId, err)
 		return []string{}
 	}
 
 	pools := ctx.Redis.ProviderPools()
 	cli, err := pools.GetClient(datasourceId)
 	if err != nil {
-		logc.Errorf(ctx.Ctx, err.Error())
+		logc.Errorf(ctx.Ctx, "获取Kubernetes数据源客户端失败, 规则ID: %s, 规则名称: %s, 数据源ID: %s, 错误: %v", rule.RuleId, rule.RuleName, datasourceId, err)
 		return []string{}
 	}
 
 	k8sEvent, err := cli.(provider.KubernetesClient).GetWarningEvent(rule.KubernetesConfig.Reason, rule.KubernetesConfig.Scope)
 	if err != nil {
-		logc.Error(ctx.Ctx, err.Error())
+		logc.Errorf(ctx.Ctx, "获取Kubernetes警告事件失败, 规则ID: %s, 规则名称: %s, 数据源ID: %s, 资源: %s, 错误: %v", rule.RuleId, rule.RuleName, datasourceId, rule.KubernetesConfig.Resource, err)
 		return []string{}
 	}
 
