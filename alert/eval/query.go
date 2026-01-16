@@ -17,7 +17,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-// Metrics 包含 Prometheus、VictoriaMetrics 数据源
+// Metrics Prometheus 数据源
 func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.AlertRule) []string {
 	pools := ctx.Redis.ProviderPools()
 	var (
@@ -44,14 +44,6 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 		}
 
 		externalLabels = cli.(provider.PrometheusProvider).GetExternalLabels()
-	case provider.VictoriaMetricsDsProvider:
-		resQuery, err = cli.(provider.VictoriaMetricsProvider).Query(rule.PrometheusConfig.PromQL)
-		if err != nil {
-			logc.Errorf(ctx.Ctx, "VictoriaMetrics查询失败, 规则ID: %s, 规则名称: %s, 数据源ID: %s, PromQL: %s, 错误: %v", rule.RuleId, rule.RuleName, datasourceId, rule.PrometheusConfig.PromQL, err)
-			return nil
-		}
-
-		externalLabels = cli.(provider.VictoriaMetricsProvider).GetExternalLabels()
 	default:
 		logc.Errorf(ctx.Ctx, "不支持的指标类型, 规则ID: %s, 规则名称: %s, 数据源ID: %s, 类型: %s", rule.RuleId, rule.RuleName, datasourceId, datasourceType)
 		return nil

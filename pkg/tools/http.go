@@ -6,9 +6,10 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
-	"github.com/zeromicro/go-zero/core/logc"
 	"net/http"
 	"time"
+
+	"github.com/zeromicro/go-zero/core/logc"
 )
 
 func Get(headers map[string]string, url string, timeout int) (*http.Response, error) {
@@ -76,7 +77,7 @@ func Post(headers map[string]string, url string, bodyReader *bytes.Reader, timeo
 // CreateBasicAuthHeader 创建带认证的HTTP头
 func CreateBasicAuthHeader(username, password string) map[string]string {
 	headers := make(map[string]string)
-	if username != "" || password != "" {
+	if username != "" && password != "" {
 		headers["Authorization"] = "Basic " + basicAuth(username, password)
 	}
 	return headers

@@ -20,7 +20,6 @@ import (
 const (
 	// 数据源类型
 	DatasourceTypePrometheus      = "Prometheus"
-	DatasourceTypeVictoriaMetrics = "VictoriaMetrics"
 	DatasourceTypeAliCloudSLS     = "AliCloudSLS"
 	DatasourceTypeLoki            = "Loki"
 	DatasourceTypeElasticSearch   = "ElasticSearch"
@@ -40,7 +39,6 @@ const (
 // 数据源处理器映射
 var datasourceHandlers = map[string]func(*ctx.Context, string, string, models.AlertRule) []string{
 	DatasourceTypePrometheus:      metrics,
-	DatasourceTypeVictoriaMetrics: metrics,
 	DatasourceTypeAliCloudSLS:     logs,
 	DatasourceTypeLoki:            logs,
 	DatasourceTypeElasticSearch:   logs,

@@ -61,7 +61,7 @@ type Elasticsearch struct {
 	RawJson string
 }
 
-// VictoriaLogs victoriaMetrics数据源配置
+// VictoriaLogs 数据源配置
 type VictoriaLogs struct {
 	Query string `json:"query"` // 查询语句
 	Limit int    // 要返回的最大条目数

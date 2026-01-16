@@ -25,8 +25,9 @@ type Write struct {
 }
 
 type HTTP struct {
-	URL     string `json:"url"`
-	Timeout int64  `json:"timeout"`
+	URL     string            `json:"url"`
+	Headers map[string]string `json:"headers"`
+	Timeout int64             `json:"timeout"`
 }
 
 type Auth struct {

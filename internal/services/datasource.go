@@ -64,7 +64,7 @@ func (ds datasourceService) Create(req interface{}) (interface{}, interface{}) {
 		return nil, err
 	}
 
-	if dataSource.Type == "Prometheus" || dataSource.Type == "VictoriaMetrics" {
+	if dataSource.Type == "Prometheus" && dataSource.Write.Enabled == "On" {
 		alert.Probe.ResetWriteCache(data.ID, probe.NewWriter(probe.MetricsWriterConfig{
 			Endpoint: dataSource.Write.URL,
 			Username: dataSource.Auth.User,
@@ -107,7 +107,7 @@ func (ds datasourceService) Update(req interface{}) (interface{}, interface{}) {
 		return nil, err
 	}
 
-	if dataSource.Type == "Prometheus" || dataSource.Type == "VictoriaMetrics" {
+	if dataSource.Type == "Prometheus" && dataSource.Write.Enabled == "On" {
 		alert.Probe.ResetWriteCache(data.ID, probe.NewWriter(probe.MetricsWriterConfig{
 			Endpoint: dataSource.Write.URL,
 			Username: dataSource.Auth.User,
@@ -163,8 +163,6 @@ func (ds datasourceService) WithAddClientToProviderPools(datasource models.Alert
 	switch datasource.Type {
 	case provider.PrometheusDsProvider:
 		cli, err = provider.NewPrometheusClient(datasource)
-	case provider.VictoriaMetricsDsProvider:
-		cli, err = provider.NewVictoriaMetricsClient(datasource)
 	case provider.LokiDsProviderName:
 		cli, err = provider.NewLokiClient(datasource)
 	case provider.AliCloudSLSDsProviderName:

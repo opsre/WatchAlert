@@ -31,12 +31,12 @@ WatchAlert 是一款专为云原生环境设计 的轻量级监控告警引擎�
 
 |  监控类型   | 支持的数据源                                                                                    |
 |:-------:|-------------------------------------------------------------------------------------------|
-| Metrics | Prometheus、VictoriaMetrics                                                                |
-|  Logs   | Loki、ElasticSearch、VictoriaLogs、ClickHouse、SLS（阿里云日志服务）、TLS（火山云日志服务，开发中）、CLS（腾讯云日志服务，开发中） |
+| Metrics | Prometheus.                                                                        |
+| Logs   | Loki、ElasticSearch、VictoriaLogs、ClickHouse、SLS（阿里云日志服务）、TLS（火山云日志服务，开发中）、CLS（腾讯云日志服务，开发中） |
 | Traces  | Jaeger                                                                                    |
 | Events  | Kubernetes 事件监控                                                                           |
-|  网络拨测   | HTTP、ICMP、TCP、SSL                                                                         |
-|  通知渠道   | 飞书、钉钉、企业微信、邮件、自定义 Webhook、Slack                                                           |
+| 网络拨测 | HTTP、ICMP、TCP、SSL                                                                         |
+| 通知渠道 | 飞书、钉钉、企业微信、邮件、自定义 Webhook、Slack                                                           |
 
 
 ## 🔍 核心亮点

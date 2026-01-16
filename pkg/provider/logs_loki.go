@@ -4,27 +4,30 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/bytedance/sonic"
-	"github.com/zeromicro/go-zero/core/logc"
 	"net/http"
 	"net/url"
 	"strconv"
 	"time"
 	"watchAlert/internal/models"
 	"watchAlert/pkg/tools"
+
+	"github.com/bytedance/sonic"
+	"github.com/zeromicro/go-zero/core/logc"
 )
 
 type LokiProvider struct {
-	url            string
-	timeout        int64
+	Url            string
+	Timeout        int64
 	ExternalLabels map[string]interface{}
+	Headers        map[string]string
 }
 
 func NewLokiClient(datasource models.AlertDataSource) (LogsFactoryProvider, error) {
 	return LokiProvider{
-		url:            datasource.HTTP.URL,
-		timeout:        datasource.HTTP.Timeout,
+		Url:            datasource.HTTP.URL,
+		Timeout:        datasource.HTTP.Timeout,
 		ExternalLabels: datasource.Labels,
+		Headers:        datasource.HTTP.Headers,
 	}, nil
 }
 
@@ -67,7 +70,13 @@ func (l LokiProvider) Query(options LogQueryOptions) (Logs, int, error) {
 	}
 
 	args := fmt.Sprintf("/loki/api/v1/query_range?query=%s&direction=%s&limit=%d&start=%d&end=%d", url.QueryEscape(options.Loki.Query), options.Loki.Direction, options.Loki.Limit, options.StartAt.(int64), options.EndAt.(int64))
-	requestURL := l.url + args
+	requestURL := l.Url + args
+
+	var headers = make(map[string]string)
+	for key, value := range l.Headers {
+		headers[key] = value
+	}
+
 	res, err := tools.Get(nil, requestURL, 10)
 	if err != nil {
 		return Logs{}, 0, err
@@ -134,7 +143,12 @@ func (l LokiProvider) Query(options LogQueryOptions) (Logs, int, error) {
 }
 
 func (l LokiProvider) Check() (bool, error) {
-	res, err := tools.Get(nil, l.url+"/loki/api/v1/labels", int(l.timeout))
+	var headers = make(map[string]string)
+	for key, value := range l.Headers {
+		headers[key] = value
+	}
+
+	res, err := tools.Get(nil, l.Url+"/loki/api/v1/labels", int(l.Timeout))
 	if err != nil {
 		return false, err
 	}

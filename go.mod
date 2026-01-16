@@ -27,8 +27,6 @@ require (
 	github.com/jordan-wright/email v4.0.1-0.20210109023952-943e75fe5223+incompatible
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/olivere/elastic/v7 v7.0.32
-	github.com/prometheus/client_golang v1.23.2
-	github.com/prometheus/common v0.67.4
 	github.com/prometheus/prometheus v0.308.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/rs/xid v1.5.0
@@ -125,6 +123,7 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.22 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
+	github.com/prometheus/common v0.67.4 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect

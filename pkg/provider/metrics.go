@@ -8,8 +8,7 @@ import (
 )
 
 const (
-	PrometheusDsProvider      string = "Prometheus"
-	VictoriaMetricsDsProvider string = "VictoriaMetrics"
+	PrometheusDsProvider string = "Prometheus"
 )
 
 type MetricsFactoryProvider interface {

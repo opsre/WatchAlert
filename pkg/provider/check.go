@@ -20,9 +20,6 @@ var datasourceFactories = map[string]ClientFactory{
 	"Prometheus": func(ds models.AlertDataSource) (HealthChecker, error) {
 		return NewPrometheusClient(ds)
 	},
-	"VictoriaMetrics": func(ds models.AlertDataSource) (HealthChecker, error) {
-		return NewVictoriaMetricsClient(ds)
-	},
 	"Kubernetes": func(ds models.AlertDataSource) (HealthChecker, error) {
 		return NewKubernetesClient(context.Background(), ds.KubeConfig, ds.Labels)
 	},
