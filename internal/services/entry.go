@@ -37,6 +37,7 @@ var (
 	AiService               InterAiService
 	OidcService             InterOidcService
 	TopologyService         InterTopologyService
+	ApiKeyService           InterApiKeyService
 )
 
 func NewServices(ctx *ctx.Context) {
@@ -70,4 +71,5 @@ func NewServices(ctx *ctx.Context) {
 	AiService = newInterAiService(ctx)
 	OidcService = newInterOidcService(ctx)
 	TopologyService = newInterTopologyService(ctx)
+	ApiKeyService = newInterApiKeyService(ctx)
 }

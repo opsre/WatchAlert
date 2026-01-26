@@ -191,6 +191,10 @@ func generateAlertContent(ctx *ctx.Context, alert *models.AlertCurEvent, noticeD
 		return tools.JsonMarshalToString(content)
 	}
 
-	// 使用新的模板系统
-	return templates.NewTemplate(ctx, *alert, route).CardContentMsg
+	template, err := templates.NewTemplate(ctx, *alert, route)
+	if err != nil {
+		logc.Error(ctx.Ctx, fmt.Sprintf("Failed to create template: %v", err))
+		return ""
+	}
+	return template.CardContentMsg
 }

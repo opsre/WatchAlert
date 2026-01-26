@@ -86,8 +86,11 @@ func sendToSubscribeUser(ctx *ctx.Context, alert models.AlertCurEvent, toUsers [
 				// 释放信号量
 				<-sem
 			}()
-			emailTemp := templates.NewTemplate(ctx, alert, models.Route{NoticeType: "Email", NoticeTmplId: u.NoticeTemplateId})
-			err := sender.NewEmailSender().Send(sender.SendParams{
+			emailTemp, err := templates.NewTemplate(ctx, alert, models.Route{NoticeType: "Email", NoticeTmplId: u.NoticeTemplateId})
+			if err != nil {
+				logc.Errorf(ctx.Ctx, fmt.Sprintf("Email: %s, 邮件发送失败, err: %s", u.Email, err.Error()))
+			}
+			err = sender.NewEmailSender().Send(sender.SendParams{
 				IsRecovered: alert.IsRecovered,
 				Email: models.Email{
 					Subject: u.NoticeSubject,

@@ -80,6 +80,7 @@ func NewDBClient(config DBConfig) *gorm.DB {
 		&models.AiContentRecord{},
 		&models.Comment{},
 		&models.Topology{},
+		&models.ApiKey{},
 	)
 	if err != nil {
 		logc.Error(context.Background(), err.Error())

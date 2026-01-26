@@ -16,6 +16,7 @@ type noticeTmplService struct {
 
 type InterNoticeTmplService interface {
 	List(req interface{}) (interface{}, interface{})
+	Get(req interface{}) (interface{}, interface{})
 	Create(req interface{}) (interface{}, interface{})
 	Update(req interface{}) (interface{}, interface{})
 	Delete(req interface{}) (interface{}, interface{})
@@ -30,6 +31,16 @@ func newInterNoticeTmplService(ctx *ctx.Context) InterNoticeTmplService {
 func (nts noticeTmplService) List(req interface{}) (interface{}, interface{}) {
 	r := req.(*types.RequestNoticeTemplateQuery)
 	data, err := nts.ctx.DB.NoticeTmpl().List(r.ID, r.NoticeType, r.Query)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
+func (nts noticeTmplService) Get(req interface{}) (interface{}, interface{}) {
+	r := req.(*types.RequestNoticeTemplateQuery)
+	data, err := nts.ctx.DB.NoticeTmpl().Get(r.ID)
 	if err != nil {
 		return nil, err
 	}

@@ -2,14 +2,15 @@ package middleware
 
 import (
 	"fmt"
-	"github.com/bytedance/sonic"
-	"github.com/gin-gonic/gin"
-	"github.com/zeromicro/go-zero/core/logc"
-	"gorm.io/gorm"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
 	"watchAlert/pkg/response"
 	utils2 "watchAlert/pkg/tools"
+
+	"github.com/bytedance/sonic"
+	"github.com/gin-gonic/gin"
+	"github.com/zeromicro/go-zero/core/logc"
+	"gorm.io/gorm"
 )
 
 func Permission() gin.HandlerFunc {
@@ -18,15 +19,19 @@ func Permission() gin.HandlerFunc {
 		if tid == "null" || tid == "" {
 			return
 		}
-		// 获取 Token
-		tokenStr := context.Request.Header.Get("Authorization")
-		if tokenStr == "" {
+		// 从上下文获取用户ID，支持JWT和API Key两种认证方式
+		userIdValue, exists := context.Get("UserId")
+		if !exists {
 			response.TokenFail(context)
 			context.Abort()
 			return
 		}
-
-		userId := utils2.GetUserID(tokenStr)
+		userId, ok := userIdValue.(string)
+		if !ok {
+			response.TokenFail(context)
+			context.Abort()
+			return
+		}
 
 		c := ctx.DO()
 		// 获取当前用户
@@ -41,14 +46,18 @@ func Permission() gin.HandlerFunc {
 			return
 		}
 
-		context.Set("UserId", user.UserId)
 		context.Set("UserEmail", user.Email)
 
 		// 获取租户用户角色
-		tenantUserInfo, _ := c.DB.Tenant().GetTenantLinkedUserInfo(tid, userId)
-		if err != nil {
-			logc.Errorf(c.Ctx, fmt.Sprintf("获取租户用户角色失败 %s", err.Error()))
+		tenantUserInfo, tenantErr := c.DB.Tenant().GetTenantLinkedUserInfo(tid, userId)
+		if tenantErr != nil {
+			logc.Errorf(c.Ctx, fmt.Sprintf("获取租户用户角色失败 %s", tenantErr.Error()))
 			response.TokenFail(context)
+			context.Abort()
+			return
+		}
+		if err != nil {
+			response.PermissionFail(context)
 			context.Abort()
 			return
 		}

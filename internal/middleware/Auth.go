@@ -1,36 +1,66 @@
 package middleware
 
 import (
-	"github.com/bytedance/sonic"
-	"github.com/gin-gonic/gin"
+	"fmt"
 	"time"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
 	"watchAlert/pkg/response"
 	"watchAlert/pkg/tools"
+
+	"github.com/bytedance/sonic"
+	"github.com/gin-gonic/gin"
 )
+
+const ApiKeyHeader = "X-API-Key"
 
 func Auth() gin.HandlerFunc {
 
 	return func(context *gin.Context) {
 		// 获取 Token
 		tokenStr := context.Request.Header.Get("Authorization")
-		if tokenStr == "" {
+		apiKey := context.Request.Header.Get(ApiKeyHeader)
+
+		// 优先检查 JWT Token
+		if tokenStr != "" {
+			// 校验 Token
+			code, ok := IsTokenValid(ctx.DO(), tokenStr)
+			if !ok {
+				if code == 401 {
+					response.TokenFail(context)
+				} else {
+					response.Fail(context, "无效的Token", "failed")
+				}
+				context.Abort()
+				return
+			}
+			// JWT验证成功后，也需要从Token中提取用户ID并存储到上下文中
+			userId := tools.GetUserID(tokenStr)
+			context.Set("UserId", userId)
+		} else if apiKey != "" {
+			// 如果没有Token，则尝试API Key认证
+			code, userId, ok := IsApiKeyValid(ctx.DO(), apiKey)
+			fmt.Println("code, userId, ok ----->", code, userId, ok)
+			if !ok {
+				if code == 401 {
+					response.TokenFail(context)
+				} else {
+					response.Fail(context, "无效的API密钥", "failed")
+				}
+				context.Abort()
+				return
+			}
+			// 将用户ID存储到上下文中，供后续处理使用
+			context.Set("UserId", userId)
+		} else {
+			// 如果两者都没有提供
 			response.TokenFail(context)
 			context.Abort()
 			return
 		}
 
-		// 校验 Token
-		code, ok := IsTokenValid(ctx.DO(), tokenStr)
-		if !ok {
-			if code == 401 {
-				response.TokenFail(context)
-				context.Abort()
-				return
-			}
-		}
-
+		// 继续执行后续处理器
+		context.Next()
 	}
 }
 
@@ -67,4 +97,18 @@ func IsTokenValid(ctx *ctx.Context, tokenStr string) (int64, bool) {
 
 	return 200, true
 
+}
+
+// IsApiKeyValid 验证API密钥的有效性
+func IsApiKeyValid(ctx *ctx.Context, apiKey string) (int64, string, bool) {
+	// 查询数据库中是否存在该API密钥
+	apiKeyModel, exists, err := ctx.DB.ApiKey().GetByKey(apiKey)
+	if err != nil || !exists {
+		return 400, "", false
+	}
+
+	fmt.Println("apiKeyModel ----->", apiKeyModel)
+
+	// 返回用户ID和成功标志
+	return 200, apiKeyModel.UserId, true
 }

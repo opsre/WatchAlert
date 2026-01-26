@@ -95,6 +95,10 @@ func PermissionsInfo() map[string]UserPermissions {
 			Key: "查看通知模版",
 			API: "/api/w8t/noticeTemplate/noticeTemplateList",
 		},
+		"noticeTemplateGet": {
+			Key: "获取通知模版",
+			API: "/api/w8t/noticeTemplate/noticeTemplateGet",
+		},
 		"noticeTemplateUpdate": {
 			Key: "更新通知模版",
 			API: "/api/w8t/noticeTemplate/noticeTemplateUpdate",

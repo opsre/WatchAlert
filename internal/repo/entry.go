@@ -39,6 +39,7 @@ type (
 		Ai() InterAiRepo
 		Comment() InterCommentRepo
 		Topology() InterTopologyRepo
+		ApiKey() InterApiKeyRepo
 	}
 )
 
@@ -90,3 +91,4 @@ func (e *entryRepo) FaultCenter() InterFaultCenterRepo { return newInterFaultCen
 func (e *entryRepo) Ai() InterAiRepo                   { return newAiRepoInterface(e.db, e.g) }
 func (e *entryRepo) Comment() InterCommentRepo         { return newCommentInterface(e.db, e.g) }
 func (e *entryRepo) Topology() InterTopologyRepo       { return newInterTopologyRepo(e.db, e.g) }
+func (e *entryRepo) ApiKey() InterApiKeyRepo           { return newApiKeyInterface(e.db, e.g) }

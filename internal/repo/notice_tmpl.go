@@ -1,8 +1,9 @@
 package repo
 
 import (
-	"gorm.io/gorm"
 	"watchAlert/internal/models"
+
+	"gorm.io/gorm"
 )
 
 type (
@@ -15,7 +16,7 @@ type (
 		Create(r models.NoticeTemplateExample) error
 		Update(r models.NoticeTemplateExample) error
 		Delete(id string) error
-		Get(id string) models.NoticeTemplateExample
+		Get(id string) (models.NoticeTemplateExample, error)
 	}
 )
 
@@ -93,7 +94,7 @@ func (nr NoticeTmplRepo) Delete(id string) error {
 	return nil
 }
 
-func (nr NoticeTmplRepo) Get(id string) models.NoticeTemplateExample {
+func (nr NoticeTmplRepo) Get(id string) (models.NoticeTemplateExample, error) {
 	var (
 		data models.NoticeTemplateExample
 		db   = nr.db.Model(&models.NoticeTemplateExample{})
@@ -104,7 +105,7 @@ func (nr NoticeTmplRepo) Get(id string) models.NoticeTemplateExample {
 
 	err := db.First(&data).Error
 	if err != nil {
-		return data
+		return data, err
 	}
-	return data
+	return data, nil
 }

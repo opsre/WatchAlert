@@ -39,6 +39,7 @@ func (noticeTemplateController noticeTemplateController) API(gin *gin.RouterGrou
 	)
 	{
 		b.GET("noticeTemplateList", noticeTemplateController.List)
+		b.GET("noticeTemplateGet", noticeTemplateController.Get)
 	}
 }
 
@@ -87,5 +88,14 @@ func (noticeTemplateController noticeTemplateController) List(ctx *gin.Context) 
 
 	Service(ctx, func() (interface{}, interface{}) {
 		return services.NoticeTmplService.List(r)
+	})
+}
+
+func (noticeTemplateController noticeTemplateController) Get(ctx *gin.Context) {
+	r := new(types.RequestNoticeTemplateQuery)
+	BindQuery(ctx, r)
+
+	Service(ctx, func() (interface{}, interface{}) {
+		return services.NoticeTmplService.Get(r)
 	})
 }
