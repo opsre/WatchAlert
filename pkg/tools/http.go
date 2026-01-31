@@ -18,7 +18,11 @@ func Get(headers map[string]string, url string, timeout int) (*http.Response, er
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
 		},
-		Proxy: http.ProxyFromEnvironment,
+		Proxy:               http.ProxyFromEnvironment,
+		MaxIdleConns:        100,
+		MaxIdleConnsPerHost: 10,
+		IdleConnTimeout:     90 * time.Second,
+		DisableKeepAlives:   false,
 	}
 
 	client := http.Client{
@@ -48,7 +52,11 @@ func Post(headers map[string]string, url string, bodyReader *bytes.Reader, timeo
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
 		},
-		Proxy: http.ProxyFromEnvironment,
+		Proxy:               http.ProxyFromEnvironment,
+		MaxIdleConns:        100,
+		MaxIdleConnsPerHost: 10,
+		IdleConnTimeout:     90 * time.Second,
+		DisableKeepAlives:   false,
 	}
 
 	client := http.Client{
@@ -86,4 +94,15 @@ func CreateBasicAuthHeader(username, password string) map[string]string {
 func basicAuth(username, password string) string {
 	auth := username + ":" + password
 	return base64.StdEncoding.EncodeToString([]byte(auth))
+}
+
+func MergeHeaders(headers1, headers2 map[string]string) map[string]string {
+	mergedHeaders := make(map[string]string)
+	for k, v := range headers1 {
+		mergedHeaders[k] = v
+	}
+	for k, v := range headers2 {
+		mergedHeaders[k] = v
+	}
+	return mergedHeaders
 }

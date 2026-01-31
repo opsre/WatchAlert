@@ -43,13 +43,19 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 			return nil
 		}
 
+		// 检查查询结果数量，避免过多结果导致系统压力
+		if len(resQuery) > 1000 {
+			logc.Errorf(ctx.Ctx, "Prometheus查询结果过多，可能影响性能，今提取前 1000 个数据点，规则ID: %s, 规则名称: %s, 结果数量: %d", rule.RuleId, rule.RuleName, len(resQuery))
+			resQuery = resQuery[:1000]
+		}
+
 		externalLabels = cli.(provider.PrometheusProvider).GetExternalLabels()
 	default:
 		logc.Errorf(ctx.Ctx, "不支持的指标类型, 规则ID: %s, 规则名称: %s, 数据源ID: %s, 类型: %s", rule.RuleId, rule.RuleName, datasourceId, datasourceType)
 		return nil
 	}
 
-	if resQuery == nil {
+	if len(resQuery) == 0 {
 		return nil
 	}
 

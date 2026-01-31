@@ -99,7 +99,7 @@ func (t *AlertRule) Restart(rule models.AlertRule) {
 func (t *AlertRule) Eval(ctx context.Context, rule models.AlertRule) {
 	err := rule.Validate()
 	if err != nil {
-		logc.Errorf(t.ctx.Ctx, fmt.Sprintf("Rule validation failed, RuleName: %s, RuleId: %s, Error: %v", rule.RuleName, rule.RuleId, err))
+		logc.Errorf(t.ctx.Ctx, "Rule validation failed, RuleName: %s, RuleId: %s, Error: %v", rule.RuleName, rule.RuleId, err)
 		return
 	}
 
@@ -110,7 +110,7 @@ func (t *AlertRule) Eval(ctx context.Context, rule models.AlertRule) {
 		if r := recover(); r != nil {
 			// 获取调用栈信息
 			stack := debug.Stack()
-			logc.Error(t.ctx.Ctx, fmt.Sprintf("Recovered from rule eval goroutine panic: %s, RuleName: %s, RuleId: %s\n%s", r, rule.RuleName, rule.RuleId, stack))
+			logc.Errorf(t.ctx.Ctx, "Recovered from rule eval goroutine panic: %s, RuleName: %s, RuleId: %s\n%s", r, rule.RuleName, rule.RuleId, stack)
 			t.Restart(rule)
 		}
 	}()
@@ -120,9 +120,10 @@ func (t *AlertRule) Eval(ctx context.Context, rule models.AlertRule) {
 		case <-timer.C:
 			// 处理任务信号量
 			taskChan <- struct{}{}
+			logc.Infof(t.ctx.Ctx, fmt.Sprintf("Handle eval task, RuleId: %v, RuleName: %s", rule.RuleId, rule.RuleName))
 			t.executeTask(rule, taskChan)
 		case <-ctx.Done():
-			logc.Infof(t.ctx.Ctx, fmt.Sprintf("停止 RuleId: %v, RuleName: %s 的 Watch 协程", rule.RuleId, rule.RuleName))
+			logc.Infof(t.ctx.Ctx, fmt.Sprintf("Stop eval task, RuleId: %v, RuleName: %s", rule.RuleId, rule.RuleName))
 			return
 		}
 		timer.Reset(t.getEvalTimeDuration(rule.EvalInterval))
@@ -187,7 +188,7 @@ func (t *AlertRule) processDatasources(rule models.AlertRule) []string {
 func (t *AlertRule) processSingleDatasource(dsId string, rule models.AlertRule) []string {
 	instance, err := t.ctx.DB.Datasource().GetInstance(dsId)
 	if err != nil {
-		logc.Errorf(t.ctx.Ctx, fmt.Sprintf("Failed to get datasource instance %s: %v", dsId, err))
+		logc.Errorf(t.ctx.Ctx, "Failed to get datasource instance %s: %v", dsId, err)
 		return nil
 	}
 

@@ -3,193 +3,207 @@ package provider
 import (
 	"context"
 	"fmt"
+	"math"
 	"net/http"
-	"net/url"
-	"strconv"
 	"time"
 	"watchAlert/internal/models"
-	utilsHttp "watchAlert/pkg/tools"
+	"watchAlert/pkg/tools"
+
+	"github.com/prometheus/client_golang/api"
+	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	"github.com/prometheus/common/model"
 
 	"github.com/zeromicro/go-zero/core/logc"
 )
 
 type PrometheusProvider struct {
+	client         v1.API
 	ExternalLabels map[string]interface{}
 	Address        string
 	Username       string
 	Password       string
 	Headers        map[string]string
+	Timeout        int64
+}
+
+// authenticatedTransport 包装 http.RoundTripper 以添加认证头和额外的headers
+type authenticatedTransport struct {
+	Transport http.RoundTripper
+	Username  string
+	Password  string
+	Headers   map[string]string
+}
+
+// RoundTrip 实现 http.RoundTripper 接口
+func (t *authenticatedTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	if t.Username != "" && t.Password != "" {
+		req.SetBasicAuth(t.Username, t.Password)
+	}
+
+	for key, value := range t.Headers {
+		req.Header.Set(key, value)
+	}
+
+	return t.Transport.RoundTrip(req)
 }
 
 func NewPrometheusClient(ds models.AlertDataSource) (MetricsFactoryProvider, error) {
+	transport := &http.Transport{
+		Proxy:               http.ProxyFromEnvironment,
+		MaxIdleConns:        100,
+		MaxIdleConnsPerHost: 10,
+		IdleConnTimeout:     90 * time.Second,
+	}
+
+	var roundTripper http.RoundTripper = transport
+	if ds.Auth.User != "" || ds.Auth.Pass != "" || len(ds.HTTP.Headers) > 0 {
+		roundTripper = &authenticatedTransport{
+			Transport: transport,
+			Username:  ds.Auth.User,
+			Password:  ds.Auth.Pass,
+			Headers:   ds.HTTP.Headers,
+		}
+	}
+
+	clientConfig := api.Config{
+		Address:      ds.HTTP.URL,
+		RoundTripper: roundTripper,
+	}
+
+	client, err := api.NewClient(clientConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	return PrometheusProvider{
+		client:         v1.NewAPI(client),
 		Address:        ds.HTTP.URL,
 		ExternalLabels: ds.Labels,
 		Username:       ds.Auth.User,
 		Password:       ds.Auth.Pass,
 		Headers:        ds.HTTP.Headers,
+		Timeout:        ds.HTTP.Timeout,
 	}, nil
 }
 
 type QueryResponse struct {
-	Status string `json:"status"`
-	VMData VMData `json:"data"`
+	Status     string     `json:"status"`
+	MetricData MetricData `json:"data"`
 }
 
-type VMData struct {
-	VMResult   []VMResult `json:"result"`
-	ResultType string     `json:"resultType"`
+type MetricData struct {
+	MetricResult []MetricResult `json:"result"`
+	ResultType   string         `json:"resultType"`
 }
 
-type VMResult struct {
+type MetricResult struct {
 	Metric map[string]interface{} `json:"metric"`
 	Value  []interface{}          `json:"value"`
-	Values [][]interface{}        `json:"values"` // for range query
+	Values [][]interface{}        `json:"values"`
 }
 
 func (v PrometheusProvider) Query(promQL string) ([]Metrics, error) {
-	params := url.Values{}
-	params.Add("query", promQL)
-	params.Add("time", strconv.FormatInt(time.Now().Unix(), 10))
-	fullURL := fmt.Sprintf("%s%s?%s", v.Address, "/api/v1/query", params.Encode())
-
-	// 创建带认证的HTTP请求
-	var headers = make(map[string]string)
-	for key, value := range v.Headers {
-		headers[key] = value
-	}
-	for key, value := range utilsHttp.CreateBasicAuthHeader(v.Username, v.Password) {
-		headers[key] = value
-	}
-
-	resp, err := utilsHttp.Get(headers, fullURL, 10)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(v.Timeout)*time.Second)
+	defer cancel()
+	result, _, err := v.client.Query(ctx, promQL, time.Now(), v1.WithTimeout(time.Duration(v.Timeout)*time.Second))
 	if err != nil {
-		logc.Error(context.Background(), "Prometheus query failed", "error", err)
-		return nil, fmt.Errorf("query failed: %w", err)
+		return nil, err
 	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
-	}
-
-	var vmRespBody QueryResponse
-	if err := utilsHttp.ParseReaderBody(resp.Body, &vmRespBody); err != nil {
-		logc.Error(context.Background(), "Parse response failed", "error", err)
-		return nil, fmt.Errorf("parse response failed: %w", err)
-	}
-
-	return Vectors(vmRespBody.VMData.VMResult), nil
+	return Vectors(result), nil
 }
 
 func (v PrometheusProvider) QueryRange(promQL string, start, end time.Time, step time.Duration) ([]Metrics, error) {
-	params := url.Values{}
-	params.Add("query", promQL)
-	params.Add("start", strconv.FormatInt(start.Unix(), 10))
-	params.Add("end", strconv.FormatInt(end.Unix(), 10))
-	params.Add("step", fmt.Sprintf("%.0fs", step.Seconds()))
-	fullURL := fmt.Sprintf("%s%s?%s", v.Address, "/api/v1/query_range", params.Encode())
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(v.Timeout)*time.Second)
+	defer cancel()
 
-	var headers = make(map[string]string)
-	for key, value := range v.Headers {
-		headers[key] = value
-	}
-	for key, value := range utilsHttp.CreateBasicAuthHeader(v.Username, v.Password) {
-		headers[key] = value
+	r := v1.Range{
+		Start: start,
+		End:   end,
+		Step:  step,
 	}
 
-	resp, err := utilsHttp.Get(headers, fullURL, 30)
+	result, _, err := v.client.QueryRange(ctx, promQL, r, v1.WithTimeout(time.Duration(v.Timeout)*time.Second))
 	if err != nil {
-		logc.Error(context.Background(), "Prometheus query_range failed", "error", err)
-		return nil, fmt.Errorf("query_range failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		return nil, err
 	}
 
-	var vmRespBody QueryResponse
-	if err := utilsHttp.ParseReaderBody(resp.Body, &vmRespBody); err != nil {
-		logc.Error(context.Background(), "Parse response failed", "error", err)
-		return nil, fmt.Errorf("parse response failed: %w", err)
-	}
-
-	return Matrix(vmRespBody.VMData.VMResult), nil
+	return Matrix(result), nil
 }
 
-func Vectors(res []VMResult) []Metrics {
+func Vectors(value model.Value) []Metrics {
 	var vectors []Metrics
-	for _, item := range res {
-		if len(item.Value) < 2 {
+	items, ok := value.(model.Vector)
+	if !ok {
+		return []Metrics{}
+	}
+
+	for _, item := range items {
+		if math.IsNaN(float64(item.Value)) {
+			logc.Infof(context.Background(), "Skipping NaN or Inf value: %v", item.Value)
 			continue
 		}
 
-		timestamp, ok1 := item.Value[0].(float64)
-		valueStr, ok2 := item.Value[1].(string)
-		if !ok1 || !ok2 {
-			logc.Error(context.Background(), "Invalid value format")
-			continue
-		}
-
-		valueFloat, err := strconv.ParseFloat(valueStr, 64)
-		if err != nil {
-			logc.Error(context.Background(), "Value conversion failed", "error", err)
-			continue
+		var metric = make(map[string]interface{})
+		for k, v := range item.Metric {
+			metric[string(k)] = string(v)
 		}
 
 		vectors = append(vectors, Metrics{
-			Metric:    item.Metric,
-			Value:     valueFloat,
-			Timestamp: timestamp,
+			Metric:    metric,
+			Value:     float64(item.Value),
+			Timestamp: float64(item.Timestamp),
 		})
 	}
+
 	return vectors
 }
 
-// vmMatrix 将 Prometheus QueryRange 结果转换为 Metrics 列表
-func Matrix(res []VMResult) []Metrics {
+// Matrix 将 Prometheus QueryRange 结果转换为 Metrics 列表
+func Matrix(value model.Value) []Metrics {
 	var metrics []Metrics
-	for _, item := range res {
-		// 遍历每个时间序列的所有时间点
-		for _, value := range item.Values {
-			if len(value) < 2 {
-				continue
-			}
+	matrix, ok := value.(model.Matrix)
+	if !ok {
+		return []Metrics{}
+	}
 
-			timestamp, ok1 := value[0].(float64)
-			valueStr, ok2 := value[1].(string)
-			if !ok1 || !ok2 {
-				logc.Error(context.Background(), "Invalid value format")
-				continue
-			}
+	for _, stream := range matrix {
+		var metric = make(map[string]interface{})
+		for k, v := range stream.Metric {
+			metric[string(k)] = string(v)
+		}
 
-			valueFloat, err := strconv.ParseFloat(valueStr, 64)
-			if err != nil {
-				logc.Error(context.Background(), "Value conversion failed", "error", err)
+		for _, value := range stream.Values {
+			if math.IsNaN(float64(value.Value)) {
 				continue
 			}
 
 			metrics = append(metrics, Metrics{
-				Metric:    item.Metric,
-				Value:     valueFloat,
-				Timestamp: timestamp,
+				Timestamp: float64(value.Timestamp),
+				Value:     float64(value.Value),
+				Metric:    metric,
 			})
 		}
 	}
+
 	return metrics
 }
 
 func (v PrometheusProvider) Check() (bool, error) {
-	res, err := utilsHttp.Get(utilsHttp.CreateBasicAuthHeader(v.Username, v.Password), v.Address+"/api/v1/query?query=1%2B1", 10)
+	var headers map[string]string
+	checkURL := v.Address + "/api/v1/query?query=1%2B1"
+	if v.Username != "" && v.Password != "" {
+		headers = tools.CreateBasicAuthHeader(v.Username, v.Password)
+	}
+	headers = tools.MergeHeaders(headers, v.Headers)
+	res, err := tools.Get(headers, checkURL, int(v.Timeout))
 	if err != nil {
-		logc.Error(context.Background(), fmt.Errorf("health check failed: %w", err))
+		logc.Errorf(context.Background(), "Health check failed, URL: %s, Error: %v", checkURL, err)
 		return false, fmt.Errorf("health check failed: %w", err)
 	}
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
-		logc.Error(context.Background(), fmt.Errorf("unhealthy status: %d", res.StatusCode))
+		logc.Errorf(context.Background(), "Health check received unhealthy status: %d, URL: %s", res.StatusCode, checkURL)
 		return false, fmt.Errorf("unhealthy status: %d", res.StatusCode)
 	}
 	return true, nil
