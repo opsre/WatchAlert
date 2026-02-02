@@ -1,10 +1,11 @@
-package process
+package consumer
 
 import (
 	"fmt"
 	"slices"
 	"strings"
 	"time"
+	"watchAlert/alert/mute"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
 	"watchAlert/pkg/sender"
@@ -15,8 +16,8 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// HandleAlert 处理告警逻辑
-func HandleAlert(ctx *ctx.Context, processType string, faultCenter models.FaultCenter, noticeId string, alerts []*models.AlertCurEvent) error {
+// handleAlert 处理告警逻辑
+func handleAlert(ctx *ctx.Context, processType string, faultCenter models.FaultCenter, noticeId string, alerts []*models.AlertCurEvent) error {
 	curTime := time.Now().Unix()
 	g := new(errgroup.Group)
 
@@ -50,6 +51,10 @@ func HandleAlert(ctx *ctx.Context, processType string, faultCenter models.FaultC
 			// 获取当前事件等级对应的路由配置
 			routes := getNoticeRoutes(noticeData, severity)
 			for _, event := range events {
+				if event.Fingerprint == "" {
+					continue
+				}
+
 				if processType == "alarm" && !event.IsRecovered {
 					event.LastSendTime = curTime
 					ctx.Redis.Alert().PushAlertEvent(event)
@@ -59,9 +64,20 @@ func HandleAlert(ctx *ctx.Context, processType string, faultCenter models.FaultC
 					logc.Infof(ctx.Ctx, "没用匹配的通知策略, 告警事件名称: %s, 通知对象名称: %s", event.RuleName, noticeData.Name)
 				}
 
+				if mute.IsMuted(mute.MuteParams{
+					EffectiveTime: event.EffectiveTime,
+					IsRecovered:   event.IsRecovered,
+					TenantId:      event.TenantId,
+					Labels:        event.Labels,
+					FaultCenterId: event.FaultCenterId,
+					RecoverNotify: faultCenter.RecoverNotify,
+				}) {
+					continue
+				}
+
 				for _, route := range routes {
 					// 设置值班用户信息
-					event.DutyUser = strings.Join(GetDutyUsers(ctx, noticeData, route.NoticeType), " ")
+					event.DutyUser = strings.Join(getDutyUsers(ctx, noticeData, route.NoticeType), " ")
 
 					// 生成告警内容
 					content := generateAlertContent(ctx, event, noticeData, route)
@@ -136,10 +152,8 @@ func withRuleGroupByAlerts(ctx *ctx.Context, timeInt int64, alerts []*models.Ale
 		}
 	}
 
-	aggregatedAlert := alerts[0]
-	aggregatedAlert.Annotations += fmt.Sprintf("\n聚合 %d 条消息，详情请前往 WatchAlert 查看\n", len(alerts))
-
-	return []*models.AlertCurEvent{aggregatedAlert}
+	event := *alerts[0]
+	return []*models.AlertCurEvent{&event}
 }
 
 // getNoticeData 获取 Notice 数据
@@ -197,4 +211,35 @@ func generateAlertContent(ctx *ctx.Context, alert *models.AlertCurEvent, noticeD
 		return ""
 	}
 	return template.CardContentMsg
+}
+
+func getDutyUsers(ctx *ctx.Context, noticeData models.AlertNotice, noticeType string) []string {
+	var us []string
+	users, ok := ctx.DB.DutyCalendar().GetDutyUserInfo(*noticeData.GetDutyId(), time.Now().Format("2006-1-2"))
+	if ok {
+		switch noticeType {
+		case "FeiShu":
+			for _, user := range users {
+				us = append(us, fmt.Sprintf("<at id=%s></at>", user.DutyUserId))
+			}
+			return us
+		case "DingDing":
+			for _, user := range users {
+				us = append(us, fmt.Sprintf("@%s", user.DutyUserId))
+			}
+			return us
+		case "Email", "WeChat", "WebHook":
+			for _, user := range users {
+				us = append(us, fmt.Sprintf("@%s", user.UserName))
+			}
+			return us
+		case "Slack":
+			for _, user := range users {
+				us = append(us, fmt.Sprintf("<@%s>", user.DutyUserId))
+			}
+			return us
+		}
+	}
+
+	return []string{"暂无"}
 }

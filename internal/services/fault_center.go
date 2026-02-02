@@ -168,8 +168,6 @@ func (f faultCenterService) List(req interface{}) (data interface{}, err interfa
 				faultCenters[index].CurrentPreAlertNumber++
 			case models.StateAlerting:
 				faultCenters[index].CurrentAlertNumber++
-			case models.StateSilenced:
-				faultCenters[index].CurrentMuteNumber++
 			case models.StatePendingRecovery:
 				faultCenters[index].CurrentRecoverNumber++
 			}

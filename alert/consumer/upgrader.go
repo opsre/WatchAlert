@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 	"watchAlert/alert/mute"
-	"watchAlert/alert/process"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
 
@@ -185,7 +184,7 @@ func sendAggregatedAlert(ctx *ctx.Context, faultCenter models.FaultCenter, aggre
 		aggregated.Fingerprints,
 		aggregated.Timeout))
 
-	return process.HandleAlert(ctx, "upgrade", faultCenter, noticeId, aggregated.Events)
+	return handleAlert(ctx, "upgrade", faultCenter, noticeId, aggregated.Events)
 }
 
 // getContent 生成聚合通知内容

@@ -2,8 +2,6 @@ package process
 
 import (
 	"fmt"
-	"time"
-	"watchAlert/alert/mute"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
 
@@ -59,27 +57,11 @@ func PushEventToFaultCenter(ctx *ctx.Context, event *models.AlertCurEvent) {
 		event.Status = currentStatus
 	}
 
-	// 检查是否处于静默状态
-	isSilenced := IsSilencedEvent(event)
-
 	// 根据不同情况处理状态转换
 	switch event.Status {
 	case models.StatePreAlert:
-		// 如果需要静默
-		if isSilenced {
-			event.TransitionStatus(models.StateSilenced)
-		} else if event.IsArriveForDuration() {
+		if event.IsArriveForDuration() {
 			// 如果达到持续时间，转为告警状态
-			event.TransitionStatus(models.StateAlerting)
-		}
-	case models.StateAlerting:
-		// 如果需要静默
-		if isSilenced {
-			event.TransitionStatus(models.StateSilenced)
-		}
-	case models.StateSilenced:
-		// 如果不再静默，转换回预告警状态
-		if !isSilenced {
 			event.TransitionStatus(models.StateAlerting)
 		}
 	}
@@ -92,48 +74,6 @@ func PushEventToFaultCenter(ctx *ctx.Context, event *models.AlertCurEvent) {
 
 	// 更新缓存
 	cache.Alert().PushAlertEvent(event)
-}
-
-// IsSilencedEvent 静默检查
-func IsSilencedEvent(event *models.AlertCurEvent) bool {
-	return mute.IsSilence(mute.MuteParams{
-		EffectiveTime: event.EffectiveTime,
-		IsRecovered:   event.IsRecovered,
-		TenantId:      event.TenantId,
-		Labels:        event.Labels,
-		FaultCenterId: event.FaultCenterId,
-	})
-}
-
-func GetDutyUsers(ctx *ctx.Context, noticeData models.AlertNotice, noticeType string) []string {
-	var us []string
-	users, ok := ctx.DB.DutyCalendar().GetDutyUserInfo(*noticeData.GetDutyId(), time.Now().Format("2006-1-2"))
-	if ok {
-		switch noticeType {
-		case "FeiShu":
-			for _, user := range users {
-				us = append(us, fmt.Sprintf("<at id=%s></at>", user.DutyUserId))
-			}
-			return us
-		case "DingDing":
-			for _, user := range users {
-				us = append(us, fmt.Sprintf("@%s", user.DutyUserId))
-			}
-			return us
-		case "Email", "WeChat", "WebHook":
-			for _, user := range users {
-				us = append(us, fmt.Sprintf("@%s", user.UserName))
-			}
-			return us
-		case "Slack":
-			for _, user := range users {
-				us = append(us, fmt.Sprintf("<@%s>", user.DutyUserId))
-			}
-			return us
-		}
-	}
-
-	return []string{"暂无"}
 }
 
 // RecordAlertHisEvent 记录历史告警

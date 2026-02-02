@@ -7,7 +7,6 @@ import (
 	"runtime/debug"
 	"sync"
 	"time"
-	"watchAlert/alert/mute"
 	"watchAlert/alert/process"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
@@ -215,22 +214,15 @@ func (c *Consume) filterAlertEvents(faultCenter models.FaultCenter, alerts map[s
 			continue
 		}
 
-		// 过滤掉 预告警, 待恢复 状态的事件
-		if event.Status == models.StatePreAlert || event.Status == models.StatePendingRecovery {
-			continue
-		}
-
-		if c.isMutedEvent(event, faultCenter) {
-			// 当告警处于静默状态时触发了恢复告警，直接移除即可 不需要发送消息。
-			if event.Status == models.StateRecovered {
-				c.ctx.Redis.Alert().RemoveAlertEvent(event.TenantId, event.FaultCenterId, event.Fingerprint)
+		// 过滤掉 非告警中 状态的事件
+		if event.Status != models.StateAlerting {
+			if event.IsRecovered {
+				c.removeAlertFromCache(event)
+				if err := process.RecordAlertHisEvent(c.ctx, *event); err != nil {
+					logc.Error(c.ctx.Ctx, fmt.Sprintf("Failed to record alert history: %v", err))
+				}
 			}
 
-			// 如果是在静默范围内，但当前状态是非静默状态，则更新该告警为静默状态
-			if event.Status != models.StateSilenced {
-				event.TransitionStatus(models.StateSilenced)
-				c.ctx.Redis.Alert().PushAlertEvent(event)
-			}
 			continue
 		}
 
@@ -240,18 +232,6 @@ func (c *Consume) filterAlertEvents(faultCenter models.FaultCenter, alerts map[s
 	}
 
 	return newEvents
-}
-
-// isMutedEvent 静默检查
-func (c *Consume) isMutedEvent(event *models.AlertCurEvent, faultCenter models.FaultCenter) bool {
-	return mute.IsMuted(mute.MuteParams{
-		EffectiveTime: event.EffectiveTime,
-		IsRecovered:   event.IsRecovered,
-		TenantId:      event.TenantId,
-		Labels:        event.Labels,
-		FaultCenterId: event.FaultCenterId,
-		RecoverNotify: faultCenter.RecoverNotify,
-	})
 }
 
 // validateEvent 事件验证
@@ -279,12 +259,6 @@ func (c *Consume) alarmGrouping(faultCenter models.FaultCenter, alertGroups *Ale
 		}
 
 		alertGroups.AddAlert(stateId, alert, faultCenter)
-		if alert.IsRecovered {
-			c.removeAlertFromCache(alert)
-			if err := process.RecordAlertHisEvent(c.ctx, *alert); err != nil {
-				logc.Error(c.ctx.Ctx, fmt.Sprintf("Failed to record alert history: %v", err))
-			}
-		}
 	}
 }
 
@@ -304,7 +278,7 @@ func (c *Consume) sendAlerts(faultCenter models.FaultCenter, aggEvents *AlertGro
 func (c *Consume) processAlertGroup(faultCenter models.FaultCenter, noticeId string, alerts []*models.AlertCurEvent) {
 	g := new(errgroup.Group)
 	g.Go(func() error { return c.handleSubscribe(alerts) })
-	g.Go(func() error { return process.HandleAlert(c.ctx, "alarm", faultCenter, noticeId, alerts) })
+	g.Go(func() error { return handleAlert(c.ctx, "alarm", faultCenter, noticeId, alerts) })
 
 	if err := g.Wait(); err != nil {
 		logc.Errorf(c.ctx.Ctx, "Alert group processing failed: %v", err)
@@ -352,7 +326,7 @@ func (c *Consume) processSilenceRule(faultCenter models.FaultCenter) {
 	// 获取静默列表中所有的id
 	silenceIds, err := silenceCtx.GetAlertMutes(faultCenter.TenantId, faultCenter.ID)
 	if err != nil {
-		logc.Errorf(ctx.Ctx, err.Error())
+		logc.Error(ctx.Ctx, err.Error())
 		return
 	}
 
@@ -360,7 +334,7 @@ func (c *Consume) processSilenceRule(faultCenter models.FaultCenter) {
 	for _, silenceId := range silenceIds {
 		muteRule, err := silenceCtx.WithIdGetMuteFromCache(faultCenter.TenantId, faultCenter.ID, silenceId)
 		if err != nil {
-			logc.Errorf(ctx.Ctx, err.Error())
+			logc.Error(ctx.Ctx, err.Error())
 			return
 		}
 
