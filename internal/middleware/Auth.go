@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"fmt"
 	"time"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/bytedance/sonic"
 	"github.com/gin-gonic/gin"
+	"github.com/zeromicro/go-zero/core/logc"
 )
 
 const ApiKeyHeader = "X-API-Key"
@@ -24,13 +24,9 @@ func Auth() gin.HandlerFunc {
 		// 优先检查 JWT Token
 		if tokenStr != "" {
 			// 校验 Token
-			code, ok := IsTokenValid(ctx.DO(), tokenStr)
+			ok := IsTokenValid(ctx.DO(), tokenStr)
 			if !ok {
-				if code == 401 {
-					response.TokenFail(context)
-				} else {
-					response.Fail(context, "无效的Token", "failed")
-				}
+				response.TokenFail(context)
 				context.Abort()
 				return
 			}
@@ -39,14 +35,9 @@ func Auth() gin.HandlerFunc {
 			context.Set("UserId", userId)
 		} else if apiKey != "" {
 			// 如果没有Token，则尝试API Key认证
-			code, userId, ok := IsApiKeyValid(ctx.DO(), apiKey)
-			fmt.Println("code, userId, ok ----->", code, userId, ok)
+			userId, ok := IsApiKeyValid(ctx.DO(), apiKey)
 			if !ok {
-				if code == 401 {
-					response.TokenFail(context)
-				} else {
-					response.Fail(context, "无效的API密钥", "failed")
-				}
+				response.TokenFail(context)
 				context.Abort()
 				return
 			}
@@ -64,51 +55,51 @@ func Auth() gin.HandlerFunc {
 	}
 }
 
-func IsTokenValid(ctx *ctx.Context, tokenStr string) (int64, bool) {
+func IsTokenValid(ctx *ctx.Context, tokenStr string) bool {
 	// Bearer Token, 获取 Token 值
 	tokenStr = tokenStr[len(tools.TokenType)+1:]
 	token, err := tools.ParseToken(tokenStr)
 	if err != nil {
-		return 400, false
+		logc.Errorf(ctx.Ctx, "parse token error: %v", err)
+		return false
 	}
 
 	// 发布者校验
 	if token.StandardClaims.Issuer != tools.AppGuardName {
-		return 400, false
+		return false
 	}
 
 	// 密码校验, 当修改密码后其他已登陆的终端会被下线。
 	var user models.Member
 	result, err := ctx.Redis.Redis().Get("uid-" + token.ID).Result()
 	if err != nil {
-		return 400, false
+		logc.Errorf(ctx.Ctx, "get user by id error: %v", err)
+		return false
 	}
 	_ = sonic.Unmarshal([]byte(result), &user)
 
 	if token.Pass != user.Password {
-		return 401, false
+		return false
 	}
 
 	// 校验过期时间
 	ok := token.StandardClaims.VerifyExpiresAt(time.Now().Unix(), false)
 	if !ok {
-		return 401, false
+		return false
 	}
 
-	return 200, true
+	return true
 
 }
 
 // IsApiKeyValid 验证API密钥的有效性
-func IsApiKeyValid(ctx *ctx.Context, apiKey string) (int64, string, bool) {
+func IsApiKeyValid(ctx *ctx.Context, apiKey string) (string, bool) {
 	// 查询数据库中是否存在该API密钥
 	apiKeyModel, exists, err := ctx.DB.ApiKey().GetByKey(apiKey)
 	if err != nil || !exists {
-		return 400, "", false
+		return "无效的API密钥", false
 	}
 
-	fmt.Println("apiKeyModel ----->", apiKeyModel)
-
 	// 返回用户ID和成功标志
-	return 200, apiKeyModel.UserId, true
+	return apiKeyModel.UserId, true
 }
