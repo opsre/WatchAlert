@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 	"watchAlert/alert/mute"
+	"watchAlert/alert/process"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
 	"watchAlert/pkg/sender"
@@ -152,6 +153,7 @@ func withRuleGroupByAlerts(ctx *ctx.Context, timeInt int64, alerts []*models.Ale
 	}
 
 	event := *alerts[0]
+	event.Annotations += fmt.Sprintf("\n聚合 %d 条消息，详情请前往 WatchAlert 查看\n", len(alerts))
 	return []*models.AlertCurEvent{&event}
 }
 
@@ -164,7 +166,11 @@ func getNoticeData(ctx *ctx.Context, tenantId, noticeId string) (models.AlertNot
 func getNoticeRoutes(notice models.AlertNotice, severity string) []models.Route {
 	var routes []models.Route
 	if notice.Routes != nil {
-		for _, route := range notice.Routes {
+		for i, route := range notice.Routes {
+			if process.NotInTheEffectiveTime(route.EffectiveTime) {
+				logc.Infof(ctx.Ctx, "Notice %v route [%v] is not in effective time", notice.Name, i+1)
+				continue
+			}
 			if slices.Contains(route.Severitys, severity) {
 				routes = append(routes, route)
 			}

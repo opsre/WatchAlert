@@ -34,6 +34,8 @@ type Route struct {
 	To []string `json:"to" gorm:"column:to;serializer:json"`
 	// 抄送人
 	CC []string `json:"cc" gorm:"column:cc;serializer:json"`
+	// 生效时间
+	EffectiveTime EffectiveTime `json:"effectiveTime"`
 }
 
 type Email struct {

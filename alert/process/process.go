@@ -85,24 +85,39 @@ func PushEventToFaultCenter(ctx *ctx.Context, event *models.AlertCurEvent) {
 // NotInTheEffectiveTime 判断是否不在生效时间内
 func NotInTheEffectiveTime(et models.EffectiveTime) bool {
 	// 如果没有配置有效星期，则认为始终有效
-	if len(et.Week) <= 0 {
+	if len(et.Week) == 0 {
 		return false
 	}
 
-	// 获取当前日期
+	// 当前日期
 	currentTime := time.Now()
 	currentWeekday := tools.TimeTransformToWeek(currentTime)
 
 	// 检查当前星期是否在有效范围内
+	var isInValidWeekday bool
 	for _, weekday := range et.Week {
 		if currentWeekday == weekday {
-			currentTimeSeconds := tools.TimeTransformToSeconds(currentTime)
-			// 如果当前时间小于开始时间或大于结束时间，说明不在有效时间段内
-			return currentTimeSeconds < et.StartTime || currentTimeSeconds > et.EndTime
+			isInValidWeekday = true
+			break
 		}
 	}
-	// 当前星期不在有效范围内
-	return true
+
+	// 如果当前星期不在有效范围内，直接返回 true
+	if !isInValidWeekday {
+		return true
+	}
+
+	// 如果开始时间和结束时间都为0，表示全天有效
+	if et.StartTime == 0 && et.EndTime == 0 {
+		return false
+	}
+
+	// 检查当前时间是否在指定的时间段内
+	currentTimeSeconds := tools.TimeTransformToSeconds(currentTime)
+	isInValidTimeRange := currentTimeSeconds >= et.StartTime && currentTimeSeconds <= et.EndTime
+
+	// 返回是否 不在有效时间范围内的结果
+	return !isInValidTimeRange
 }
 
 // RecordAlertHisEvent 记录历史告警
