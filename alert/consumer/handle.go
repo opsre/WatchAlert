@@ -65,7 +65,6 @@ func handleAlert(ctx *ctx.Context, processType string, faultCenter models.FaultC
 				}
 
 				if mute.IsMuted(mute.MuteParams{
-					EffectiveTime: event.EffectiveTime,
 					IsRecovered:   event.IsRecovered,
 					TenantId:      event.TenantId,
 					Labels:        event.Labels,

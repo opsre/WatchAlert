@@ -2,8 +2,10 @@ package process
 
 import (
 	"fmt"
+	"time"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
+	"watchAlert/pkg/tools"
 
 	"github.com/zeromicro/go-zero/core/logc"
 )
@@ -27,6 +29,10 @@ func BuildEvent(rule models.AlertRule, labels func() map[string]interface{}) mod
 
 func PushEventToFaultCenter(ctx *ctx.Context, event *models.AlertCurEvent) {
 	if event == nil {
+		return
+	}
+
+	if NotInTheEffectiveTime(event.EffectiveTime) {
 		return
 	}
 
@@ -74,6 +80,29 @@ func PushEventToFaultCenter(ctx *ctx.Context, event *models.AlertCurEvent) {
 
 	// 更新缓存
 	cache.Alert().PushAlertEvent(event)
+}
+
+// NotInTheEffectiveTime 判断是否不在生效时间内
+func NotInTheEffectiveTime(et models.EffectiveTime) bool {
+	// 如果没有配置有效星期，则认为始终有效
+	if len(et.Week) <= 0 {
+		return false
+	}
+
+	// 获取当前日期
+	currentTime := time.Now()
+	currentWeekday := tools.TimeTransformToWeek(currentTime)
+
+	// 检查当前星期是否在有效范围内
+	for _, weekday := range et.Week {
+		if currentWeekday == weekday {
+			currentTimeSeconds := tools.TimeTransformToSeconds(currentTime)
+			// 如果当前时间小于开始时间或大于结束时间，说明不在有效时间段内
+			return currentTimeSeconds < et.StartTime || currentTimeSeconds > et.EndTime
+		}
+	}
+	// 当前星期不在有效范围内
+	return true
 }
 
 // RecordAlertHisEvent 记录历史告警

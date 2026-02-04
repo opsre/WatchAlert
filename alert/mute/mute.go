@@ -1,16 +1,14 @@
 package mute
 
 import (
-	"github.com/zeromicro/go-zero/core/logc"
 	"regexp"
-	"time"
 	"watchAlert/internal/ctx"
 	models "watchAlert/internal/models"
-	"watchAlert/pkg/tools"
+
+	"github.com/zeromicro/go-zero/core/logc"
 )
 
 type MuteParams struct {
-	EffectiveTime models.EffectiveTime
 	RecoverNotify *bool
 	IsRecovered   bool
 	TenantId      string
@@ -23,34 +21,11 @@ func IsMuted(mute MuteParams) bool {
 		return true
 	}
 
-	if NotInTheEffectiveTime(mute) {
-		return true
-	}
-
 	if RecoverNotify(mute) {
 		return true
 	}
 
 	return false
-}
-
-// NotInTheEffectiveTime 判断生效时间
-func NotInTheEffectiveTime(mp MuteParams) bool {
-	if len(mp.EffectiveTime.Week) <= 0 {
-		return false
-	}
-
-	// 获取当前日期
-	currentTime := time.Now()
-	currentWeekday := tools.TimeTransformToWeek(currentTime)
-	for _, weekday := range mp.EffectiveTime.Week {
-		if currentWeekday == weekday {
-			currentTimeSeconds := tools.TimeTransformToSeconds(currentTime)
-			return currentTimeSeconds < mp.EffectiveTime.StartTime || currentTimeSeconds > mp.EffectiveTime.EndTime
-		}
-	}
-
-	return true
 }
 
 // RecoverNotify 判断是否推送恢复通知
