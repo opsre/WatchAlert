@@ -76,7 +76,7 @@ func (nr NoticeRepo) List(tenantId, noticeTmplId, query string) ([]models.AlertN
 		db.Where("tenant_id = ?", tenantId)
 	}
 	if noticeTmplId != "" {
-		db.Where("notice_tmpl_id = ?", noticeTmplId)
+		db.Where("routes LIKE ?", "%"+noticeTmplId+"%")
 	}
 	if query != "" {
 		db.Where("uuid LIKE ? OR name LIKE ? OR env LIKE ? OR notice_type LIKE ?", "%"+query+"%", "%"+query+"%", "%"+query+"%", "%"+query+"%")

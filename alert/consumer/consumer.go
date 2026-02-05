@@ -214,16 +214,17 @@ func (c *Consume) filterAlertEvents(faultCenter models.FaultCenter, alerts map[s
 			continue
 		}
 
-		// 过滤掉 非告警中 状态的事件
-		if event.Status != models.StateAlerting {
-			if event.IsRecovered {
-				c.removeAlertFromCache(event)
-				if err := process.RecordAlertHisEvent(c.ctx, *event); err != nil {
-					logc.Error(c.ctx.Ctx, fmt.Sprintf("Failed to record alert history: %v", err))
-				}
-			}
-
+		// 过滤掉 非告警中, 非恢复 状态的事件
+		if event.Status != models.StateAlerting && event.Status != models.StateRecovered {
 			continue
+		}
+
+		// 记录恢复状态的事件
+		if event.IsRecovered {
+			c.removeAlertFromCache(event)
+			if err := process.RecordAlertHisEvent(c.ctx, *event); err != nil {
+				logc.Error(c.ctx.Ctx, fmt.Sprintf("Failed to record alert history: %v", err))
+			}
 		}
 
 		if valid := c.validateEvent(event, faultCenter); valid {
