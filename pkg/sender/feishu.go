@@ -34,9 +34,7 @@ var FeiShuTestContent = fmt.Sprintf(`{
   }
 }`, RobotTestContent)
 
-func NewFeiShuSender() SendInter {
-	return &FeiShuSender{}
-}
+func NewFeiShuSender() SendInter { return &FeiShuSender{} }
 
 func (f *FeiShuSender) Send(params SendParams) error {
 	return f.post(params.Hook, params.Sign, params.GetSendMsg())

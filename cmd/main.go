@@ -1,42 +1,82 @@
-package initialization
+package main
 
 import (
 	"context"
 	"fmt"
+	"net/http"
+	_ "net/http/pprof"
 	"sync"
 	"watchAlert/alert"
 	"watchAlert/config"
 	"watchAlert/internal/cache"
 	"watchAlert/internal/ctx"
-	"watchAlert/internal/global"
+	"watchAlert/internal/middleware"
 	"watchAlert/internal/models"
 	"watchAlert/internal/repo"
+	"watchAlert/internal/routers"
+	v1 "watchAlert/internal/routers/v1"
 	"watchAlert/internal/services"
 	"watchAlert/pkg/ai"
 
+	"github.com/gin-gonic/gin"
 	"github.com/zeromicro/go-zero/core/logc"
 	"golang.org/x/sync/errgroup"
 )
 
-func InitBasic() {
+var Version string
 
+func main() {
 	// 初始化配置
-	global.Config = config.InitConfig()
+	config.InitConfig(Version)
+	logc.Info(context.Background(), "服务启动")
 
+	initBasic()
+
+	mode := config.Application.Server.Mode
+	if mode == "" {
+		mode = gin.DebugMode
+	}
+	gin.SetMode(mode)
+	ginEngine := gin.New()
+	ginEngine.Use(
+		// 启用CORS中间件
+		middleware.Cors(),
+		// 自定义请求日志格式
+		middleware.GinZapLogger(),
+		gin.Recovery(),
+		middleware.LoggingMiddleware(),
+	)
+
+	initRouter(ginEngine)
+
+	go func() {
+		panic(http.ListenAndServe("localhost:9999", nil))
+	}()
+
+	err := ginEngine.Run(":" + config.Application.Server.Port)
+	if err != nil {
+		panic(fmt.Sprintf("服务启动失败: %s", err.Error()))
+	}
+}
+
+func initRouter(engine *gin.Engine) {
+	routers.HealthCheck(engine)
+	v1.Router(engine)
+}
+
+func initBasic() {
+	// 初始化数据库和缓存
 	dbRepo := repo.NewRepoEntry()
 	rCache := cache.NewEntryCache()
+
+	// 创建上下文
 	ctx := ctx.NewContext(context.Background(), dbRepo, rCache)
 
+	// 初始化服务
 	services.NewServices(ctx)
 
 	// 启用告警评估携程
 	alert.Initialize(ctx)
-
-	// 初始化权限数据
-	InitPermissionsSQL(ctx)
-
-	// 初始化角色数据
-	InitUserRolesSQL(ctx)
 
 	// 导入数据源 Client 到存储池
 	importClientPools(ctx)

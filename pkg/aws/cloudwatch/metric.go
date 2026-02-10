@@ -1,8 +1,7 @@
-package service
+package cloudwatch
 
 import (
 	"watchAlert/internal/ctx"
-	types2 "watchAlert/pkg/community/aws/cloudwatch/types"
 )
 
 type (
@@ -26,7 +25,7 @@ func NewInterAwsCloudWatchService(ctx *ctx.Context) InterAwsCloudWatchService {
 
 func (a awsCloudWatchService) GetMetricTypes() (interface{}, interface{}) {
 	var mt []string
-	for k, _ := range types2.NamespaceMetricsMap {
+	for k, _ := range NamespaceMetricsMap {
 		mt = append(mt, k)
 	}
 
@@ -34,8 +33,8 @@ func (a awsCloudWatchService) GetMetricTypes() (interface{}, interface{}) {
 }
 
 func (a awsCloudWatchService) GetMetricNames(req interface{}) (interface{}, interface{}) {
-	r := req.(*types2.MetricNamesQuery)
-	return types2.NamespaceMetricsMap[r.MetricType], nil
+	r := req.(*MetricNamesQuery)
+	return NamespaceMetricsMap[r.MetricType], nil
 }
 
 func (a awsCloudWatchService) GetStatistics() (interface{}, interface{}) {
@@ -50,6 +49,6 @@ func (a awsCloudWatchService) GetStatistics() (interface{}, interface{}) {
 }
 
 func (a awsCloudWatchService) GetDimensions(req interface{}) (interface{}, interface{}) {
-	r := req.(*types2.RdsDimensionReq)
-	return types2.NamespaceDimensionKeysMap[r.MetricType], nil
+	r := req.(*RdsDimensionReq)
+	return NamespaceDimensionKeysMap[r.MetricType], nil
 }

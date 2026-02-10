@@ -1,4 +1,4 @@
-package types
+package cloudwatch
 
 import (
 	"crypto/md5"

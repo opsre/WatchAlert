@@ -88,9 +88,14 @@ func sendToSubscribeUser(ctx *ctx.Context, alert models.AlertCurEvent, toUsers [
 			}()
 			emailTemp, err := templates.NewTemplate(ctx, alert, models.Route{NoticeType: "Email", NoticeTmplId: u.NoticeTemplateId})
 			if err != nil {
-				logc.Errorf(ctx.Ctx, fmt.Sprintf("Email: %s, 邮件发送失败, err: %s", u.Email, err.Error()))
+				logc.Error(ctx.Ctx, fmt.Sprintf("Email: %s, 邮件发送失败 创建模板错误, err: %s", u.Email, err.Error()))
 			}
-			err = sender.NewEmailSender().Send(sender.SendParams{
+
+			cli, err := sender.NewEmailSender()
+			if err != nil {
+				logc.Error(ctx.Ctx, fmt.Sprintf("Email: %s, 邮件发送失败 创建发送器错误, err: %s", u.Email, err.Error()))
+			}
+			err = cli.Send(sender.SendParams{
 				IsRecovered: alert.IsRecovered,
 				Email: models.Email{
 					Subject: u.NoticeSubject,
@@ -100,7 +105,7 @@ func sendToSubscribeUser(ctx *ctx.Context, alert models.AlertCurEvent, toUsers [
 				Content: emailTemp.CardContentMsg,
 			})
 			if err != nil {
-				logc.Errorf(ctx.Ctx, fmt.Sprintf("Email: %s, 邮件发送失败, err: %s", u.Email, err.Error()))
+				logc.Error(ctx.Ctx, fmt.Sprintf("Email: %s, 邮件发送失败, err: %s", u.Email, err.Error()))
 			}
 		}(u, sem)
 	}

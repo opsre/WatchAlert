@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"watchAlert/internal/global"
+	"watchAlert/config"
 	"watchAlert/internal/models"
 
 	"github.com/glebarez/sqlite"
@@ -26,22 +26,22 @@ type DBConfig struct {
 	Path    string // SQLite 数据库文件路径
 }
 
-func NewDBClient(config DBConfig) *gorm.DB {
+func NewDBClient(dbcfg DBConfig) *gorm.DB {
 	var db *gorm.DB
 	var err error
 
 	// 设置默认数据库类型为 mysql
-	if config.Type == "" {
-		config.Type = "mysql"
+	if dbcfg.Type == "" {
+		dbcfg.Type = "mysql"
 	}
 
-	switch config.Type {
+	switch dbcfg.Type {
 	case "sqlite":
-		db, err = initSQLiteDB(config)
+		db, err = initSQLiteDB(dbcfg)
 	case "mysql":
-		db, err = initMySQLDB(config)
+		db, err = initMySQLDB(dbcfg)
 	default:
-		logc.Errorf(context.Background(), "unsupported database type: %s", config.Type)
+		logc.Errorf(context.Background(), "unsupported database type: %s", dbcfg.Type)
 		return nil
 	}
 
@@ -87,11 +87,13 @@ func NewDBClient(config DBConfig) *gorm.DB {
 		return nil
 	}
 
-	if global.Config.Server.Mode == "debug" {
+	if config.Application.Server.Mode == "debug" {
 		db.Debug()
 	} else {
 		db.Logger = logger.Default.LogMode(logger.Silent)
 	}
+
+	initPermissionsSQL(db)
 
 	return db
 }
@@ -125,4 +127,15 @@ func initSQLiteDB(config DBConfig) (*gorm.DB, error) {
 
 	logc.Infof(context.Background(), "connecting to SQLite database: %s", config.Path)
 	return gorm.Open(sqlite.Open(config.Path), &gorm.Config{})
+}
+
+func initPermissionsSQL(db *gorm.DB) {
+	var psData []models.UserPermissions
+
+	for _, v := range models.PermissionsInfo() {
+		psData = append(psData, v)
+	}
+
+	db.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&models.UserPermissions{})
+	db.Model(&models.UserPermissions{}).Create(&psData)
 }

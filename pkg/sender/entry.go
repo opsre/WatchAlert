@@ -84,7 +84,7 @@ func Tester(ctx *ctx.Context, sendParams SendParams) error {
 func senderFactory(noticeType string) (SendInter, error) {
 	switch noticeType {
 	case "Email":
-		return NewEmailSender(), nil
+		return NewEmailSender()
 	case "FeiShu":
 		return NewFeiShuSender(), nil
 	case "DingDing":

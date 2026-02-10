@@ -2,6 +2,8 @@ package process
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
@@ -151,4 +153,28 @@ func RecordAlertHisEvent(ctx *ctx.Context, alert models.AlertCurEvent) error {
 	}
 
 	return nil
+}
+
+// ProcessRuleExpr 处理规则表达式
+func ProcessRuleExpr(ruleExpr string) (operator string, value float64, err error) {
+	var supportedOperators = []string{">=", "<=", "==", "!=", ">", "<", "="}
+
+	// 去除表达式两端的空白字符
+	trimmedExpr := strings.TrimSpace(ruleExpr)
+
+	// 遍历操作符列表。
+	for _, op := range supportedOperators {
+		if strings.HasPrefix(trimmedExpr, op) {
+			// 提取数值
+			valueStr := strings.TrimPrefix(trimmedExpr, op)
+			value, err = strconv.ParseFloat(strings.TrimSpace(valueStr), 64)
+			if err != nil {
+				return "", 0, fmt.Errorf("无法解析数值 '%s': %w", valueStr, err)
+			}
+
+			return op, value, nil
+		}
+	}
+
+	return "", 0, fmt.Errorf("无效的表达式，未找到有效的操作符: %s", ruleExpr)
 }

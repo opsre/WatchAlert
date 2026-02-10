@@ -14,9 +14,7 @@ type (
 	SlackSender struct{}
 )
 
-func NewSlackSender() SendInter {
-	return &SlackSender{}
-}
+func NewSlackSender() SendInter { return &SlackSender{} }
 
 func (f *SlackSender) Send(params SendParams) error {
 	msg := params.GetSendMsg()

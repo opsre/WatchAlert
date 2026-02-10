@@ -2,19 +2,15 @@ package tools
 
 import (
 	"context"
-	"crypto/md5"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math/rand"
+	"regexp"
+	"time"
+
 	"github.com/bytedance/sonic"
 	"github.com/rs/xid"
 	"github.com/zeromicro/go-zero/core/logc"
-	"io"
-	"math/rand"
-	"regexp"
-	"strconv"
-	"strings"
-	"time"
 )
 
 func RandId() string {
@@ -91,11 +87,13 @@ func getJSONValue(data map[string]interface{}, variable string) interface{} {
 	return nil
 }
 
+// IsJSON 判断字符串是否为 JSON 格式
 func IsJSON(str string) bool {
 	var js map[string]interface{}
 	return sonic.Unmarshal([]byte(str), &js) == nil
 }
 
+// FormatJson 格式化 JSON 字符串
 func FormatJson(s string) string {
 	var ns string
 	if IsJSON(s) {
@@ -119,72 +117,4 @@ func FormatJson(s string) string {
 		ns = ns[1 : len(ns)-1]
 	}
 	return ns
-}
-
-// ParseReaderBody 处理请求Body
-func ParseReaderBody(body io.Reader, req interface{}) error {
-	newBody := body
-	bodyByte, err := io.ReadAll(newBody)
-	if err != nil {
-		return fmt.Errorf("读取 Body 失败, err: %s", err.Error())
-	}
-	if err := sonic.Unmarshal(bodyByte, &req); err != nil {
-		return fmt.Errorf("解析 Body 失败, body: %s, err: %s", string(bodyByte), err.Error())
-	}
-	return nil
-}
-
-func ParseTime(month string) (int, time.Month, int) {
-	parsedTime, err := time.Parse("2006-01", month)
-	if err != nil {
-		return 0, time.Month(0), 0
-	}
-	curYear, curMonth, curDay := parsedTime.Date()
-	return curYear, curMonth, curDay
-}
-
-func GetWeekday(date string) (time.Weekday, error) {
-	t, err := time.Parse("2006-1-2", date)
-	if err != nil {
-		return 0, err
-	}
-
-	weekday := t.Weekday()
-	return weekday, nil
-}
-
-func IsEndOfWeek(dateStr string) bool {
-	date, err := time.Parse("2006-1-2", dateStr)
-	if err != nil {
-		return false
-	}
-	return date.Weekday() == time.Sunday
-}
-
-func ProcessRuleExpr(ruleExpr string) (operator string, value float64, err error) {
-	var supportedOperators = []string{">=", "<=", "==", "!=", ">", "<", "="}
-
-	// 去除表达式两端的空白字符
-	trimmedExpr := strings.TrimSpace(ruleExpr)
-
-	// 遍历操作符列表。
-	for _, op := range supportedOperators {
-		if strings.HasPrefix(trimmedExpr, op) {
-			// 提取数值
-			valueStr := strings.TrimPrefix(trimmedExpr, op)
-			value, err = strconv.ParseFloat(strings.TrimSpace(valueStr), 64)
-			if err != nil {
-				return "", 0, fmt.Errorf("无法解析数值 '%s': %w", valueStr, err)
-			}
-
-			return op, value, nil
-		}
-	}
-
-	return "", 0, fmt.Errorf("无效的表达式，未找到有效的操作符: %s", ruleExpr)
-}
-
-func GenerateHashPassword(passwd string) string {
-	arr := md5.Sum([]byte(passwd))
-	return hex.EncodeToString(arr[:])
 }

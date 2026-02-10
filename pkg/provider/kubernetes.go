@@ -2,13 +2,19 @@ package provider
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/hex"
+	"fmt"
+	"os"
+	"strings"
+	"time"
+	"watchAlert/pkg/tools"
+
 	"github.com/zeromicro/go-zero/core/logc"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
-	"os"
-	"time"
 )
 
 type KubernetesClient struct {
@@ -54,7 +60,7 @@ func NewKubernetesClient(ctx context.Context, kubeConfigContent string, labels m
 	}, nil
 }
 
-func (a KubernetesClient) GetWarningEvent(reason string, scope int) (*corev1.EventList, error) {
+func (a KubernetesClient) GetWarningEvent(reason string, scope int, filter []string) (map[string][]KubernetesEventItem, error) {
 	var warningEvents corev1.EventList
 	cutoffTime := time.Now().Add(-time.Duration(scope) * time.Minute)
 	opts := metav1.ListOptions{
@@ -85,7 +91,27 @@ func (a KubernetesClient) GetWarningEvent(reason string, scope int) (*corev1.Eve
 		opts.Continue = list.Continue
 	}
 
-	return &warningEvents, nil
+	if len(warningEvents.Items) == 0 {
+		return nil, nil
+	}
+
+	warningEventsMap := make(map[string][]KubernetesEventItem)
+	for _, event := range warningEvents.Items {
+		var found bool
+		for _, f := range filter {
+			if strings.Contains(event.InvolvedObject.Name, f) {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			key := fmt.Sprintf("%s/%s", event.InvolvedObject.Name, event.Reason)
+			warningEventsMap[key] = append(warningEventsMap[key], KubernetesEventItem(event))
+		}
+	}
+
+	return warningEventsMap, nil
 }
 
 func (a KubernetesClient) GetExternalLabels() map[string]interface{} {
@@ -96,4 +122,31 @@ func (a KubernetesClient) Check() (bool, error) {
 	_, err := a.Cli.ServerVersion()
 
 	return err == nil, err
+}
+
+type KubernetesEvent struct {
+	Events []KubernetesEventItem
+}
+
+type KubernetesEventItem corev1.Event
+
+func (a KubernetesEventItem) GetFingerprint() string {
+	h := md5.New()
+	s := map[string]interface{}{
+		"namespace": a.Namespace,
+		"resource":  a.Reason,
+		"podName":   a.InvolvedObject.Name,
+	}
+
+	h.Write(tools.JsonMarshalToByte(s))
+	fingerprint := hex.EncodeToString(h.Sum(nil))
+	return fingerprint
+}
+
+func (a KubernetesEventItem) GetMetrics() map[string]interface{} {
+	return map[string]interface{}{
+		"namespace": a.Namespace,
+		"resource":  a.Reason,
+		"podName":   a.InvolvedObject.Name,
+	}
 }

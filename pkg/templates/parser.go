@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"text/template"
 	"time"
-	"watchAlert/internal/global"
 	"watchAlert/internal/models"
 	"watchAlert/pkg/tools"
 
@@ -30,8 +29,8 @@ func ParserTemplate(defineName string, alert models.AlertCurEvent, templateStr s
 
 // prepareAlertData 预处理告警数据，格式化时间字段
 func prepareAlertData(alert models.AlertCurEvent) models.AlertCurEvent {
-	alert.FirstTriggerTimeFormat = time.Unix(alert.FirstTriggerTime, 0).Format(global.Layout)
-	alert.RecoverTimeFormat = time.Unix(alert.RecoverTime, 0).Format(global.Layout)
+	alert.FirstTriggerTimeFormat = time.Unix(alert.FirstTriggerTime, 0).Format("2006-01-02 15:04:05")
+	alert.RecoverTimeFormat = time.Unix(alert.RecoverTime, 0).Format("2006-01-02 15:04:05")
 	return alert
 }
 

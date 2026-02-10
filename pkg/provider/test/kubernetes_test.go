@@ -3,9 +3,10 @@ package test
 import (
 	"context"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"testing"
 	"watchAlert/pkg/provider"
+
+	"github.com/sirupsen/logrus"
 )
 
 func TestKubernetesClient(t *testing.T) {
@@ -15,7 +16,7 @@ func TestKubernetesClient(t *testing.T) {
 		return
 	}
 
-	event, err := cli.GetWarningEvent("", 10)
+	event, err := cli.GetWarningEvent("", 10, []string{})
 	if err != nil {
 		logrus.Errorf(err.Error())
 		return

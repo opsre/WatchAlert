@@ -1,11 +1,11 @@
-package service
+package cloudwatch
 
 import (
 	"context"
-	"github.com/aws/aws-sdk-go-v2/service/rds"
 	"watchAlert/internal/ctx"
-	"watchAlert/pkg/community/aws/cloudwatch/types"
 	"watchAlert/pkg/provider"
+
+	"github.com/aws/aws-sdk-go-v2/service/rds"
 )
 
 type (
@@ -26,7 +26,7 @@ func NewInterAWSRdsService(ctx *ctx.Context) InterAwsRdsService {
 }
 
 func (a awsRdsService) GetDBInstanceIdentifier(req interface{}) (interface{}, interface{}) {
-	r := req.(*types.RdsInstanceReq)
+	r := req.(*RdsInstanceReq)
 	datasourceObj, err := a.ctx.DB.Datasource().GetInstance(r.DatasourceId)
 	if err != nil {
 		return nil, err
@@ -53,7 +53,7 @@ func (a awsRdsService) GetDBInstanceIdentifier(req interface{}) (interface{}, in
 }
 
 func (a awsRdsService) GetDBClusterIdentifier(req interface{}) (interface{}, interface{}) {
-	r := req.(*types.RdsClusterReq)
+	r := req.(*RdsClusterReq)
 	datasourceObj, err := a.ctx.DB.Datasource().GetInstance(r.DatasourceId)
 	if err != nil {
 		return nil, err

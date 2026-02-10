@@ -28,9 +28,7 @@ var DingTestContent = fmt.Sprintf(`{
     }
 }`, RobotTestContent)
 
-func NewDingSender() SendInter {
-	return &DingDingSender{}
-}
+func NewDingSender() SendInter { return &DingDingSender{} }
 
 func (d *DingDingSender) Send(params SendParams) error {
 	return d.post(params.Hook, params.Sign, params.Content)

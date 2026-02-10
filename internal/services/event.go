@@ -20,6 +20,8 @@ type InterEventService interface {
 	ListCurrentEvent(req interface{}) (interface{}, interface{})
 	ListHistoryEvent(req interface{}) (interface{}, interface{})
 	ProcessAlertEvent(req interface{}) (interface{}, interface{})
+	DeleteAlertEvent(req interface{}) (interface{}, interface{})
+
 	ListComments(req interface{}) (interface{}, interface{})
 	AddComment(req interface{}) (interface{}, interface{})
 	DeleteComment(req interface{}) (interface{}, interface{})
@@ -53,6 +55,22 @@ func (e eventService) ProcessAlertEvent(req interface{}) (interface{}, interface
 			cache.ConfirmState.ConfirmActionTime = r.Time
 
 			e.ctx.Redis.Alert().PushAlertEvent(&cache)
+		}(fingerprint)
+	}
+
+	wg.Wait()
+	return nil, nil
+}
+
+func (e eventService) DeleteAlertEvent(req interface{}) (interface{}, interface{}) {
+	r := req.(*types.RequestProcessAlertEvent)
+
+	var wg sync.WaitGroup
+	wg.Add(len(r.Fingerprints))
+	for _, fingerprint := range r.Fingerprints {
+		go func(fingerprint string) {
+			defer wg.Done()
+			e.ctx.Redis.Alert().RemoveAlertEvent(r.TenantId, r.FaultCenterId, fingerprint)
 		}(fingerprint)
 	}
 

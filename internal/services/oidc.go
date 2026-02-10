@@ -3,18 +3,19 @@ package services
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/bytedance/sonic"
-	"github.com/gin-gonic/gin"
-	"github.com/zeromicro/go-zero/core/logc"
 	"net/http"
 	"strings"
 	"time"
+	"watchAlert/config"
 	"watchAlert/internal/ctx"
-	"watchAlert/internal/global"
 	"watchAlert/internal/models"
 	"watchAlert/internal/types"
 	"watchAlert/pkg/oidc"
 	"watchAlert/pkg/tools"
+
+	"github.com/bytedance/sonic"
+	"github.com/gin-gonic/gin"
+	"github.com/zeromicro/go-zero/core/logc"
 )
 
 type oidcService struct {
@@ -155,7 +156,7 @@ func (os oidcService) CookieConvertToken(ctx *gin.Context) (interface{}, interfa
 		Password: tools.GenerateHashPassword(types.OidcPassword),
 	}
 
-	duration := time.Duration(global.Config.Jwt.Expire) * time.Second
+	duration := time.Duration(config.Application.Jwt.Expire) * time.Second
 	os.ctx.Redis.Redis().Set("uid-"+data.UserId, tools.JsonMarshalToString(r), duration)
 
 	return models.ResponseLoginInfo{

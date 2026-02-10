@@ -4,13 +4,14 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
-	"github.com/zeromicro/go-zero/core/logc"
 	"time"
+	"watchAlert/config"
 	"watchAlert/internal/ctx"
-	"watchAlert/internal/global"
 	"watchAlert/internal/models"
 	"watchAlert/internal/types"
 	"watchAlert/pkg/tools"
+
+	"github.com/zeromicro/go-zero/core/logc"
 )
 
 type userService struct {
@@ -95,7 +96,7 @@ func (us userService) Login(req interface{}) (interface{}, interface{}) {
 		return nil, err
 	}
 
-	duration := time.Duration(global.Config.Jwt.Expire) * time.Second
+	duration := time.Duration(config.Application.Jwt.Expire) * time.Second
 	us.ctx.Redis.Redis().Set("uid-"+data.UserId, tools.JsonMarshalToString(r), duration)
 
 	return models.ResponseLoginInfo{

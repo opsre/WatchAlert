@@ -1,13 +1,14 @@
 package api
 
 import (
-	"github.com/gin-gonic/gin"
 	"time"
 	"watchAlert/internal/middleware"
 	"watchAlert/internal/services"
 	"watchAlert/internal/types"
 	"watchAlert/pkg/response"
 	utils "watchAlert/pkg/tools"
+
+	"github.com/gin-gonic/gin"
 )
 
 type alertEventController struct{}
@@ -26,7 +27,8 @@ func (alertEventController alertEventController) API(gin *gin.RouterGroup) {
 		middleware.ParseTenant(),
 	)
 	{
-		a.POST("processAlertEvent", alertEventController.ProcessAlertEvent)
+		a.POST("process", alertEventController.ProcessAlertEvent)
+		a.POST("delete", alertEventController.DeleteAlertEvent)
 		a.POST("addComment", alertEventController.AddComment)
 		a.GET("listComments", alertEventController.ListComment)
 		a.POST("deleteComment", alertEventController.DeleteComment)
@@ -61,6 +63,19 @@ func (alertEventController alertEventController) ProcessAlertEvent(ctx *gin.Cont
 
 	Service(ctx, func() (interface{}, interface{}) {
 		return services.EventService.ProcessAlertEvent(r)
+	})
+}
+
+func (alertEventController alertEventController) DeleteAlertEvent(ctx *gin.Context) {
+	r := new(types.RequestProcessAlertEvent)
+	BindJson(ctx, r)
+
+	tid, _ := ctx.Get("TenantID")
+	r.TenantId = tid.(string)
+	r.Time = time.Now().Unix()
+
+	Service(ctx, func() (interface{}, interface{}) {
+		return services.EventService.DeleteAlertEvent(r)
 	})
 }
 

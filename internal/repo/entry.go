@@ -1,7 +1,7 @@
 package repo
 
 import (
-	"watchAlert/internal/global"
+	"watchAlert/config"
 	"watchAlert/pkg/client"
 
 	"gorm.io/gorm"
@@ -44,7 +44,7 @@ type (
 )
 
 func NewRepoEntry() InterEntryRepo {
-	dbConfig := global.Config.Database
+	dbConfig := config.Application.Database
 	db := client.NewDBClient(client.DBConfig{
 		Type:    dbConfig.Type,
 		Host:    dbConfig.Host,

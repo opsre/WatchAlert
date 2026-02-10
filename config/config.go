@@ -47,10 +47,12 @@ type Jaeger struct {
 }
 
 var (
-	configFile = "config/config.yaml"
+	Application App
+	Version     string
+	configFile  = "config/config.yaml"
 )
 
-func InitConfig() App {
+func InitConfig(version string) {
 	v := viper.New()
 	v.SetConfigFile(configFile)
 	v.SetConfigType("yaml")
@@ -61,5 +63,7 @@ func InitConfig() App {
 	if err := v.Unmarshal(&config); err != nil {
 		log.Fatal("配置解析失败:", err)
 	}
-	return config
+
+	Version = version
+	Application = config
 }

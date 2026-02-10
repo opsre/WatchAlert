@@ -6,9 +6,11 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
+	"github.com/bytedance/sonic"
 	"github.com/zeromicro/go-zero/core/logc"
 )
 
@@ -96,6 +98,7 @@ func basicAuth(username, password string) string {
 	return base64.StdEncoding.EncodeToString([]byte(auth))
 }
 
+// MergeHeaders 合并HTTP头
 func MergeHeaders(headers1, headers2 map[string]string) map[string]string {
 	mergedHeaders := make(map[string]string)
 	for k, v := range headers1 {
@@ -105,4 +108,17 @@ func MergeHeaders(headers1, headers2 map[string]string) map[string]string {
 		mergedHeaders[k] = v
 	}
 	return mergedHeaders
+}
+
+// ParseReaderBody 处理请求Body
+func ParseReaderBody(body io.Reader, req interface{}) error {
+	newBody := body
+	bodyByte, err := io.ReadAll(newBody)
+	if err != nil {
+		return fmt.Errorf("读取 Body 失败, err: %s", err.Error())
+	}
+	if err := sonic.Unmarshal(bodyByte, &req); err != nil {
+		return fmt.Errorf("解析 Body 失败, body: %s, err: %s", string(bodyByte), err.Error())
+	}
+	return nil
 }

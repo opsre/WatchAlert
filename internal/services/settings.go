@@ -2,8 +2,8 @@ package services
 
 import (
 	"context"
+	"watchAlert/config"
 	"watchAlert/internal/ctx"
-	"watchAlert/internal/global"
 	"watchAlert/internal/models"
 	"watchAlert/pkg/ai"
 )
@@ -77,7 +77,7 @@ func (a settingService) Get() (interface{}, interface{}) {
 	if err != nil {
 		return nil, err
 	}
-	get.AppVersion = global.Version
+	get.AppVersion = config.Version
 
 	return get, nil
 }

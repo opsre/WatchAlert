@@ -8,13 +8,11 @@ import (
 	"watchAlert/alert/process"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
-	"watchAlert/pkg/community/aws/cloudwatch"
-	"watchAlert/pkg/community/aws/cloudwatch/types"
+	"watchAlert/pkg/aws/cloudwatch"
 	"watchAlert/pkg/provider"
 	"watchAlert/pkg/tools"
 
 	"github.com/zeromicro/go-zero/core/logc"
-	v1 "k8s.io/api/core/v1"
 )
 
 // Metrics Prometheus 数据源
@@ -80,7 +78,7 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 		// 遍历按优先级排序后的规则
 		for _, ruleExpr := range rules {
 			fingerprintLabels["severity"] = ruleExpr.Severity
-			operator, value, err := tools.ProcessRuleExpr(ruleExpr.Expr)
+			operator, value, err := process.ProcessRuleExpr(ruleExpr.Expr)
 			if err != nil {
 				logc.Errorf(ctx.Ctx, "处理规则表达式失败, 规则ID: %s, 规则名称: %s, 表达式: %s, 错误: %v", rule.RuleId, rule.RuleName, ruleExpr.Expr, err)
 				continue
@@ -224,7 +222,7 @@ func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.Ale
 		}
 
 		externalLabels = cli.(provider.LokiProvider).GetExternalLabels()
-		operator, value, err := tools.ProcessRuleExpr(rule.LogEvalCondition)
+		operator, value, err := process.ProcessRuleExpr(rule.LogEvalCondition)
 		if err != nil {
 			logc.Errorf(ctx.Ctx, "处理日志规则表达式失败, 规则ID: %s, 规则名称: %s, 表达式: %s, 错误: %v", rule.RuleId, rule.RuleName, rule.LogEvalCondition, err)
 			return []string{}
@@ -253,7 +251,7 @@ func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.Ale
 		}
 
 		externalLabels = cli.(provider.AliCloudSlsDsProvider).GetExternalLabels()
-		operator, value, err := tools.ProcessRuleExpr(rule.LogEvalCondition)
+		operator, value, err := process.ProcessRuleExpr(rule.LogEvalCondition)
 		if err != nil {
 			logc.Errorf(ctx.Ctx, "处理日志规则表达式失败, 规则ID: %s, 规则名称: %s, 表达式: %s, 错误: %v", rule.RuleId, rule.RuleName, rule.LogEvalCondition, err)
 			return []string{}
@@ -282,7 +280,7 @@ func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.Ale
 		}
 
 		externalLabels = cli.(provider.ElasticSearchDsProvider).GetExternalLabels()
-		operator, value, err := tools.ProcessRuleExpr(rule.LogEvalCondition)
+		operator, value, err := process.ProcessRuleExpr(rule.LogEvalCondition)
 		if err != nil {
 			logc.Errorf(ctx.Ctx, "处理日志规则表达式失败, 规则ID: %s, 规则名称: %s, 表达式: %s, 错误: %v", rule.RuleId, rule.RuleName, rule.LogEvalCondition, err)
 			return []string{}
@@ -310,7 +308,7 @@ func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.Ale
 		}
 
 		externalLabels = cli.(provider.VictoriaLogsProvider).GetExternalLabels()
-		operator, value, err := tools.ProcessRuleExpr(rule.LogEvalCondition)
+		operator, value, err := process.ProcessRuleExpr(rule.LogEvalCondition)
 		if err != nil {
 			logc.Errorf(ctx.Ctx, "处理日志规则表达式失败, 规则ID: %s, 规则名称: %s, 表达式: %s, 错误: %v", rule.RuleId, rule.RuleName, rule.LogEvalCondition, err)
 			return []string{}
@@ -334,7 +332,7 @@ func logs(ctx *ctx.Context, datasourceId, datasourceType string, rule models.Ale
 		}
 
 		externalLabels = cli.(provider.ClickHouseProvider).GetExternalLabels()
-		operator, value, err := tools.ProcessRuleExpr(rule.LogEvalCondition)
+		operator, value, err := process.ProcessRuleExpr(rule.LogEvalCondition)
 		if err != nil {
 			logc.Errorf(ctx.Ctx, "处理日志规则表达式失败, 规则ID: %s, 规则名称: %s, 表达式: %s, 错误: %v", rule.RuleId, rule.RuleName, rule.LogEvalCondition, err)
 			return []string{}
@@ -485,7 +483,7 @@ func cloudWatch(ctx *ctx.Context, datasourceId, datasourceType string, rule mode
 
 	var curFingerprints []string
 	for _, endpoint := range rule.CloudWatchConfig.Endpoints {
-		query := types.CloudWatchQuery{
+		query := cloudwatch.CloudWatchQuery{
 			Endpoint:   endpoint,
 			Dimension:  rule.CloudWatchConfig.Dimension,
 			Period:     int32(rule.CloudWatchConfig.Period * 60),
@@ -545,31 +543,20 @@ func kubernetesEvent(ctx *ctx.Context, datasourceId, datasourceType string, rule
 		logc.Errorf(ctx.Ctx, "获取Kubernetes数据源客户端失败, 规则ID: %s, 规则名称: %s, 数据源ID: %s, 错误: %v", rule.RuleId, rule.RuleName, datasourceId, err)
 		return []string{}
 	}
+	externalLabels = cli.(provider.KubernetesClient).GetExternalLabels()
 
-	k8sEvent, err := cli.(provider.KubernetesClient).GetWarningEvent(rule.KubernetesConfig.Reason, rule.KubernetesConfig.Scope)
+	k8sEvent, err := cli.(provider.KubernetesClient).GetWarningEvent(rule.KubernetesConfig.Reason, rule.KubernetesConfig.Scope, rule.KubernetesConfig.Filter)
 	if err != nil {
 		logc.Errorf(ctx.Ctx, "获取Kubernetes警告事件失败, 规则ID: %s, 规则名称: %s, 数据源ID: %s, 资源: %s, 错误: %v", rule.RuleId, rule.RuleName, datasourceId, rule.KubernetesConfig.Resource, err)
 		return []string{}
 	}
 
-	externalLabels = cli.(provider.KubernetesClient).GetExternalLabels()
-
-	if len(k8sEvent.Items) == 0 {
+	if k8sEvent == nil {
 		return []string{}
 	}
 
-	// 分组：key = resourceName + eventReason
-	groupedEvents := make(map[string][]v1.Event)
-
-	// 过滤并分组事件
-	for _, item := range process.FilterKubeEvent(k8sEvent, rule.KubernetesConfig.Filter).Items {
-		key := fmt.Sprintf("%s/%s", item.InvolvedObject.Name, item.Reason)
-		groupedEvents[key] = append(groupedEvents[key], item)
-	}
-
 	var curFingerprints []string
-
-	for _, items := range groupedEvents {
+	for _, items := range k8sEvent {
 		// 不满足阈值，跳过
 		if len(items) < rule.KubernetesConfig.Value {
 			continue
@@ -579,10 +566,9 @@ func kubernetesEvent(ctx *ctx.Context, datasourceId, datasourceType string, rule
 		item := items[0]
 
 		// 构造告警内容
-		k8sItem := process.KubernetesAlertEvent(ctx, item)
-		fingerprint := k8sItem.GetFingerprint()
+		fingerprint := item.GetFingerprint()
 		event := process.BuildEvent(rule, func() map[string]interface{} {
-			metric := k8sItem.GetMetrics()
+			metric := item.GetMetrics()
 			metric["rule_name"] = rule.RuleName
 			metric["severity"] = rule.Severity
 			metric["fingerprint"] = fingerprint

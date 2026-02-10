@@ -5,8 +5,8 @@ import (
 	"watchAlert/alert/consumer"
 	"watchAlert/alert/eval"
 	probing "watchAlert/alert/probe"
+	"watchAlert/config"
 	"watchAlert/internal/ctx"
-	"watchAlert/internal/global"
 	"watchAlert/pkg/client"
 	"watchAlert/pkg/tools"
 
@@ -38,7 +38,7 @@ func Initialize(ctx *ctx.Context) {
 	Probe = probing.NewProbeService(ctx)
 
 	// 检查 Leader 选举是否启用
-	leaderElectionEnabled = global.Config.Server.EnableElection
+	leaderElectionEnabled = config.Application.Server.EnableElection
 
 	if leaderElectionEnabled {
 		// 启用 Leader 选举模式
