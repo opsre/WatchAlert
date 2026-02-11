@@ -6,10 +6,10 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"watchAlert/alert/mute"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
 	"watchAlert/internal/types"
-	"watchAlert/pkg/tools"
 )
 
 type eventService struct {
@@ -118,25 +118,15 @@ func (e eventService) ListCurrentEvent(req interface{}) (interface{}, interface{
 			continue
 		}
 
-		if r.Query != "" {
-			queryMatch := false
-			if strings.Contains(event.RuleName, r.Query) {
-				queryMatch = true
-			} else if strings.Contains(event.Annotations, r.Query) {
-				queryMatch = true
-			} else if event.Labels != nil && strings.Contains(tools.JsonMarshalToString(event.Labels), r.Query) {
-				queryMatch = true
-			}
-			if !queryMatch {
-				continue
-			}
-		}
-
 		if r.FaultCenterId != "" && !strings.Contains(event.FaultCenterId, r.FaultCenterId) {
 			continue
 		}
 
-		if r.Status != "" && string(event.Status) != r.Status {
+		if !matchQuery(event, r.Query) {
+			continue
+		}
+
+		if !matchStatus(&event, r.Status, mute.MuteParams{TenantId: r.TenantId, FaultCenterId: event.FaultCenterId, Labels: event.Labels}) {
 			continue
 		}
 
@@ -177,6 +167,55 @@ func (e eventService) ListCurrentEvent(req interface{}) (interface{}, interface{
 			Size:  r.Page.Size,
 		},
 	}, nil
+}
+
+func matchQuery(event models.AlertCurEvent, query string) bool {
+	if query == "" {
+		return true
+	}
+
+	// 检查 RuleName 和 Annotations
+	if strings.Contains(event.RuleName, query) || strings.Contains(event.Annotations, query) {
+		return true
+	}
+	// 遍历 Labels
+	for k, v := range event.Labels {
+		if strings.Contains(k, query) || strings.Contains(fmt.Sprint(v), query) {
+			return true
+		}
+	}
+	return false
+}
+
+func matchStatus(event *models.AlertCurEvent, status string, muteParams mute.MuteParams) bool {
+	if status == "" {
+		if event.ConfirmState.IsOk {
+			event.Status = "processing"
+		}
+		if mute.IsSilence(muteParams) {
+			event.Status = "muting"
+		}
+		return true
+	}
+
+	switch status {
+	case "pre_alert", "alerting", "pending_recovery":
+		return string(event.Status) == status
+	case "processing":
+		if event.ConfirmState.IsOk {
+			event.Status = "processing"
+			return true
+		}
+		return false
+	case "muting":
+		if mute.IsSilence(muteParams) {
+			event.Status = "muting"
+			return true
+		}
+		return false
+	default:
+		return true
+	}
 }
 
 func (e eventService) ListHistoryEvent(req interface{}) (interface{}, interface{}) {

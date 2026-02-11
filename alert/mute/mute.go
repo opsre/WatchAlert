@@ -78,8 +78,12 @@ func evalCondition(metrics map[string]interface{}, muteLabels []models.SilenceLa
 		var matched bool
 		switch muteLabel.Operator {
 		case "==", "=":
-			matched = regexp.MustCompile(muteLabel.Value).MatchString(val)
+			matched = (val == muteLabel.Value)
 		case "!=":
+			matched = (val != muteLabel.Value)
+		case "=~":
+			matched = regexp.MustCompile(muteLabel.Value).MatchString(val)
+		case "!~":
 			matched = !regexp.MustCompile(muteLabel.Value).MatchString(val)
 		default:
 			matched = false
