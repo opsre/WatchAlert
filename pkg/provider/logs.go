@@ -1,9 +1,8 @@
 package provider
 
 import (
-	"crypto/md5"
-	"encoding/hex"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 	"watchAlert/internal/models"
@@ -90,13 +89,19 @@ type Logs struct {
 }
 
 func (l Logs) GenerateFingerprint(ruleId string) string {
-	h := md5.New()
-	streamString := tools.JsonMarshalToString(map[string]string{
+	labels := map[string]string{
 		"ruleId": ruleId,
-	})
-	h.Write([]byte(streamString))
-	fingerprint := hex.EncodeToString(h.Sum(nil))
-	return fingerprint
+	}
+
+	var result uint64
+	for labelName, labelValue := range labels {
+		sum := tools.HashNew()
+		sum = tools.HashAdd(sum, labelName)
+		sum = tools.HashAdd(sum, fmt.Sprintf("%v", labelValue))
+		result ^= sum
+	}
+
+	return strconv.FormatUint(result, 10)
 }
 
 func (l Logs) GetAnnotations() map[string]interface{} {

@@ -2,10 +2,9 @@ package provider
 
 import (
 	"context"
-	"crypto/md5"
-	"encoding/hex"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 	"watchAlert/pkg/tools"
@@ -61,7 +60,7 @@ func NewKubernetesClient(ctx context.Context, kubeConfigContent string, labels m
 }
 
 func (a KubernetesClient) GetWarningEvent(reason string, scope int, filter []string) (map[string][]KubernetesEventItem, error) {
-	var warningEvents corev1.EventList
+	var warningEvents = corev1.EventList{}
 	cutoffTime := time.Now().Add(-time.Duration(scope) * time.Minute)
 	opts := metav1.ListOptions{
 		Limit:         50, // 减少每次请求的数量，防止过多资源占用
@@ -76,7 +75,7 @@ func (a KubernetesClient) GetWarningEvent(reason string, scope int, filter []str
 
 		for _, event := range list.Items {
 			// 检查事件的 Reason 和事件发生时间
-			eventTime := event.EventTime
+			eventTime := event.LastTimestamp
 			if event.Reason == reason && eventTime.After(cutoffTime) {
 				warningEvents.Items = append(warningEvents.Items, event)
 			}
@@ -131,16 +130,21 @@ type KubernetesEvent struct {
 type KubernetesEventItem corev1.Event
 
 func (a KubernetesEventItem) GetFingerprint() string {
-	h := md5.New()
-	s := map[string]interface{}{
+	labels := map[string]interface{}{
 		"namespace": a.Namespace,
 		"resource":  a.Reason,
 		"podName":   a.InvolvedObject.Name,
 	}
 
-	h.Write(tools.JsonMarshalToByte(s))
-	fingerprint := hex.EncodeToString(h.Sum(nil))
-	return fingerprint
+	var result uint64
+	for labelName, labelValue := range labels {
+		sum := tools.HashNew()
+		sum = tools.HashAdd(sum, labelName)
+		sum = tools.HashAdd(sum, fmt.Sprintf("%v", labelValue))
+		result ^= sum
+	}
+
+	return strconv.FormatUint(result, 10)
 }
 
 func (a KubernetesEventItem) GetMetrics() map[string]interface{} {

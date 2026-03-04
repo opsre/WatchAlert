@@ -123,6 +123,10 @@ func (ts tenantService) AddUsersToTenant(req interface{}) (data interface{}, err
 
 func (ts tenantService) DelUsersOfTenant(req interface{}) (data interface{}, err interface{}) {
 	r := req.(*types.RequestTenantQuery)
+	if r.UserID == "admin" {
+		return nil, fmt.Errorf("admin用户禁止通过接口移除")
+	}
+
 	err = ts.ctx.DB.Tenant().RemoveTenantLinkedUsers(r.ID, r.UserID)
 	if err != nil {
 		return nil, err
@@ -141,6 +145,10 @@ func (ts tenantService) GetUsersForTenant(req interface{}) (data interface{}, er
 
 func (ts tenantService) ChangeTenantUserRole(req interface{}) (data interface{}, err interface{}) {
 	r := req.(*types.RequestTenantChangeUserRole)
+	if r.UserID == "admin" {
+		return nil, fmt.Errorf("admin用户角色禁止通过接口修改")
+	}
+
 	err = ts.ctx.DB.Tenant().ChangeTenantUserRole(r.ID, r.UserID, r.UserRole)
 	if err != nil {
 		return nil, err

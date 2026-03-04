@@ -18,34 +18,32 @@ const (
 )
 
 type AlertCurEvent struct {
-	TenantId               string                 `json:"tenantId"`
-	EventId                string                 `json:"eventId"`
-	RuleGroupId            string                 `json:"rule_group_id"`
-	RuleId                 string                 `json:"rule_id"`
-	RuleName               string                 `json:"rule_name"`
-	DatasourceType         string                 `json:"datasource_type"`
-	DatasourceId           string                 `json:"datasource_id" gorm:"datasource_id"`
-	Fingerprint            string                 `json:"fingerprint"`
-	Severity               string                 `json:"severity"`
-	Labels                 map[string]interface{} `json:"labels" gorm:"labels;serializer:json"`
-	SearchQL               string                 `json:"searchQL" gorm:"-"`
-	EvalInterval           int64                  `json:"eval_interval"`
-	ForDuration            int64                  `json:"for_duration"`
-	Annotations            string                 `json:"annotations" gorm:"-"`
-	IsRecovered            bool                   `json:"is_recovered" gorm:"-"`
-	FirstTriggerTime       int64                  `json:"first_trigger_time"` // 第一次触发时间
-	FirstTriggerTimeFormat string                 `json:"first_trigger_time_format" gorm:"-"`
-	RepeatNoticeInterval   int64                  `json:"repeat_notice_interval"`  // 重复通知间隔时间
-	LastEvalTime           int64                  `json:"last_eval_time" gorm:"-"` // 上一次评估时间
-	LastSendTime           int64                  `json:"last_send_time" gorm:"-"` // 上一次发送时间
-	RecoverTime            int64                  `json:"recover_time" gorm:"-"`   // 恢复时间
-	RecoverTimeFormat      string                 `json:"recover_time_format" gorm:"-"`
-	DutyUser               string                 `json:"duty_user" gorm:"-"`
-	EffectiveTime          EffectiveTime          `json:"effectiveTime" gorm:"effectiveTime;serializer:json"`
-	FaultCenterId          string                 `json:"faultCenterId"`
-	FaultCenter            FaultCenter            `json:"faultCenter" gorm:"-"`
-	ConfirmState           ConfirmState           `json:"confirmState" gorm:"-"`
-	Status                 AlertStatus            `json:"status" gorm:"-"` // 事件状态
+	TenantId             string                 `json:"tenantId"`
+	EventId              string                 `json:"eventId"`
+	RuleGroupId          string                 `json:"rule_group_id"`
+	RuleId               string                 `json:"rule_id"`
+	RuleName             string                 `json:"rule_name"`
+	DatasourceType       string                 `json:"datasource_type"`
+	DatasourceId         string                 `json:"datasource_id" gorm:"datasource_id"`
+	Fingerprint          string                 `json:"fingerprint"`
+	Severity             string                 `json:"severity"`
+	Labels               map[string]interface{} `json:"labels" gorm:"labels;serializer:json"`
+	SearchQL             string                 `json:"searchQL" gorm:"-"`
+	EvalInterval         int64                  `json:"eval_interval"`
+	ForDuration          int64                  `json:"for_duration"`
+	Annotations          string                 `json:"annotations" gorm:"-"`
+	IsRecovered          bool                   `json:"is_recovered" gorm:"-"`
+	FirstTriggerTime     int64                  `json:"first_trigger_time"`      // 第一次触发时间
+	RepeatNoticeInterval int64                  `json:"repeat_notice_interval"`  // 重复通知间隔时间
+	LastEvalTime         int64                  `json:"last_eval_time" gorm:"-"` // 上一次评估时间
+	LastSendTime         int64                  `json:"last_send_time" gorm:"-"` // 上一次发送时间
+	RecoverTime          int64                  `json:"recover_time" gorm:"-"`   // 恢复时间
+	DutyUser             string                 `json:"duty_user" gorm:"-"`
+	EffectiveTime        EffectiveTime          `json:"effectiveTime" gorm:"effectiveTime;serializer:json"`
+	FaultCenterId        string                 `json:"faultCenterId"`
+	FaultCenter          FaultCenter            `json:"faultCenter" gorm:"-"`
+	ConfirmState         ConfirmState           `json:"confirmState" gorm:"-"`
+	Status               AlertStatus            `json:"status" gorm:"-"` // 事件状态
 }
 
 type ConfirmState struct {

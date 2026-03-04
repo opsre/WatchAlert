@@ -83,7 +83,6 @@ type EsQueryFilter struct {
 type KubernetesConfig struct {
 	Resource string   `json:"resource"`
 	Reason   string   `json:"reason"`
-	Value    int      `json:"value"`
 	Filter   []string `json:"filter"`
 	Scope    int      `json:"scope"`
 }

@@ -20,7 +20,8 @@ type userService struct {
 
 type InterUserService interface {
 	List(req interface{}) (interface{}, interface{})
-	Get(req interface{}) (interface{}, interface{})
+	Check(req interface{}) (interface{}, interface{})
+	Info(req interface{}) (interface{}, interface{})
 	Login(req interface{}) (interface{}, interface{})
 	Update(req interface{}) (interface{}, interface{})
 	Register(req interface{}) (interface{}, interface{})
@@ -45,7 +46,18 @@ func (us userService) List(req interface{}) (interface{}, interface{}) {
 	return data, nil
 }
 
-func (us userService) Get(req interface{}) (interface{}, interface{}) {
+func (us userService) Check(req interface{}) (interface{}, interface{}) {
+	r := req.(*types.RequestUserQuery)
+
+	_, _, err := us.ctx.DB.User().Get(r.UserId, r.UserName, r.Query)
+	if err != nil {
+		return "false", err
+	}
+
+	return "ok", nil
+}
+
+func (us userService) Info(req interface{}) (interface{}, interface{}) {
 	r := req.(*types.RequestUserQuery)
 
 	data, _, err := us.ctx.DB.User().Get(r.UserId, r.UserName, r.Query)
@@ -191,6 +203,9 @@ func (us userService) Delete(req interface{}) (interface{}, interface{}) {
 
 func (us userService) ChangePass(req interface{}) (interface{}, interface{}) {
 	r := req.(*types.RequestUserChangePassword)
+	if r.UserId == "admin" {
+		return nil, fmt.Errorf("admin用户密码禁止通过接口修改")
+	}
 
 	arr := md5.Sum([]byte(r.Password))
 	hashPassword := hex.EncodeToString(arr[:])

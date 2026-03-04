@@ -2,7 +2,9 @@ package provider
 
 import (
 	"fmt"
+	"strconv"
 	"watchAlert/internal/models"
+	"watchAlert/pkg/tools"
 )
 
 const (
@@ -30,7 +32,19 @@ type Traces struct {
 }
 
 func (t Traces) GetFingerprint() string {
-	return t.TraceId
+	labels := map[string]string{
+		"traceId": t.TraceId,
+	}
+
+	var result uint64
+	for labelName, labelValue := range labels {
+		sum := tools.HashNew()
+		sum = tools.HashAdd(sum, labelName)
+		sum = tools.HashAdd(sum, fmt.Sprintf("%v", labelValue))
+		result ^= sum
+	}
+
+	return strconv.FormatUint(result, 10)
 }
 
 func (t Traces) GetMetric() map[string]interface{} {

@@ -62,7 +62,7 @@ func handleAlert(ctx *ctx.Context, processType string, faultCenter models.FaultC
 				}
 
 				if len(routes) == 0 {
-					logc.Infof(ctx.Ctx, "没用匹配的通知策略, 告警事件名称: %s, 通知对象名称: %s", event.RuleName, noticeData.Name)
+					logc.Infof(ctx.Ctx, "没有匹配的通知策略, 告警事件名称: %s, 通知对象名称: %s", event.RuleName, noticeData.Name)
 				}
 
 				if mute.IsMuted(mute.MuteParams{
