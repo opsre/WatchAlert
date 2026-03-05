@@ -41,10 +41,11 @@ func (os oidcService) GetOidcInfo() (interface{}, interface{}) {
 	}
 
 	return &types.OidcInfo{
-		AuthType:    setting.AuthType,
-		ClientID:    setting.OidcConfig.ClientID,
-		UpperURI:    setting.OidcConfig.UpperURI,
-		RedirectURI: setting.OidcConfig.RedirectURI,
+		AuthType:     setting.AuthType,
+		ClientID:     setting.OidcConfig.ClientID,
+		ClientSecret: setting.OidcConfig.ClientSecret,
+		UpperURI:     setting.OidcConfig.UpperURI,
+		RedirectURI:  setting.OidcConfig.RedirectURI,
 	}, nil
 }
 
@@ -60,7 +61,7 @@ func (os oidcService) CallBack(ctx *gin.Context, req interface{}) (interface{}, 
 	}
 
 	r := req.(*types.RequestOidcCodeQuery)
-	data, err := oidc.GetOauthToken(cfg.TokenEndpoint, r.Code)
+	data, err := oidc.GetOauthToken(cfg.TokenEndpoint, r.Code, setting.OidcConfig.ClientID, setting.OidcConfig.ClientSecret)
 	if err != nil {
 		return nil, err
 	}

@@ -56,10 +56,11 @@ type LdapConfig struct {
 }
 
 type OidcConfig struct {
-	ClientID    string `json:"clientID"`
-	UpperURI    string `json:"upperURI"`
-	RedirectURI string `json:"redirectURI"`
-	Domain      string `json:"domain"`
+	ClientID     string `json:"clientID"`
+	ClientSecret string `json:"clientSecret"`
+	UpperURI     string `json:"upperURI"`
+	RedirectURI  string `json:"redirectURI"`
+	Domain       string `json:"domain"`
 }
 
 func (a AiConfig) GetEnable() bool {
