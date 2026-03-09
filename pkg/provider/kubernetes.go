@@ -2,13 +2,18 @@ package provider
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"strconv"
+	"strings"
+	"time"
+	"watchAlert/pkg/tools"
+
 	"github.com/zeromicro/go-zero/core/logc"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
-	"os"
-	"time"
 )
 
 type KubernetesClient struct {
@@ -54,8 +59,8 @@ func NewKubernetesClient(ctx context.Context, kubeConfigContent string, labels m
 	}, nil
 }
 
-func (a KubernetesClient) GetWarningEvent(reason string, scope int) (*corev1.EventList, error) {
-	var warningEvents corev1.EventList
+func (a KubernetesClient) GetWarningEvent(reason string, scope int, filter []string) (map[string][]KubernetesEventItem, error) {
+	var warningEvents = corev1.EventList{}
 	cutoffTime := time.Now().Add(-time.Duration(scope) * time.Minute)
 	opts := metav1.ListOptions{
 		Limit:         50, // 减少每次请求的数量，防止过多资源占用
@@ -70,7 +75,7 @@ func (a KubernetesClient) GetWarningEvent(reason string, scope int) (*corev1.Eve
 
 		for _, event := range list.Items {
 			// 检查事件的 Reason 和事件发生时间
-			eventTime := event.EventTime
+			eventTime := event.LastTimestamp
 			if event.Reason == reason && eventTime.After(cutoffTime) {
 				warningEvents.Items = append(warningEvents.Items, event)
 			}
@@ -85,7 +90,27 @@ func (a KubernetesClient) GetWarningEvent(reason string, scope int) (*corev1.Eve
 		opts.Continue = list.Continue
 	}
 
-	return &warningEvents, nil
+	if len(warningEvents.Items) == 0 {
+		return nil, nil
+	}
+
+	warningEventsMap := make(map[string][]KubernetesEventItem)
+	for _, event := range warningEvents.Items {
+		var found bool
+		for _, f := range filter {
+			if strings.Contains(event.InvolvedObject.Name, f) {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			key := fmt.Sprintf("%s/%s", event.InvolvedObject.Name, event.Reason)
+			warningEventsMap[key] = append(warningEventsMap[key], KubernetesEventItem(event))
+		}
+	}
+
+	return warningEventsMap, nil
 }
 
 func (a KubernetesClient) GetExternalLabels() map[string]interface{} {
@@ -96,4 +121,36 @@ func (a KubernetesClient) Check() (bool, error) {
 	_, err := a.Cli.ServerVersion()
 
 	return err == nil, err
+}
+
+type KubernetesEvent struct {
+	Events []KubernetesEventItem
+}
+
+type KubernetesEventItem corev1.Event
+
+func (a KubernetesEventItem) GetFingerprint() string {
+	labels := map[string]interface{}{
+		"namespace": a.Namespace,
+		"resource":  a.Reason,
+		"podName":   a.InvolvedObject.Name,
+	}
+
+	var result uint64
+	for labelName, labelValue := range labels {
+		sum := tools.HashNew()
+		sum = tools.HashAdd(sum, labelName)
+		sum = tools.HashAdd(sum, fmt.Sprintf("%v", labelValue))
+		result ^= sum
+	}
+
+	return strconv.FormatUint(result, 10)
+}
+
+func (a KubernetesEventItem) GetMetrics() map[string]interface{} {
+	return map[string]interface{}{
+		"namespace": a.Namespace,
+		"resource":  a.Reason,
+		"podName":   a.InvolvedObject.Name,
+	}
 }

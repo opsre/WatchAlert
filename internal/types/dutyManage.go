@@ -8,8 +8,8 @@ type RequestDutyManagementCreate struct {
 	Manager     models.DutyUser   `json:"manager" gorm:"manager;serializer:json"`
 	Description string            `json:"description"`
 	CurDutyUser []models.DutyUser `json:"curDutyUser" gorm:"curDutyUser;serializer:json"`
-	CreateBy    string            `json:"create_by"`
-	CreateAt    int64             `json:"create_at"`
+	UpdateBy    string            `json:"updateBy"`
+	UpdateAt    int64             `json:"updateAt"`
 }
 
 type RequestDutyManagementUpdate struct {
@@ -19,8 +19,8 @@ type RequestDutyManagementUpdate struct {
 	Manager     models.DutyUser   `json:"manager" gorm:"manager;serializer:json"`
 	Description string            `json:"description"`
 	CurDutyUser []models.DutyUser `json:"curDutyUser" gorm:"curDutyUser;serializer:json"`
-	CreateBy    string            `json:"create_by"`
-	CreateAt    int64             `json:"create_at"`
+	UpdateBy    string            `json:"updateBy"`
+	UpdateAt    int64             `json:"updateAt"`
 }
 
 type RequestDutyManagementQuery struct {

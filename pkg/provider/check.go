@@ -3,8 +3,9 @@ package provider
 import (
 	"context"
 	"fmt"
-	"github.com/zeromicro/go-zero/core/logc"
 	"watchAlert/internal/models"
+
+	"github.com/zeromicro/go-zero/core/logc"
 )
 
 // HealthChecker 统一健康检查接口
@@ -19,9 +20,6 @@ type ClientFactory func(models.AlertDataSource) (HealthChecker, error)
 var datasourceFactories = map[string]ClientFactory{
 	"Prometheus": func(ds models.AlertDataSource) (HealthChecker, error) {
 		return NewPrometheusClient(ds)
-	},
-	"VictoriaMetrics": func(ds models.AlertDataSource) (HealthChecker, error) {
-		return NewVictoriaMetricsClient(ds)
 	},
 	"Kubernetes": func(ds models.AlertDataSource) (HealthChecker, error) {
 		return NewKubernetesClient(context.Background(), ds.KubeConfig, ds.Labels)
@@ -85,7 +83,7 @@ func CheckDatasourceHealth(datasource models.AlertDataSource) (bool, error) {
 
 // 统一日志记录方法
 func logDatasourceError(ds models.AlertDataSource, err error) {
-	logc.Errorf(context.Background(), "Datasource error",
+	logc.Error(context.Background(), "Datasource error",
 		map[string]interface{}{
 			"id":   ds.ID,
 			"name": ds.Name,

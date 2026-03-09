@@ -2,12 +2,14 @@ package sender
 
 import (
 	"fmt"
-	"github.com/bytedance/sonic"
 	"time"
 	"watchAlert/internal/ctx"
 
-	"github.com/zeromicro/go-zero/core/logc"
+	"github.com/bytedance/sonic"
+
 	"watchAlert/internal/models"
+
+	"github.com/zeromicro/go-zero/core/logc"
 )
 
 type (
@@ -15,6 +17,7 @@ type (
 	SendParams struct {
 		// 基础
 		TenantId string
+		EventId  string
 		RuleName string
 		Severity string
 		// 通知
@@ -29,8 +32,6 @@ type (
 		Email models.Email
 		// 消息
 		Content string
-		// 电话号码
-		PhoneNumber []string
 		// 签名
 		Sign string `json:"sign,omitempty"`
 	}
@@ -59,7 +60,7 @@ func Sender(ctx *ctx.Context, sendParams SendParams) error {
 	}
 
 	// 记录成功发送的日志
-	addRecord(ctx, sendParams, 0, sendParams.Content, "")
+	addRecord(ctx, sendParams, 0, sendParams.Content, "success")
 	logc.Info(ctx.Ctx, fmt.Sprintf("Send alarm ok, msg: %s", sendParams.Content))
 	return nil
 }
@@ -83,17 +84,15 @@ func Tester(ctx *ctx.Context, sendParams SendParams) error {
 func senderFactory(noticeType string) (SendInter, error) {
 	switch noticeType {
 	case "Email":
-		return NewEmailSender(), nil
+		return NewEmailSender()
 	case "FeiShu":
 		return NewFeiShuSender(), nil
 	case "DingDing":
 		return NewDingSender(), nil
 	case "WeChat":
 		return NewWeChatSender(), nil
-	case "CustomHook":
+	case "WebHook":
 		return NewWebHookSender(), nil
-	case "PhoneCall":
-		return NewPhoneCallSender(), nil
 	case "Slack":
 		return NewSlackSender(), nil
 	default:
@@ -104,12 +103,13 @@ func senderFactory(noticeType string) (SendInter, error) {
 // addRecord 记录通知发送结果
 func addRecord(ctx *ctx.Context, sendParams SendParams, status int, msg, errMsg string) {
 	err := ctx.DB.Notice().AddRecord(models.NoticeRecord{
+		EventId:  sendParams.EventId,
 		Date:     time.Now().Format("2006-01-02"),
 		CreateAt: time.Now().Unix(),
 		TenantId: sendParams.TenantId,
 		RuleName: sendParams.RuleName,
 		NType:    sendParams.NoticeType,
-		NObj:     sendParams.NoticeName + " (" + sendParams.NoticeId + ")",
+		NObj:     sendParams.NoticeId,
 		Severity: sendParams.Severity,
 		Status:   status,
 		AlarmMsg: msg,

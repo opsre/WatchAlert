@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"time"
+	"watchAlert/pkg/tools"
 )
 
 // AlertStatus 定义状态类型
@@ -14,49 +15,42 @@ const (
 	StateAlerting        AlertStatus = "alerting"         // 告警中
 	StatePendingRecovery AlertStatus = "pending_recovery" // 待恢复
 	StateRecovered       AlertStatus = "recovered"        // 已恢复
-	StateSilenced        AlertStatus = "silenced"         // 静默中
 )
 
 type AlertCurEvent struct {
-	TenantId               string                 `json:"tenantId"`
-	RuleId                 string                 `json:"rule_id"`
-	RuleName               string                 `json:"rule_name"`
-	DatasourceType         string                 `json:"datasource_type"`
-	DatasourceId           string                 `json:"datasource_id" gorm:"datasource_id"`
-	Fingerprint            string                 `json:"fingerprint"`
-	Severity               string                 `json:"severity"`
-	Labels                 map[string]interface{} `json:"labels" gorm:"labels;serializer:json"`
-	SearchQL               string                 `json:"searchQL" gorm:"-"`
-	EvalInterval           int64                  `json:"eval_interval"`
-	ForDuration            int64                  `json:"for_duration"`
-	Annotations            string                 `json:"annotations" gorm:"-"`
-	IsRecovered            bool                   `json:"is_recovered" gorm:"-"`
-	FirstTriggerTime       int64                  `json:"first_trigger_time"` // 第一次触发时间
-	FirstTriggerTimeFormat string                 `json:"first_trigger_time_format" gorm:"-"`
-	RepeatNoticeInterval   int64                  `json:"repeat_notice_interval"`  // 重复通知间隔时间
-	LastEvalTime           int64                  `json:"last_eval_time" gorm:"-"` // 上一次评估时间
-	LastSendTime           int64                  `json:"last_send_time" gorm:"-"` // 上一次发送时间
-	RecoverTime            int64                  `json:"recover_time" gorm:"-"`   // 恢复时间
-	RecoverTimeFormat      string                 `json:"recover_time_format" gorm:"-"`
-	DutyUser               string                 `json:"duty_user" gorm:"-"`
-	DutyUserPhoneNumber    []string               `json:"duty_user_phone_number" gorm:"-"`
-	EffectiveTime          EffectiveTime          `json:"effectiveTime" gorm:"effectiveTime;serializer:json"`
-	FaultCenterId          string                 `json:"faultCenterId"`
-	FaultCenter            FaultCenter            `json:"faultCenter" gorm:"-"`
-	UpgradeState           UpgradeState           `json:"upgradeState" gorm:"-"`
-	Status                 AlertStatus            `json:"status" gorm:"-"` // 事件状态
+	TenantId             string                 `json:"tenantId"`
+	EventId              string                 `json:"eventId"`
+	RuleGroupId          string                 `json:"rule_group_id"`
+	RuleId               string                 `json:"rule_id"`
+	RuleName             string                 `json:"rule_name"`
+	DatasourceType       string                 `json:"datasource_type"`
+	DatasourceId         string                 `json:"datasource_id" gorm:"datasource_id"`
+	Fingerprint          string                 `json:"fingerprint"`
+	Severity             string                 `json:"severity"`
+	Labels               map[string]interface{} `json:"labels" gorm:"labels;serializer:json"`
+	SearchQL             string                 `json:"searchQL" gorm:"-"`
+	EvalInterval         int64                  `json:"eval_interval"`
+	ForDuration          int64                  `json:"for_duration"`
+	Annotations          string                 `json:"annotations" gorm:"-"`
+	IsRecovered          bool                   `json:"is_recovered" gorm:"-"`
+	FirstTriggerTime     int64                  `json:"first_trigger_time"`      // 第一次触发时间
+	RepeatNoticeInterval int64                  `json:"repeat_notice_interval"`  // 重复通知间隔时间
+	LastEvalTime         int64                  `json:"last_eval_time" gorm:"-"` // 上一次评估时间
+	LastSendTime         int64                  `json:"last_send_time" gorm:"-"` // 上一次发送时间
+	RecoverTime          int64                  `json:"recover_time" gorm:"-"`   // 恢复时间
+	DutyUser             string                 `json:"duty_user" gorm:"-"`
+	EffectiveTime        EffectiveTime          `json:"effectiveTime" gorm:"effectiveTime;serializer:json"`
+	FaultCenterId        string                 `json:"faultCenterId"`
+	FaultCenter          FaultCenter            `json:"faultCenter" gorm:"-"`
+	ConfirmState         ConfirmState           `json:"confirmState" gorm:"-"`
+	Status               AlertStatus            `json:"status" gorm:"-"` // 事件状态
 }
 
-type UpgradeState struct {
-	IsConfirm       bool   `json:"isConfirm"`       // 是否已认领
-	ConfirmOkTime   int64  `json:"confirmOkTime"`   // 点击认领时间
-	ConfirmSendTime int64  `json:"confirmSendTime"` // 认领超时通知时间
-	WhoAreConfirm   string `json:"whoAreConfirm"`
-
-	IsHandle       bool   `json:"isHandle"`       // 是否已处理
-	HandleOkTime   int64  `json:"HandleOkTime"`   // 点击处理时间
-	HandleSendTime int64  `json:"handleSendTime"` // 处理超时通知时间
-	WhoAreHandle   string `json:"whoAreHandle"`
+type ConfirmState struct {
+	IsOk                   bool   `json:"isOk"`                   // 是否已认领
+	ConfirmActionTime      int64  `json:"confirmActionTime"`      // 点击认领时间
+	ConfirmTimeoutSendTime int64  `json:"confirmTimeoutSendTime"` // 认领超时通知时间
+	ConfirmUsername        string `json:"confirmUsername"`
 }
 
 const (
@@ -80,9 +74,6 @@ func (alert *AlertCurEvent) TransitionStatus(newStatus AlertStatus) error {
 		return err
 	}
 
-	// 更新状态
-	alert.Status = newStatus
-
 	return nil
 }
 
@@ -92,11 +83,10 @@ func (alert *AlertCurEvent) validateTransition(newState AlertStatus) error {
 
 	// 定义允许的状态转换规则
 	allowedTransitions := map[AlertStatus][]AlertStatus{
-		StatePreAlert:        {StateAlerting, StateSilenced},
-		StateAlerting:        {StatePendingRecovery, StateSilenced},
+		StatePreAlert:        {StateAlerting},
+		StateAlerting:        {StatePendingRecovery},
 		StatePendingRecovery: {StateAlerting, StateRecovered},
 		StateRecovered:       {StatePreAlert},
-		StateSilenced:        {StatePreAlert, StateAlerting, StatePendingRecovery, StateRecovered},
 	}
 
 	// 检查转换是否允许
@@ -123,20 +113,19 @@ func (alert *AlertCurEvent) validateTransition(newState AlertStatus) error {
 func (alert *AlertCurEvent) handleStateTransition(newState AlertStatus) error {
 	now := time.Now().Unix()
 
+	// 更新状态
+	alert.Status = newState
+
 	switch newState {
 	case StatePreAlert:
 		alert.FirstTriggerTime = now
 		alert.LastEvalTime = now
+
 	case StateAlerting:
 	case StateRecovered:
-		if alert.IsRecovered == true && alert.Status == StateRecovered {
-			return nil
-		}
-
 		alert.LastSendTime = 0
 		alert.RecoverTime = now
 		alert.IsRecovered = true
-	case StateSilenced:
 	}
 
 	return nil
@@ -156,4 +145,43 @@ func (e StateTransitionError) Error() string {
 // IsArriveForDuration 比对持续时间
 func (alert *AlertCurEvent) IsArriveForDuration() bool {
 	return alert.LastEvalTime-alert.FirstTriggerTime > alert.ForDuration
+}
+
+// GetLastSendTime 获取故障中心事件的最后发送时间
+func (alert *AlertCurEvent) GetLastSendTime() int64 {
+	return alert.LastSendTime
+}
+
+// GetLastEvalTime 获取故障中心事件的最后评估时间
+func (alert *AlertCurEvent) GetLastEvalTime() int64 {
+	return time.Now().Unix()
+}
+
+// GetFirstTime 获取故障中心事件的首次触发时间
+func (alert *AlertCurEvent) GetFirstTime() int64 {
+	if alert.FirstTriggerTime == 0 {
+		return time.Now().Unix()
+	}
+	return alert.FirstTriggerTime
+}
+
+// GetLastConfirmState 获取最新告警升级认领状态
+func (alert *AlertCurEvent) GetLastConfirmState() ConfirmState {
+	return alert.ConfirmState
+}
+
+// GetEventStatus 获取事件状态
+func (alert *AlertCurEvent) GetEventStatus() AlertStatus {
+	if alert.Status == "" {
+		return StatePreAlert
+	}
+	return alert.Status
+}
+
+// GetEventId 获取告警事件ID
+func (alert *AlertCurEvent) GetEventId() string {
+	if alert.EventId == "" {
+		return tools.RandId()
+	}
+	return alert.EventId
 }

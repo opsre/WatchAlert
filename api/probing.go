@@ -1,10 +1,13 @@
 package api
 
 import (
-	"github.com/gin-gonic/gin"
+	"errors"
 	middleware "watchAlert/internal/middleware"
 	"watchAlert/internal/services"
 	"watchAlert/internal/types"
+	"watchAlert/pkg/tools"
+
+	"github.com/gin-gonic/gin"
 )
 
 type probingController struct{}
@@ -34,7 +37,6 @@ func (probingController probingController) API(gin *gin.RouterGroup) {
 	{
 		b.GET("listProbing", probingController.List)
 		b.GET("searchProbing", probingController.Search)
-		b.GET("getProbingHistory", probingController.GetHistory)
 	}
 
 	c := gin.Group("probing")
@@ -76,10 +78,16 @@ func (probingController probingController) Create(ctx *gin.Context) {
 	r := new(types.RequestProbingRuleCreate)
 	BindJson(ctx, r)
 
-	tid, _ := ctx.Get("TenantID")
-	r.TenantId = tid.(string)
-
 	Service(ctx, func() (interface{}, interface{}) {
+		tokenStr := ctx.Request.Header.Get("Authorization")
+		if len(tokenStr) <= 0 {
+			return nil, errors.New("用户未登录")
+		}
+		r.UpdateBy = tools.GetUser(tokenStr)
+
+		tid, _ := ctx.Get("TenantID")
+		r.TenantId = tid.(string)
+
 		return services.ProbingService.Create(r)
 	})
 }
@@ -88,10 +96,16 @@ func (probingController probingController) Update(ctx *gin.Context) {
 	r := new(types.RequestProbingRuleUpdate)
 	BindJson(ctx, r)
 
-	tid, _ := ctx.Get("TenantID")
-	r.TenantId = tid.(string)
-
 	Service(ctx, func() (interface{}, interface{}) {
+		tokenStr := ctx.Request.Header.Get("Authorization")
+		if len(tokenStr) <= 0 {
+			return nil, errors.New("用户未登录")
+		}
+		r.UpdateBy = tools.GetUser(tokenStr)
+
+		tid, _ := ctx.Get("TenantID")
+		r.TenantId = tid.(string)
+
 		return services.ProbingService.Update(r)
 	})
 }
@@ -114,15 +128,6 @@ func (probingController probingController) Once(ctx *gin.Context) {
 
 	Service(ctx, func() (interface{}, interface{}) {
 		return services.ProbingService.Once(r)
-	})
-}
-
-func (probingController probingController) GetHistory(ctx *gin.Context) {
-	r := new(types.RequestProbingHistoryRecord)
-	BindQuery(ctx, r)
-
-	Service(ctx, func() (interface{}, interface{}) {
-		return services.ProbingService.GetHistory(r)
 	})
 }
 

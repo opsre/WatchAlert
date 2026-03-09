@@ -1,10 +1,9 @@
 package services
 
 import (
-	"watchAlert/alert"
 	"watchAlert/internal/ctx"
-	service2 "watchAlert/pkg/community/aws/cloudwatch/service"
-	"watchAlert/pkg/community/aws/service"
+	"watchAlert/pkg/aws/cloudwatch"
+	"watchAlert/pkg/aws/region"
 )
 
 var (
@@ -26,9 +25,9 @@ var (
 	AlertService            InterAlertService
 	RuleTmplGroupService    InterRuleTmplGroupService
 	UserPermissionService   InterUserPermissionService
-	AWSRegionService        service.InterAwsRegionService
-	AWSCloudWatchService    service2.InterAwsCloudWatchService
-	AWSCloudWatchRdsService service2.InterAwsRdsService
+	AWSRegionService        region.InterAwsRegionService
+	AWSCloudWatchService    cloudwatch.InterAwsCloudWatchService
+	AWSCloudWatchRdsService cloudwatch.InterAwsRdsService
 	SettingService          InterSettingService
 	ClientService           InterClientService
 	LdapService             InterLdapService
@@ -37,6 +36,8 @@ var (
 	FaultCenterService      InterFaultCenterService
 	AiService               InterAiService
 	OidcService             InterOidcService
+	TopologyService         InterTopologyService
+	ApiKeyService           InterApiKeyService
 )
 
 func NewServices(ctx *ctx.Context) {
@@ -58,15 +59,17 @@ func NewServices(ctx *ctx.Context) {
 	UserRoleService = newInterUserRoleService(ctx)
 	AlertService = newInterAlertService(ctx)
 	UserPermissionService = newInterUserPermissionService(ctx)
-	AWSRegionService = service.NewInterAwsRegionService(ctx)
-	AWSCloudWatchService = service2.NewInterAwsCloudWatchService(ctx)
-	AWSCloudWatchRdsService = service2.NewInterAWSRdsService(ctx)
+	AWSRegionService = region.NewInterAwsRegionService(ctx)
+	AWSCloudWatchService = cloudwatch.NewInterAwsCloudWatchService(ctx)
+	AWSCloudWatchRdsService = cloudwatch.NewInterAWSRdsService(ctx)
 	SettingService = newInterSettingService(ctx)
 	ClientService = newInterClientService(ctx)
 	LdapService = newInterLdapService(ctx)
 	SubscribeService = newInterAlertSubscribe(ctx)
-	ProbingService = newInterProbingService(ctx, &alert.ProductProbing, &alert.ConsumeProbing)
+	ProbingService = newInterProbingService(ctx)
 	FaultCenterService = newInterFaultCenterService(ctx)
 	AiService = newInterAiService(ctx)
 	OidcService = newInterOidcService(ctx)
+	TopologyService = newInterTopologyService(ctx)
+	ApiKeyService = newInterApiKeyService(ctx)
 }

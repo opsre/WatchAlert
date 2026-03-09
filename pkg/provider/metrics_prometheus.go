@@ -2,82 +2,144 @@ package provider
 
 import (
 	"context"
-	"github.com/prometheus/client_golang/api"
-	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
-	"github.com/prometheus/common/model"
+	"fmt"
 	"math"
 	"net/http"
 	"time"
 	"watchAlert/internal/models"
+	"watchAlert/pkg/tools"
+
+	"github.com/prometheus/client_golang/api"
+	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	"github.com/prometheus/common/model"
+
+	"github.com/zeromicro/go-zero/core/logc"
 )
 
 type PrometheusProvider struct {
+	client         v1.API
 	ExternalLabels map[string]interface{}
-	apiV1          v1.API
+	Address        string
+	Username       string
+	Password       string
+	Headers        map[string]string
+	Timeout        int64
 }
 
-// BasicAuthTransport 实现带认证的HTTP传输层
-type BasicAuthTransport struct {
-	Username string
-	Password string
-	Base     http.RoundTripper
+// authenticatedTransport 包装 http.RoundTripper 以添加认证头和额外的headers
+type authenticatedTransport struct {
+	Transport http.RoundTripper
+	Username  string
+	Password  string
+	Headers   map[string]string
 }
 
-func (t *BasicAuthTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	if t.Username != "" || t.Password != "" {
+// RoundTrip 实现 http.RoundTripper 接口
+func (t *authenticatedTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	if t.Username != "" && t.Password != "" {
 		req.SetBasicAuth(t.Username, t.Password)
 	}
-	return t.Base.RoundTrip(req)
+
+	for key, value := range t.Headers {
+		req.Header.Set(key, value)
+	}
+
+	return t.Transport.RoundTrip(req)
 }
 
-func NewPrometheusClient(source models.AlertDataSource) (MetricsFactoryProvider, error) {
-	// 创建基础传输层
-	baseTransport := http.DefaultTransport
-
-	// 配置认证传输层
-	authTransport := &BasicAuthTransport{
-		Username: source.Auth.User,
-		Password: source.Auth.Pass,
-		Base:     baseTransport,
+func NewPrometheusClient(ds models.AlertDataSource) (MetricsFactoryProvider, error) {
+	transport := &http.Transport{
+		Proxy:               http.ProxyFromEnvironment,
+		MaxIdleConns:        100,
+		MaxIdleConnsPerHost: 10,
+		IdleConnTimeout:     90 * time.Second,
 	}
 
-	// 创建客户端配置
+	var roundTripper http.RoundTripper = transport
+	if ds.Auth.User != "" || ds.Auth.Pass != "" || len(ds.HTTP.Headers) > 0 {
+		roundTripper = &authenticatedTransport{
+			Transport: transport,
+			Username:  ds.Auth.User,
+			Password:  ds.Auth.Pass,
+			Headers:   ds.HTTP.Headers,
+		}
+	}
+
 	clientConfig := api.Config{
-		Address:      source.HTTP.URL,
-		RoundTripper: authTransport,
+		Address:      ds.HTTP.URL,
+		RoundTripper: roundTripper,
 	}
 
-	// 创建带认证的客户端
 	client, err := api.NewClient(clientConfig)
 	if err != nil {
 		return nil, err
 	}
 
 	return PrometheusProvider{
-		apiV1:          v1.NewAPI(client),
-		ExternalLabels: source.Labels,
+		client:         v1.NewAPI(client),
+		Address:        ds.HTTP.URL,
+		ExternalLabels: ds.Labels,
+		Username:       ds.Auth.User,
+		Password:       ds.Auth.Pass,
+		Headers:        ds.HTTP.Headers,
+		Timeout:        ds.HTTP.Timeout,
 	}, nil
 }
 
-func (p PrometheusProvider) Query(promQL string) ([]Metrics, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+type QueryResponse struct {
+	Status     string     `json:"status"`
+	MetricData MetricData `json:"data"`
+}
+
+type MetricData struct {
+	MetricResult []MetricResult `json:"result"`
+	ResultType   string         `json:"resultType"`
+}
+
+type MetricResult struct {
+	Metric map[string]interface{} `json:"metric"`
+	Value  []interface{}          `json:"value"`
+	Values [][]interface{}        `json:"values"`
+}
+
+func (v PrometheusProvider) Query(promQL string) ([]Metrics, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(v.Timeout)*time.Second)
 	defer cancel()
-	result, _, err := p.apiV1.Query(ctx, promQL, time.Now(), v1.WithTimeout(5*time.Second))
+	result, _, err := v.client.Query(ctx, promQL, time.Now(), v1.WithTimeout(time.Duration(v.Timeout)*time.Second))
+	if err != nil {
+		return nil, err
+	}
+	return Vectors(result), nil
+}
+
+func (v PrometheusProvider) QueryRange(promQL string, start, end time.Time, step time.Duration) ([]Metrics, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(v.Timeout)*time.Second)
+	defer cancel()
+
+	r := v1.Range{
+		Start: start,
+		End:   end,
+		Step:  step,
+	}
+
+	result, _, err := v.client.QueryRange(ctx, promQL, r, v1.WithTimeout(time.Duration(v.Timeout)*time.Second))
 	if err != nil {
 		return nil, err
 	}
 
-	return ConvertVectors(result), nil
+	return Matrix(result), nil
 }
 
-func ConvertVectors(value model.Value) (lst []Metrics) {
+func Vectors(value model.Value) []Metrics {
+	var vectors []Metrics
 	items, ok := value.(model.Vector)
 	if !ok {
-		return
+		return []Metrics{}
 	}
 
 	for _, item := range items {
 		if math.IsNaN(float64(item.Value)) {
+			logc.Infof(context.Background(), "Skipping NaN or Inf value: %v", item.Value)
 			continue
 		}
 
@@ -86,24 +148,67 @@ func ConvertVectors(value model.Value) (lst []Metrics) {
 			metric[string(k)] = string(v)
 		}
 
-		lst = append(lst, Metrics{
-			Timestamp: float64(item.Timestamp),
-			Value:     float64(item.Value),
+		vectors = append(vectors, Metrics{
 			Metric:    metric,
+			Value:     float64(item.Value),
+			Timestamp: float64(item.Timestamp),
 		})
 	}
-	return
+
+	return vectors
 }
 
-func (p PrometheusProvider) Check() (bool, error) {
-	_, err := p.apiV1.Config(context.Background())
-	if err != nil {
-		return false, err
+// Matrix 将 Prometheus QueryRange 结果转换为 Metrics 列表
+func Matrix(value model.Value) []Metrics {
+	var metrics []Metrics
+	matrix, ok := value.(model.Matrix)
+	if !ok {
+		return []Metrics{}
 	}
 
+	for _, stream := range matrix {
+		var metric = make(map[string]interface{})
+		for k, v := range stream.Metric {
+			metric[string(k)] = string(v)
+		}
+
+		for _, value := range stream.Values {
+			if math.IsNaN(float64(value.Value)) {
+				continue
+			}
+
+			metrics = append(metrics, Metrics{
+				Timestamp: float64(value.Timestamp),
+				Value:     float64(value.Value),
+				Metric:    metric,
+			})
+		}
+	}
+
+	return metrics
+}
+
+func (v PrometheusProvider) Check() (bool, error) {
+	var headers map[string]string
+	checkURL := v.Address + "/api/v1/query?query=1%2B1"
+	if v.Username != "" && v.Password != "" {
+		headers = tools.CreateBasicAuthHeader(v.Username, v.Password)
+	}
+	headers = tools.MergeHeaders(headers, v.Headers)
+	res, err := tools.Get(headers, checkURL, int(v.Timeout))
+	if err != nil {
+		logc.Errorf(context.Background(), "Health check failed, URL: %s, Error: %v", checkURL, err)
+		return false, fmt.Errorf("health check failed: %w", err)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		logc.Errorf(context.Background(), "Health check received unhealthy status: %d, URL: %s", res.StatusCode, checkURL)
+		return false, fmt.Errorf("unhealthy status: %d", res.StatusCode)
+	}
 	return true, nil
 }
 
-func (p PrometheusProvider) GetExternalLabels() map[string]interface{} {
-	return p.ExternalLabels
+func (v PrometheusProvider) GetExternalLabels() map[string]interface{} {
+	return v.ExternalLabels
 }

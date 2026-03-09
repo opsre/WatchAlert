@@ -95,6 +95,10 @@ func PermissionsInfo() map[string]UserPermissions {
 			Key: "查看通知模版",
 			API: "/api/w8t/noticeTemplate/noticeTemplateList",
 		},
+		"noticeTemplateGet": {
+			Key: "获取通知模版",
+			API: "/api/w8t/noticeTemplate/noticeTemplateGet",
+		},
 		"noticeTemplateUpdate": {
 			Key: "更新通知模版",
 			API: "/api/w8t/noticeTemplate/noticeTemplateUpdate",
@@ -347,10 +351,6 @@ func PermissionsInfo() map[string]UserPermissions {
 			Key: "认领/处理告警",
 			API: "/api/w8t/event/processAlertEvent",
 		},
-		"getProbingHistory": {
-			Key: "获取拨测历史详情",
-			API: "/api/w8t/probing/getProbingHistory",
-		},
 		"listComments": {
 			Key: "查看评论",
 			API: "/api/w8t/event/listComments",
@@ -362,6 +362,18 @@ func PermissionsInfo() map[string]UserPermissions {
 		"deleteComment": {
 			Key: "删除评论",
 			API: "/api/w8t/event/deleteComment",
+		},
+		"createTopology": {
+			Key: "创建服务拓扑",
+			API: "/api/w8t/topology/createTopology",
+		},
+		"updateTopology": {
+			Key: "更新服务拓扑",
+			API: "/api/w8t/topology/updateTopology",
+		},
+		"deleteTopology": {
+			Key: "删除服务拓扑",
+			API: "/api/w8t/topology/deleteTopology",
 		},
 	}
 }

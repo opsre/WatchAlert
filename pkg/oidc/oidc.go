@@ -9,7 +9,7 @@ import (
 )
 
 func GetOpenIDConfiguration(upper string) (*types.RespOpenIDConfiguration, error) {
-	resp, err := tools.Get(nil, fmt.Sprintf("%s/.well-known/openid-configuration", upper), 10)
+	resp, err := tools.Get(nil, upper, 10)
 	if err != nil {
 		return nil, err
 	}
@@ -22,13 +22,19 @@ func GetOpenIDConfiguration(upper string) (*types.RespOpenIDConfiguration, error
 	return &d, nil
 }
 
-func GetOauthToken(tokenUrl, code string) (*types.OauthToken, error) {
+func GetOauthToken(tokenUrl, code, clientID, clientSecret string) (*types.OauthToken, error) {
 	header := make(map[string]string)
 	header["Content-Type"] = "application/x-www-form-urlencoded"
 
 	form := url.Values{}
 	form.Add("grant_type", "authorization_code")
 	form.Add("code", code)
+	if clientID != "" {
+		form.Add("client_id", clientID)
+	}
+	if clientSecret != "" {
+		form.Add("client_secret", clientSecret)
+	}
 
 	resp, err := tools.Post(header, tokenUrl, bytes.NewReader([]byte(form.Encode())), 10)
 	if err != nil {

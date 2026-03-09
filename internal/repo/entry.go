@@ -1,9 +1,10 @@
 package repo
 
 import (
-	"gorm.io/gorm"
-	"watchAlert/internal/global"
+	"watchAlert/config"
 	"watchAlert/pkg/client"
+
+	"gorm.io/gorm"
 )
 
 type (
@@ -37,18 +38,22 @@ type (
 		FaultCenter() InterFaultCenterRepo
 		Ai() InterAiRepo
 		Comment() InterCommentRepo
+		Topology() InterTopologyRepo
+		ApiKey() InterApiKeyRepo
 	}
 )
 
 func NewRepoEntry() InterEntryRepo {
-	sql := global.Config.MySQL
+	dbConfig := config.Application.Database
 	db := client.NewDBClient(client.DBConfig{
-		Host:    sql.Host,
-		Port:    sql.Port,
-		User:    sql.User,
-		Pass:    sql.Pass,
-		DBName:  sql.DBName,
-		Timeout: sql.Timeout,
+		Type:    dbConfig.Type,
+		Host:    dbConfig.Host,
+		Port:    dbConfig.Port,
+		User:    dbConfig.User,
+		Pass:    dbConfig.Pass,
+		DBName:  dbConfig.DBName,
+		Timeout: dbConfig.Timeout,
+		Path:    dbConfig.Path,
 	})
 	g := NewInterGormDBCli(db)
 	return &entryRepo{
@@ -85,3 +90,5 @@ func (e *entryRepo) Probing() InterProbingRepo         { return newProbingRepoIn
 func (e *entryRepo) FaultCenter() InterFaultCenterRepo { return newInterFaultCenterRepo(e.db, e.g) }
 func (e *entryRepo) Ai() InterAiRepo                   { return newAiRepoInterface(e.db, e.g) }
 func (e *entryRepo) Comment() InterCommentRepo         { return newCommentInterface(e.db, e.g) }
+func (e *entryRepo) Topology() InterTopologyRepo       { return newInterTopologyRepo(e.db, e.g) }
+func (e *entryRepo) ApiKey() InterApiKeyRepo           { return newApiKeyInterface(e.db, e.g) }

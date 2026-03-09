@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"net/url"
 	"strconv"
 	"strings"
@@ -15,6 +14,9 @@ import (
 	"watchAlert/internal/types"
 	"watchAlert/pkg/provider"
 	"watchAlert/pkg/tools"
+	jwtUtils "watchAlert/pkg/tools"
+
+	"github.com/gin-gonic/gin"
 )
 
 type datasourceController struct{}
@@ -57,6 +59,7 @@ func (datasourceController datasourceController) API(gin *gin.RouterGroup) {
 	)
 	{
 		c.GET("promQuery", datasourceController.PromQuery)
+		c.GET("promQueryRange", datasourceController.PromQueryRange)
 		c.POST("dataSourcePing", datasourceController.Ping)
 		c.POST("searchViewLogsContent", datasourceController.SearchViewLogsContent)
 	}
@@ -64,14 +67,17 @@ func (datasourceController datasourceController) API(gin *gin.RouterGroup) {
 }
 
 func (datasourceController datasourceController) Create(ctx *gin.Context) {
-	d := new(types.RequestDatasourceCreate)
-	BindJson(ctx, d)
-
-	tid, _ := ctx.Get("TenantID")
-	d.TenantId = tid.(string)
+	r := new(types.RequestDatasourceCreate)
+	BindJson(ctx, r)
 
 	Service(ctx, func() (interface{}, interface{}) {
-		return services.DatasourceService.Create(d)
+		userName := jwtUtils.GetUser(ctx.Request.Header.Get("Authorization"))
+		r.UpdateBy = userName
+
+		tid, _ := ctx.Get("TenantID")
+		r.TenantId = tid.(string)
+
+		return services.DatasourceService.Create(r)
 	})
 }
 
@@ -103,10 +109,13 @@ func (datasourceController datasourceController) Update(ctx *gin.Context) {
 	r := new(types.RequestDatasourceUpdate)
 	BindJson(ctx, r)
 
-	tid, _ := ctx.Get("TenantID")
-	r.TenantId = tid.(string)
-
 	Service(ctx, func() (interface{}, interface{}) {
+		userName := jwtUtils.GetUser(ctx.Request.Header.Get("Authorization"))
+		r.UpdateBy = userName
+
+		tid, _ := ctx.Get("TenantID")
+		r.TenantId = tid.(string)
+
 		return services.DatasourceService.Update(r)
 	})
 }
@@ -134,11 +143,7 @@ func (datasourceController datasourceController) PromQuery(ctx *gin.Context) {
 		params.Add("query", r.Query)
 		params.Add("time", strconv.FormatInt(time.Now().Unix(), 10))
 
-		var ids []string
-		if len(r.DatasourceIds) < 2 {
-			ids = []string{r.DatasourceIds}
-		}
-
+		var ids = []string{}
 		ids = strings.Split(r.DatasourceIds, ",")
 		for _, id := range ids {
 			var res provider.QueryResponse
@@ -146,6 +151,60 @@ func (datasourceController datasourceController) PromQuery(ctx *gin.Context) {
 			if err != nil {
 				return nil, err
 			}
+
+			if !source.GetEnabled() {
+				return nil, fmt.Errorf("数据源「%s」已被禁用!", source.Name)
+			}
+
+			fullURL := fmt.Sprintf("%s%s?%s", source.HTTP.URL, path, params.Encode())
+			get, err := tools.Get(tools.CreateBasicAuthHeader(source.Auth.User, source.Auth.Pass), fullURL, 10)
+			if err != nil {
+				return nil, err
+			}
+
+			if err := tools.ParseReaderBody(get.Body, &res); err != nil {
+				return nil, err
+			}
+
+			ress = append(ress, res)
+		}
+
+		return ress, nil
+	})
+}
+
+func (datasourceController datasourceController) PromQueryRange(ctx *gin.Context) {
+	r := new(types.RequestQueryMetricsValue)
+	BindQuery(ctx, r)
+
+	Service(ctx, func() (interface{}, interface{}) {
+		err := r.Validate()
+		if err != nil {
+			return nil, err
+		}
+
+		var ress []provider.QueryResponse
+		path := "/api/v1/query_range"
+		params := url.Values{}
+		params.Add("query", r.Query)
+		params.Add("start", strconv.FormatInt(r.GetStartTime().Unix(), 10))
+		params.Add("end", strconv.FormatInt(r.GetEndTime().Unix(), 10))
+		params.Add("step", fmt.Sprintf("%.0fs", r.GetStep().Seconds()))
+
+		var ids = []string{}
+		ids = strings.Split(r.DatasourceIds, ",")
+
+		for _, id := range ids {
+			var res provider.QueryResponse
+			source, err := ctx2.DO().DB.Datasource().Get(id)
+			if err != nil {
+				return nil, err
+			}
+
+			if !source.GetEnabled() {
+				return nil, fmt.Errorf("数据源「%s」已被禁用!", source.Name)
+			}
+
 			fullURL := fmt.Sprintf("%s%s?%s", source.HTTP.URL, path, params.Encode())
 			get, err := tools.Get(tools.CreateBasicAuthHeader(source.Auth.User, source.Auth.Pass), fullURL, 10)
 			if err != nil {

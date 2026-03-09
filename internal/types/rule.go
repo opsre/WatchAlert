@@ -10,7 +10,6 @@ type RequestRuleCreate struct {
 	DatasourceIdList     []string                   `json:"datasourceId"`
 	RuleName             string                     `json:"ruleName"`
 	EvalInterval         int64                      `json:"evalInterval"`
-	EvalTimeType         string                     `json:"evalTimeType"` // second, millisecond
 	RepeatNoticeInterval int64                      `json:"repeatNoticeInterval"`
 	Description          string                     `json:"description"`
 	EffectiveTime        models.EffectiveTime       `json:"effectiveTime"`
@@ -26,6 +25,7 @@ type RequestRuleCreate struct {
 	ElasticSearchConfig  models.ElasticSearchConfig `json:"elasticSearchConfig"`
 	LogEvalCondition     string                     `json:"logEvalCondition"`
 	FaultCenterId        string                     `json:"faultCenterId"`
+	UpdateBy             string                     `json:"updateBy"`
 	Enabled              *bool                      `json:"enabled"`
 }
 
@@ -46,7 +46,6 @@ type RequestRuleUpdate struct {
 	DatasourceIdList     []string                   `json:"datasourceId"`
 	RuleName             string                     `json:"ruleName"`
 	EvalInterval         int64                      `json:"evalInterval"`
-	EvalTimeType         string                     `json:"evalTimeType"` // second, millisecond
 	RepeatNoticeInterval int64                      `json:"repeatNoticeInterval"`
 	Description          string                     `json:"description"`
 	EffectiveTime        models.EffectiveTime       `json:"effectiveTime"`
@@ -62,6 +61,7 @@ type RequestRuleUpdate struct {
 	ElasticSearchConfig  models.ElasticSearchConfig `json:"elasticSearchConfig"`
 	LogEvalCondition     string                     `json:"logEvalCondition"`
 	FaultCenterId        string                     `json:"faultCenterId"`
+	UpdateBy             string                     `json:"updateBy"`
 	Enabled              *bool                      `json:"enabled"`
 }
 
@@ -141,4 +141,12 @@ type Annotations struct {
 func (r Rule) GetEnable() *bool {
 	var enable = false
 	return &enable
+}
+
+// RequestRuleChange 请求修改规则的任意字段
+type RequestRuleChange struct {
+	TenantId string                 `json:"tenantId"`
+	RuleIds  []string               `json:"rule_ids"`
+	Change   map[string]interface{} `json:"change"`
+	UpdateBy string                 `json:"updateBy"`
 }

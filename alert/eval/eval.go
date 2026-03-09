@@ -20,7 +20,6 @@ import (
 const (
 	// 数据源类型
 	DatasourceTypePrometheus      = "Prometheus"
-	DatasourceTypeVictoriaMetrics = "VictoriaMetrics"
 	DatasourceTypeAliCloudSLS     = "AliCloudSLS"
 	DatasourceTypeLoki            = "Loki"
 	DatasourceTypeElasticSearch   = "ElasticSearch"
@@ -29,10 +28,6 @@ const (
 	DatasourceTypeJaeger          = "Jaeger"
 	DatasourceTypeCloudWatch      = "CloudWatch"
 	DatasourceTypeKubernetesEvent = "KubernetesEvent"
-
-	// 时间类型
-	TimeTypeMillisecond = "millisecond"
-	TimeTypeSecond      = "second"
 
 	// 默认恢复等待时间
 	DefaultRecoverWaitTime = 1
@@ -44,7 +39,6 @@ const (
 // 数据源处理器映射
 var datasourceHandlers = map[string]func(*ctx.Context, string, string, models.AlertRule) []string{
 	DatasourceTypePrometheus:      metrics,
-	DatasourceTypeVictoriaMetrics: metrics,
 	DatasourceTypeAliCloudSLS:     logs,
 	DatasourceTypeLoki:            logs,
 	DatasourceTypeElasticSearch:   logs,
@@ -63,12 +57,12 @@ type (
 		Eval(ctx context.Context, rule models.AlertRule)
 		Recover(tenantId, ruleId string, eventCacheKey models.AlertEventCacheKey, faultCenterInfoKey models.FaultCenterInfoCacheKey, curFingerprints []string)
 		RestartAllEvals()
+		StopAllEvals()
 	}
 
 	// AlertRule 告警规则
 	AlertRule struct {
-		ctx       *ctx.Context
-		ruleCache sync.Map
+		ctx *ctx.Context
 	}
 )
 
@@ -103,14 +97,20 @@ func (t *AlertRule) Restart(rule models.AlertRule) {
 }
 
 func (t *AlertRule) Eval(ctx context.Context, rule models.AlertRule) {
+	err := rule.Validate()
+	if err != nil {
+		logc.Errorf(t.ctx.Ctx, "Rule validation failed, RuleName: %s, RuleId: %s, Error: %v", rule.RuleName, rule.RuleId, err)
+		return
+	}
+
 	taskChan := make(chan struct{}, TaskChannelBufferSize)
-	timer := time.NewTicker(t.getEvalTimeDuration(rule.EvalTimeType, rule.EvalInterval))
+	timer := time.NewTicker(t.getEvalTimeDuration(rule.EvalInterval))
 	defer func() {
 		timer.Stop()
 		if r := recover(); r != nil {
 			// 获取调用栈信息
 			stack := debug.Stack()
-			logc.Error(t.ctx.Ctx, fmt.Sprintf("Recovered from rule eval goroutine panic: %s, RuleName: %s, RuleId: %s\n%s", r, rule.RuleName, rule.RuleId, stack))
+			logc.Errorf(t.ctx.Ctx, "Recovered from rule eval goroutine panic: %s, RuleName: %s, RuleId: %s\n%s", r, rule.RuleName, rule.RuleId, stack)
 			t.Restart(rule)
 		}
 	}()
@@ -120,12 +120,13 @@ func (t *AlertRule) Eval(ctx context.Context, rule models.AlertRule) {
 		case <-timer.C:
 			// 处理任务信号量
 			taskChan <- struct{}{}
+			logc.Infof(t.ctx.Ctx, fmt.Sprintf("Handle eval task, RuleId: %v, RuleName: %s", rule.RuleId, rule.RuleName))
 			t.executeTask(rule, taskChan)
 		case <-ctx.Done():
-			logc.Infof(t.ctx.Ctx, fmt.Sprintf("停止 RuleId: %v, RuleName: %s 的 Watch 协程", rule.RuleId, rule.RuleName))
+			logc.Infof(t.ctx.Ctx, fmt.Sprintf("Stop eval task, RuleId: %v, RuleName: %s", rule.RuleId, rule.RuleName))
 			return
 		}
-		timer.Reset(t.getEvalTimeDuration(rule.EvalTimeType, rule.EvalInterval))
+		timer.Reset(t.getEvalTimeDuration(rule.EvalInterval))
 	}
 }
 
@@ -187,7 +188,7 @@ func (t *AlertRule) processDatasources(rule models.AlertRule) []string {
 func (t *AlertRule) processSingleDatasource(dsId string, rule models.AlertRule) []string {
 	instance, err := t.ctx.DB.Datasource().GetInstance(dsId)
 	if err != nil {
-		logc.Errorf(t.ctx.Ctx, fmt.Sprintf("Failed to get datasource instance %s: %v", dsId, err))
+		logc.Errorf(t.ctx.Ctx, "Failed to get datasource instance %s: %v", dsId, err)
 		return nil
 	}
 
@@ -214,16 +215,26 @@ func (t *AlertRule) processSingleDatasource(dsId string, rule models.AlertRule) 
 }
 
 // getEvalTimeDuration 获取评估时间间隔
-func (t *AlertRule) getEvalTimeDuration(evalTimeType string, evalInterval int64) time.Duration {
-	switch evalTimeType {
-	case TimeTypeMillisecond:
-		return time.Duration(evalInterval) * time.Millisecond
-	default:
-		return time.Duration(evalInterval) * time.Second
-	}
+func (t *AlertRule) getEvalTimeDuration(evalInterval int64) time.Duration {
+	return time.Duration(evalInterval) * time.Second
 }
 
 func (t *AlertRule) Recover(tenantId, ruleId string, eventCacheKey models.AlertEventCacheKey, faultCenterInfoKey models.FaultCenterInfoCacheKey, curFingerprints []string) {
+	// 过滤空指纹
+	var filteredCurFingerprints []string
+	for _, fp := range curFingerprints {
+		if fp != "" {
+			filteredCurFingerprints = append(filteredCurFingerprints, fp)
+		}
+	}
+	curFingerprints = filteredCurFingerprints
+
+	// 校验 key 非空
+	if eventCacheKey == "" || faultCenterInfoKey == "" {
+		logc.Errorf(t.ctx.Ctx, "AlertRule.Recover: eventCacheKey or faultCenterInfoKey is empty")
+		return
+	}
+
 	// 获取所有的故障中心告警事件
 	events, err := t.ctx.Redis.Alert().GetAllEvents(eventCacheKey)
 	if err != nil {
@@ -236,6 +247,10 @@ func (t *AlertRule) Recover(tenantId, ruleId string, eventCacheKey models.AlertE
 
 	// 筛选当前规则相关的指纹，并处理预告警状态
 	for fingerprint, event := range events {
+		if fingerprint == "" {
+			continue
+		}
+
 		if !strings.Contains(event.RuleId, ruleId) {
 			continue
 		}
@@ -295,13 +310,13 @@ func (t *AlertRule) Recover(tenantId, ruleId string, eventCacheKey models.AlertE
 		// 获取待恢复状态的时间戳
 		wTime, err := t.ctx.Redis.PendingRecover().Get(tenantId, ruleId, fingerprint)
 		if err == redis.Nil {
-			// 进入待恢复状态, 如果不存在, 则记录当前时间
-			t.ctx.Redis.PendingRecover().Set(tenantId, ruleId, fingerprint, curTime)
 			// 转换状态, 标记为待恢复
 			if err := newEvent.TransitionStatus(models.StatePendingRecovery); err != nil {
 				logc.Errorf(t.ctx.Ctx, "Failed to transition to「pending_recovery」state for fingerprint %s: %v", fingerprint, err)
 				continue
 			}
+			// 记录当前时间
+			t.ctx.Redis.PendingRecover().Set(tenantId, ruleId, fingerprint, curTime)
 			t.ctx.Redis.Alert().PushAlertEvent(newEvent)
 			continue
 		} else if err != nil {
@@ -393,4 +408,25 @@ func (t *AlertRule) getRuleList() ([]models.AlertRule, error) {
 		return nil, fmt.Errorf("获取 Rule List 失败: %w", err)
 	}
 	return ruleList, nil
+}
+
+// StopAllEvals 停止所有评估器
+func (t *AlertRule) StopAllEvals() {
+	t.ctx.Mux.Lock()
+	defer t.ctx.Mux.Unlock()
+
+	count := len(t.ctx.ContextMap)
+	if count == 0 {
+		return
+	}
+
+	logc.Infof(t.ctx.Ctx, "停止 %d 个规则评估器...", count)
+
+	// 取消所有评估任务
+	for ruleId, cancel := range t.ctx.ContextMap {
+		cancel()
+		delete(t.ctx.ContextMap, ruleId)
+	}
+
+	logc.Infof(t.ctx.Ctx, "所有规则评估器已停止")
 }

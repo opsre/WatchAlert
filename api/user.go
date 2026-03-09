@@ -1,11 +1,12 @@
 package api
 
 import (
-	"github.com/gin-gonic/gin"
 	middleware "watchAlert/internal/middleware"
 	"watchAlert/internal/services"
 	"watchAlert/internal/types"
 	jwtUtils "watchAlert/pkg/tools"
+
+	"github.com/gin-gonic/gin"
 )
 
 type userController struct{}
@@ -61,7 +62,7 @@ func (userController userController) GetUserInfo(ctx *gin.Context) {
 	r.UserName = username
 
 	Service(ctx, func() (interface{}, interface{}) {
-		return services.UserService.Get(r)
+		return services.UserService.Info(r)
 	})
 }
 
@@ -109,7 +110,7 @@ func (userController userController) CheckUser(ctx *gin.Context) {
 	BindQuery(ctx, r)
 
 	Service(ctx, func() (interface{}, interface{}) {
-		return services.UserService.Get(r)
+		return services.UserService.Check(r)
 	})
 }
 

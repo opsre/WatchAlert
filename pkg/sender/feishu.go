@@ -7,11 +7,12 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/bytedance/sonic"
-	"github.com/zeromicro/go-zero/core/logc"
 	"strconv"
 	"time"
 	"watchAlert/internal/ctx"
+
+	"github.com/bytedance/sonic"
+	"github.com/zeromicro/go-zero/core/logc"
 
 	"watchAlert/pkg/tools"
 )
@@ -33,9 +34,7 @@ var FeiShuTestContent = fmt.Sprintf(`{
   }
 }`, RobotTestContent)
 
-func NewFeiShuSender() SendInter {
-	return &FeiShuSender{}
-}
+func NewFeiShuSender() SendInter { return &FeiShuSender{} }
 
 func (f *FeiShuSender) Send(params SendParams) error {
 	return f.post(params.Hook, params.Sign, params.GetSendMsg())
@@ -54,11 +53,7 @@ func (f *FeiShuSender) Test(params SendParams) error {
 
 func (f *FeiShuSender) post(hook, sign string, msg map[string]any) error {
 	if sign != "" {
-		timestamp := strconv.FormatInt(time.Now().Unix(), 10)
-		signature, err := generateSignature(hook, timestamp)
-		if err != nil {
-			return err
-		}
+		signature, timestamp := generateFeishuSignature(sign)
 		msg["sign"] = signature
 		msg["timestamp"] = timestamp
 	}
@@ -80,16 +75,17 @@ func (f *FeiShuSender) post(hook, sign string, msg map[string]any) error {
 	return nil
 }
 
-// generateSignature 生成签名
-func generateSignature(secret string, timestamp string) (string, error) {
-	//timestamp + key 做sha256, 再进行base64 encode
-	stringToSign := fmt.Sprintf("%v", timestamp) + "\n" + secret
+// generateFeishuSignature 生成 Feishu 签名
+func generateFeishuSignature(secret string) (string, string) {
+	// 1. Get timestamp
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+
+	// 2. Prepare the string to sign: {timestamp}\n{secret}
+	stringToSign := fmt.Sprintf("%s\n%s", timestamp, secret)
+
 	var data []byte
 	h := hmac.New(sha256.New, []byte(stringToSign))
-	_, err := h.Write(data)
-	if err != nil {
-		return "", err
-	}
-	signature := base64.StdEncoding.EncodeToString(h.Sum(nil))
-	return signature, nil
+	h.Write(data)
+
+	return base64.StdEncoding.EncodeToString(h.Sum(nil)), timestamp
 }

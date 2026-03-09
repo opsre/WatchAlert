@@ -3,17 +3,16 @@ package consumer
 import (
 	"context"
 	"fmt"
-	"github.com/zeromicro/go-zero/core/logc"
-	"golang.org/x/sync/errgroup"
 	"regexp"
 	"runtime/debug"
-	"sort"
 	"sync"
 	"time"
-	"watchAlert/alert/mute"
 	"watchAlert/alert/process"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
+
+	"github.com/zeromicro/go-zero/core/logc"
+	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -22,6 +21,10 @@ const (
 
 	// 默认处理时间间隔
 	DefaultProcessTime = 1
+
+	// 状态前缀
+	RecoverStatePrefix = "Recover_"
+	FiringStatePrefix  = "Firing_"
 )
 
 type (
@@ -30,6 +33,7 @@ type (
 		Stop(faultCenterId string)
 		Watch(ctx context.Context, faultCenter models.FaultCenter)
 		RestartAllConsumers()
+		StopAllConsumers()
 	}
 
 	Consume struct {
@@ -44,12 +48,12 @@ type (
 
 	RulesGroup struct {
 		RuleID string // 规则组 ID
-		Groups []EventsGroup
+		Groups map[string]EventsGroup
 	}
 
 	AlertGroups struct {
-		Rules []RulesGroup // 告警事件列表, 根据规则划分组
-		lock  sync.Mutex
+		Rules map[string]RulesGroup
+		lock  sync.RWMutex
 	}
 )
 
@@ -60,41 +64,37 @@ func (ag *AlertGroups) AddAlert(stateId string, alert *models.AlertCurEvent, fau
 
 	// 获取通知对象 ID 列表 用于事件分组
 	noticeObjIds := ag.getNoticeId(alert, faultCenter)
+	if len(noticeObjIds) == 0 {
+		return // 如果没有通知对象ID，则跳过
+	}
 
 	for _, noticeObjId := range noticeObjIds {
-		// 查找 Rule 位置
-		rulePos := ag.getRuleNodePos(stateId)
-
-		// Rule 存在时的处理，找到对应的规则组
-		if rulePos < len(ag.Rules) && ag.Rules[rulePos].RuleID == stateId {
-			rule := &ag.Rules[rulePos]
-
-			// 查找 Group 位置
-			groupPos := ag.getGroupNodePos(rule, noticeObjId)
-
-			if groupPos < len(rule.Groups) && (rule.Groups)[groupPos].NoticeID == noticeObjId {
-				// 追加事件
-				(rule.Groups)[groupPos].Events = append((rule.Groups)[groupPos].Events, alert)
-			} else {
-				// 实例化新的 EventGroup
-				rule.Groups = append(rule.Groups, EventsGroup{
-					NoticeID: noticeObjId,
-					Events:   []*models.AlertCurEvent{alert},
-				})
-			}
-			continue
-		} else {
-			// 实例化新的 RuleGroup
-			ag.Rules = append(ag.Rules, RulesGroup{
+		// 检查 Rule 是否存在
+		rule, exists := ag.Rules[stateId]
+		if !exists {
+			// 创建新的 RuleGroup
+			ag.Rules[stateId] = RulesGroup{
 				RuleID: stateId,
-				Groups: []EventsGroup{
-					{
-						NoticeID: noticeObjId,
-						Events:   []*models.AlertCurEvent{alert},
-					},
-				},
-			})
+				Groups: make(map[string]EventsGroup),
+			}
+			rule = ag.Rules[stateId]
 		}
+
+		// 检查 Group 是否存在
+		group, groupExists := rule.Groups[noticeObjId]
+		if !groupExists {
+			// 创建新的 EventsGroup
+			rule.Groups[noticeObjId] = EventsGroup{
+				NoticeID: noticeObjId,
+				Events:   []*models.AlertCurEvent{},
+			}
+			group = rule.Groups[noticeObjId]
+		}
+
+		// 添加事件到对应组
+		group.Events = append(group.Events, alert)
+		// 更新 group 映射
+		ag.Rules[stateId].Groups[noticeObjId] = group
 	}
 }
 
@@ -116,32 +116,6 @@ func (ag *AlertGroups) getNoticeId(alert *models.AlertCurEvent, faultCenter mode
 	}
 
 	return faultCenter.NoticeIds
-}
-
-// getRuleNodePos 获取 Rule 点位
-func (ag *AlertGroups) getRuleNodePos(ruleId string) int {
-	// Rules 切片排序
-	sort.Slice(ag.Rules, func(i, j int) bool {
-		return ag.Rules[i].RuleID < ag.Rules[j].RuleID
-	})
-
-	// 查找Rule位置
-	return sort.Search(len(ag.Rules), func(i int) bool {
-		return ag.Rules[i].RuleID >= ruleId
-	})
-}
-
-// getGroupNodePos 获取 Event 点位
-func (ag *AlertGroups) getGroupNodePos(rule *RulesGroup, groupId string) int {
-	// Groups 切片排序
-	sort.Slice(rule.Groups, func(i, j int) bool {
-		return rule.Groups[i].NoticeID < rule.Groups[j].NoticeID
-	})
-
-	// 查找Group位置
-	return sort.Search(len(rule.Groups), func(i int) bool {
-		return (rule.Groups)[i].NoticeID >= groupId
-	})
 }
 
 func NewConsumerWork(ctx *ctx.Context) ConsumeInterface {
@@ -211,14 +185,16 @@ func (c *Consume) executeTask(faultCenter models.FaultCenter, taskChan chan stru
 	// 获取故障中心的所有告警事件
 	data, err := c.ctx.Redis.Alert().GetAllEvents(models.BuildAlertEventCacheKey(faultCenter.TenantId, faultCenter.ID))
 	if err != nil {
-		logc.Error(c.ctx.Ctx, fmt.Sprintf("从 Redis 中获取事件信息错误, faultCenterKey: %s, err: %s", models.BuildAlertEventCacheKey(faultCenter.TenantId, faultCenter.ID), err.Error()))
+		logc.Errorf(c.ctx.Ctx, "从 Redis 中获取事件信息错误, faultCenterKey: %s, err: %s", models.BuildAlertEventCacheKey(faultCenter.TenantId, faultCenter.ID), err.Error())
 		return
 	}
 
 	// 事件过滤
 	filterEvents := c.filterAlertEvents(faultCenter, data)
 	// 事件分组
-	var alertGroups AlertGroups
+	alertGroups := AlertGroups{
+		Rules: make(map[string]RulesGroup),
+	}
 	c.alarmGrouping(faultCenter, &alertGroups, filterEvents)
 	// 发送事件
 	c.sendAlerts(faultCenter, &alertGroups)
@@ -234,17 +210,21 @@ func (c *Consume) filterAlertEvents(faultCenter models.FaultCenter, alerts map[s
 	var newEvents []*models.AlertCurEvent
 
 	for _, event := range alerts {
-		// 过滤掉 预告警, 待恢复 状态的事件
-		if event.Status == models.StatePreAlert || event.Status == models.StatePendingRecovery {
+		if event.Fingerprint == "" {
 			continue
 		}
 
-		if c.isMutedEvent(event, faultCenter) {
-			// 当告警处于静默状态时触发了恢复告警，直接移除即可 不需要发送消息。
-			if event.Status == models.StateRecovered {
-				c.ctx.Redis.Alert().RemoveAlertEvent(event.TenantId, event.FaultCenterId, event.Fingerprint)
-			}
+		// 过滤掉 非告警中, 非恢复 状态的事件
+		if event.Status != models.StateAlerting && event.Status != models.StateRecovered {
 			continue
+		}
+
+		// 记录恢复状态的事件
+		if event.IsRecovered {
+			c.removeAlertFromCache(event)
+			if err := process.RecordAlertHisEvent(c.ctx, *event); err != nil {
+				logc.Error(c.ctx.Ctx, fmt.Sprintf("Failed to record alert history: %v", err))
+			}
 		}
 
 		if valid := c.validateEvent(event, faultCenter); valid {
@@ -253,18 +233,6 @@ func (c *Consume) filterAlertEvents(faultCenter models.FaultCenter, alerts map[s
 	}
 
 	return newEvents
-}
-
-// isMutedEvent 静默检查
-func (c *Consume) isMutedEvent(event *models.AlertCurEvent, faultCenter models.FaultCenter) bool {
-	return mute.IsMuted(mute.MuteParams{
-		EffectiveTime: event.EffectiveTime,
-		IsRecovered:   event.IsRecovered,
-		TenantId:      event.TenantId,
-		Labels:        event.Labels,
-		FaultCenterId: event.FaultCenterId,
-		RecoverNotify: faultCenter.RecoverNotify,
-	})
 }
 
 // validateEvent 事件验证
@@ -285,22 +253,13 @@ func (c *Consume) alarmGrouping(faultCenter models.FaultCenter, alertGroups *Ale
 	for _, alert := range alerts {
 		// 状态+规则 = 状态 ID
 		var stateId string
-		switch alert.IsRecovered {
-		case true:
-			stateId = "Recover_" + alert.RuleId
-		case false:
-			stateId = "Firing_" + alert.RuleId
-		default:
-			stateId = "Unknown_" + alert.RuleId
+		if alert.IsRecovered {
+			stateId = RecoverStatePrefix + alert.RuleId
+		} else {
+			stateId = FiringStatePrefix + alert.RuleId
 		}
 
 		alertGroups.AddAlert(stateId, alert, faultCenter)
-		if alert.IsRecovered {
-			c.removeAlertFromCache(alert)
-			if err := process.RecordAlertHisEvent(c.ctx, *alert); err != nil {
-				logc.Error(c.ctx.Ctx, fmt.Sprintf("Failed to record alert history: %v", err))
-			}
-		}
 	}
 }
 
@@ -320,10 +279,10 @@ func (c *Consume) sendAlerts(faultCenter models.FaultCenter, aggEvents *AlertGro
 func (c *Consume) processAlertGroup(faultCenter models.FaultCenter, noticeId string, alerts []*models.AlertCurEvent) {
 	g := new(errgroup.Group)
 	g.Go(func() error { return c.handleSubscribe(alerts) })
-	g.Go(func() error { return process.HandleAlert(c.ctx, faultCenter, noticeId, alerts) })
+	g.Go(func() error { return handleAlert(c.ctx, "alarm", faultCenter, noticeId, alerts) })
 
 	if err := g.Wait(); err != nil {
-		logc.Error(c.ctx.Ctx, fmt.Sprintf("Alert group processing failed: %v", err))
+		logc.Errorf(c.ctx.Ctx, "Alert group processing failed: %v", err)
 	}
 }
 
@@ -368,7 +327,7 @@ func (c *Consume) processSilenceRule(faultCenter models.FaultCenter) {
 	// 获取静默列表中所有的id
 	silenceIds, err := silenceCtx.GetAlertMutes(faultCenter.TenantId, faultCenter.ID)
 	if err != nil {
-		logc.Errorf(ctx.Ctx, err.Error())
+		logc.Error(ctx.Ctx, err.Error())
 		return
 	}
 
@@ -376,7 +335,7 @@ func (c *Consume) processSilenceRule(faultCenter models.FaultCenter) {
 	for _, silenceId := range silenceIds {
 		muteRule, err := silenceCtx.WithIdGetMuteFromCache(faultCenter.TenantId, faultCenter.ID, silenceId)
 		if err != nil {
-			logc.Errorf(ctx.Ctx, err.Error())
+			logc.Error(ctx.Ctx, err.Error())
 			return
 		}
 
@@ -402,4 +361,25 @@ func (c *Consume) processSilenceRule(faultCenter models.FaultCenter) {
 
 		silenceCtx.PushAlertMute(*muteRule)
 	}
+}
+
+// StopAllConsumers 停止所有消费者
+func (c *Consume) StopAllConsumers() {
+	c.ctx.Mux.Lock()
+	defer c.ctx.Mux.Unlock()
+
+	count := len(c.ctx.ContextMap)
+	if count == 0 {
+		return
+	}
+
+	logc.Infof(c.ctx.Ctx, "停止 %d 个故障中心消费者...", count)
+
+	// 取消所有消费任务
+	for fcId, cancel := range c.ctx.ContextMap {
+		cancel()
+		delete(c.ctx.ContextMap, fcId)
+	}
+
+	logc.Infof(c.ctx.Ctx, "所有故障中心消费者已停止")
 }

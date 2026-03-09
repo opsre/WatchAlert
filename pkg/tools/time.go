@@ -3,10 +3,11 @@ package tools
 import (
 	"context"
 	"fmt"
-	"github.com/sirupsen/logrus"
-	"github.com/zeromicro/go-zero/core/logc"
 	"strconv"
 	"time"
+
+	"github.com/sirupsen/logrus"
+	"github.com/zeromicro/go-zero/core/logc"
 )
 
 // TimeTransformToWeek 时间转换成周
@@ -44,4 +45,34 @@ func ParserDuration(curTime time.Time, logScope int, timeType string) time.Time 
 	}
 	startsAt := curTime.Add(-duration)
 	return startsAt
+}
+
+// ParseTime 解析时间
+func ParseTime(month string) (int, time.Month, int) {
+	parsedTime, err := time.Parse("2006-01", month)
+	if err != nil {
+		return 0, time.Month(0), 0
+	}
+	curYear, curMonth, curDay := parsedTime.Date()
+	return curYear, curMonth, curDay
+}
+
+// GetWeekday 获取周几
+func GetWeekday(date string) (time.Weekday, error) {
+	t, err := time.Parse("2006-1-2", date)
+	if err != nil {
+		return 0, err
+	}
+
+	weekday := t.Weekday()
+	return weekday, nil
+}
+
+// IsEndOfWeek 判断是否是周末
+func IsEndOfWeek(dateStr string) bool {
+	date, err := time.Parse("2006-1-2", dateStr)
+	if err != nil {
+		return false
+	}
+	return date.Weekday() == time.Sunday
 }

@@ -1,10 +1,11 @@
 package api
 
 import (
-	"github.com/gin-gonic/gin"
 	"watchAlert/internal/middleware"
 	"watchAlert/internal/services"
-	"watchAlert/pkg/community/aws/cloudwatch/types"
+	"watchAlert/pkg/aws/cloudwatch"
+
+	"github.com/gin-gonic/gin"
 )
 
 type awsCloudWatchRDSController struct{}
@@ -28,7 +29,7 @@ func (awsCloudWatchRDSController awsCloudWatchRDSController) API(gin *gin.Router
 }
 
 func (awsCloudWatchRDSController awsCloudWatchRDSController) GetRdsInstanceIdentifier(ctx *gin.Context) {
-	req := new(types.RdsInstanceReq)
+	req := new(cloudwatch.RdsInstanceReq)
 	BindQuery(ctx, req)
 	Service(ctx, func() (interface{}, interface{}) {
 		return services.AWSCloudWatchRdsService.GetDBInstanceIdentifier(req)
@@ -36,7 +37,7 @@ func (awsCloudWatchRDSController awsCloudWatchRDSController) GetRdsInstanceIdent
 }
 
 func (awsCloudWatchRDSController awsCloudWatchRDSController) GetRdsClusterIdentifier(ctx *gin.Context) {
-	req := new(types.RdsClusterReq)
+	req := new(cloudwatch.RdsClusterReq)
 	BindQuery(ctx, req)
 	Service(ctx, func() (interface{}, interface{}) {
 		return services.AWSCloudWatchRdsService.GetDBClusterIdentifier(req)

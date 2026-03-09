@@ -1,15 +1,21 @@
 package models
 
-// FeiShuMsg 飞书
-type FeiShuMsg struct {
-	MsgType string `json:"msg_type"`
-	Card    Cards  `json:"card"`
+// JsonCards 飞书卡片，兼容 1.0 / 2.0 的field
+type JsonCards struct {
+	Schema       string                   `json:"schema,omitempty"`
+	Config       map[string]interface{}   `json:"config,omitempty"`
+	CardLink     map[string]interface{}   `json:"card_link,omitempty"`
+	Header       map[string]interface{}   `json:"header,omitempty"`
+	Body         map[string]interface{}   `json:"body,omitempty"`
+	Elements     []map[string]interface{} `json:"elements,omitempty"`
+	I18nElements map[string]interface{}   `json:"i18n_elements,omitempty"`
+	Fallback     map[string]interface{}   `json:"fallback,omitempty"`
 }
 
-type Cards struct {
-	Config   Configs    `json:"config"`
-	Elements []Elements `json:"elements"`
-	Header   Headers    `json:"header"`
+// FeiShuJsonCardMsg 飞书Json卡片消息结构体
+type FeiShuJsonCardMsg struct {
+	MsgType string    `json:"msg_type"`
+	Card    JsonCards `json:"card"`
 }
 
 type Actions struct {
@@ -40,9 +46,18 @@ type ActionsText struct {
 }
 
 type Configs struct {
-	WideScreenMode bool `json:"wide_screen_mode"`
-	EnableForward  bool `json:"enable_forward"`
+	WideScreenMode bool      `json:"wide_screen_mode,omitempty"` // 最新文档中没有找到该配置项，先保留，允许为空
+	WidthMode      WidthMode `json:"width_mode,omitempty"`       // 卡片宽度模式。支持 "compact"（紧凑宽度 400px）模式、"fill"（撑满聊天窗口宽度）模式和 "default" 默认模式(宽度上限为 600px)。
+	EnableForward  bool      `json:"enable_forward,omitempty"`
 }
+
+type WidthMode string
+
+const (
+	WidthModeDefault WidthMode = "default" // 宽度上限 600px
+	WidthModeFill    WidthMode = "fill"    // 撑满聊天窗口宽度
+	WidthModeCompact WidthMode = "compact" // 紧凑宽度 400px
+)
 
 type Elements struct {
 	Tag            string             `json:"tag"`

@@ -2,12 +2,13 @@ package services
 
 import (
 	"fmt"
-	"gorm.io/gorm"
 	"time"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
 	"watchAlert/internal/types"
 	"watchAlert/pkg/tools"
+
+	"gorm.io/gorm"
 )
 
 type (
@@ -50,7 +51,7 @@ func (s alertSubscribeService) Get(req interface{}) (interface{}, interface{}) {
 }
 
 func (s alertSubscribeService) Create(req interface{}) (interface{}, interface{}) {
-	r := req.(*models.AlertSubscribe)
+	r := req.(*types.RequestSubscribeCreate)
 	_, b, err := s.ctx.DB.Subscribe().Get(r.STenantId, "", r.SUserId, r.SRuleId)
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
@@ -59,9 +60,22 @@ func (s alertSubscribeService) Create(req interface{}) (interface{}, interface{}
 		return nil, fmt.Errorf("用户已订阅该规则, 请勿重复创建!")
 	}
 
-	r.SId = "as-" + tools.RandId()
-	r.SCreateAt = time.Now().Unix()
-	err = s.ctx.DB.Subscribe().Create(*r)
+	subscribe := models.AlertSubscribe{
+		SId:               "as-" + tools.RandId(),
+		STenantId:         r.STenantId,
+		SUserId:           r.SUserId,
+		SUserEmail:        r.SUserEmail,
+		SRuleId:           r.SRuleId,
+		SRuleName:         r.SRuleName,
+		SRuleType:         r.SRuleType,
+		SRuleSeverity:     r.SRuleSeverity,
+		SNoticeSubject:    r.SNoticeSubject,
+		SNoticeTemplateId: r.SNoticeTemplateId,
+		SFilter:           r.SFilter,
+		SCreateAt:         time.Now().Unix(),
+	}
+
+	err = s.ctx.DB.Subscribe().Create(subscribe)
 	if err != nil {
 		return nil, err
 	}

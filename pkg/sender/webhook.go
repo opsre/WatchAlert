@@ -18,9 +18,7 @@ var WebhookTestContent = fmt.Sprintf(`{
   }
 }`, RobotTestContent)
 
-func NewWebHookSender() SendInter {
-	return &WebHookSender{}
-}
+func NewWebHookSender() SendInter { return &WebHookSender{} }
 
 func (w *WebHookSender) Send(params SendParams) error {
 	return w.post(params.Hook, params.Content)

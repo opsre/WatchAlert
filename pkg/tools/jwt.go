@@ -2,9 +2,11 @@ package tools
 
 import (
 	"errors"
-	"github.com/dgrijalva/jwt-go"
 	"time"
-	"watchAlert/internal/global"
+	"watchAlert/config"
+
+	"github.com/dgrijalva/jwt-go"
+	"github.com/spf13/viper"
 )
 
 // JwtCustomClaims 注册声明是JWT声明集的结构化版本，仅限于注册声明名称
@@ -22,6 +24,8 @@ const (
 	AppGuardName = "WatchAlert"
 )
 
+var StSignKey = []byte(viper.GetString("jwt.WatchAlert"))
+
 func (j JwtCustomClaims) Valid() error {
 	return nil
 }
@@ -30,7 +34,7 @@ func (j JwtCustomClaims) Valid() error {
 func ParseToken(tokenStr string) (JwtCustomClaims, error) {
 	iJwtCustomClaims := JwtCustomClaims{}
 	token, err := jwt.ParseWithClaims(tokenStr, &iJwtCustomClaims, func(token *jwt.Token) (interface{}, error) {
-		return global.StSignKey, nil
+		return StSignKey, nil
 	})
 
 	if err == nil && !token.Valid {
@@ -47,13 +51,13 @@ func GenerateToken(userId, userName, password string) (string, error) {
 		Name: userName,
 		Pass: password,
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Unix() + global.Config.Jwt.Expire,
+			ExpiresAt: time.Now().Unix() + config.Application.Jwt.Expire,
 			IssuedAt:  time.Now().Unix(),
 			Issuer:    AppGuardName,
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, iJwtCustomClaims)
-	return token.SignedString(global.StSignKey)
+	return token.SignedString(StSignKey)
 }
 
 func GetUser(tokenStr string) string {

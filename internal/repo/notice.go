@@ -3,10 +3,11 @@ package repo
 import (
 	"context"
 	"fmt"
-	"github.com/zeromicro/go-zero/core/logc"
-	"gorm.io/gorm"
 	"time"
 	"watchAlert/internal/models"
+
+	"github.com/zeromicro/go-zero/core/logc"
+	"gorm.io/gorm"
 )
 
 type (
@@ -22,7 +23,7 @@ type (
 		Update(r models.AlertNotice) error
 		Delete(tenantId, id string) error
 		AddRecord(r models.NoticeRecord) error
-		ListRecord(tenantId, severity, status, query string, page models.Page) (models.ResponseNoticeRecords, error)
+		ListRecord(tenantId, eventId, severity, status, noticeId, query string, page models.Page) (models.ResponseNoticeRecords, error)
 		CountRecord(r models.CountRecord) (int64, error)
 		DeleteRecord() error
 	}
@@ -75,7 +76,7 @@ func (nr NoticeRepo) List(tenantId, noticeTmplId, query string) ([]models.AlertN
 		db.Where("tenant_id = ?", tenantId)
 	}
 	if noticeTmplId != "" {
-		db.Where("notice_tmpl_id = ?", noticeTmplId)
+		db.Where("routes LIKE ?", "%"+noticeTmplId+"%")
 	}
 	if query != "" {
 		db.Where("uuid LIKE ? OR name LIKE ? OR env LIKE ? OR notice_type LIKE ?", "%"+query+"%", "%"+query+"%", "%"+query+"%", "%"+query+"%")
@@ -149,7 +150,7 @@ func (nr NoticeRepo) AddRecord(r models.NoticeRecord) error {
 	return nil
 }
 
-func (nr NoticeRepo) ListRecord(tenantId, severity, status, query string, page models.Page) (models.ResponseNoticeRecords, error) {
+func (nr NoticeRepo) ListRecord(tenantId, eventId, severity, status, noticeId, query string, page models.Page) (models.ResponseNoticeRecords, error) {
 	var (
 		records []models.NoticeRecord
 		count   int64
@@ -157,11 +158,17 @@ func (nr NoticeRepo) ListRecord(tenantId, severity, status, query string, page m
 	)
 
 	db.Where("tenant_id = ?", tenantId)
+	if eventId != "" {
+		db.Where("event_id = ?", eventId)
+	}
 	if severity != "" {
 		db.Where("severity = ?", severity)
 	}
 	if status != "" {
 		db.Where("status = ?", status)
+	}
+	if noticeId != "" {
+		db.Where("n_obj LIKE ?", "%"+noticeId+"%")
 	}
 	if query != "" {
 		db.Where("rule_name LIKE ? OR alarm_msg LIKE ? OR err_msg LIKE ?", "%"+query+"%", "%"+query+"%", "%"+query+"%")

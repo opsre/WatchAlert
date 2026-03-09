@@ -1,30 +1,34 @@
 package config
 
 import (
-	"github.com/spf13/viper"
 	"log"
+
+	"github.com/spf13/viper"
 )
 
 type App struct {
-	Server Server `json:"Server"`
-	MySQL  MySQL  `json:"MySQL"`
-	Redis  Redis  `json:"Redis"`
-	Jwt    Jwt    `json:"Jwt"`
-	Jaeger Jaeger `json:"Jaeger"`
+	Server   Server   `json:"Server"`
+	Database Database `json:"Database"`
+	Redis    Redis    `json:"Redis"`
+	Jwt      Jwt      `json:"Jwt"`
+	Jaeger   Jaeger   `json:"Jaeger"`
 }
 
 type Server struct {
-	Mode string `json:"mode"`
-	Port string `json:"port"`
+	Mode           string `json:"mode"`
+	Port           string `json:"port"`
+	EnableElection bool   `json:"enableElection"`
 }
 
-type MySQL struct {
-	Host    string `json:"host"`
-	Port    string `json:"port"`
-	User    string `json:"user"`
-	Pass    string `json:"pass"`
-	DBName  string `json:"dbName"`
-	Timeout string `json:"timeout"`
+type Database struct {
+	Type    string `json:"type"`    // mysql 或 sqlite
+	Host    string `json:"host"`    // MySQL 主机地址
+	Port    string `json:"port"`    // MySQL 端口
+	User    string `json:"user"`    // MySQL 用户名
+	Pass    string `json:"pass"`    // MySQL 密码
+	DBName  string `json:"dbName"`  // MySQL 数据库名
+	Timeout string `json:"timeout"` // MySQL 连接超时
+	Path    string `json:"path"`    // SQLite 数据库文件路径
 }
 
 type Redis struct {
@@ -43,10 +47,12 @@ type Jaeger struct {
 }
 
 var (
-	configFile = "config/config.yaml"
+	Application App
+	Version     string
+	configFile  = "config/config.yaml"
 )
 
-func InitConfig() App {
+func InitConfig(version string) {
 	v := viper.New()
 	v.SetConfigFile(configFile)
 	v.SetConfigType("yaml")
@@ -57,5 +63,7 @@ func InitConfig() App {
 	if err := v.Unmarshal(&config); err != nil {
 		log.Fatal("配置解析失败:", err)
 	}
-	return config
+
+	Version = version
+	Application = config
 }

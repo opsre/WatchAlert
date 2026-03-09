@@ -38,6 +38,7 @@ type RequestDashboardFoldersCreate struct {
 	TenantId            string `json:"tenantId" form:"tenantId"`
 	Name                string `json:"name"`
 	Theme               string `json:"theme" form:"theme"`
+	ApiKey              string `json:"apiKey" form:"apiKey"`
 	GrafanaVersion      string `json:"grafanaVersion" form:"grafanaVersion"` // v10及以下, v11及以上
 	GrafanaHost         string `json:"grafanaHost" form:"grafanaHost"`
 	GrafanaFolderId     string `json:"grafanaFolderId" form:"grafanaFolderId"`
@@ -49,6 +50,7 @@ type RequestDashboardFoldersUpdate struct {
 	ID                  string `json:"id" form:"id"`
 	Name                string `json:"name"`
 	Theme               string `json:"theme" form:"theme"`
+	ApiKey              string `json:"apiKey" form:"apiKey"`
 	GrafanaVersion      string `json:"grafanaVersion" form:"grafanaVersion"` // v10及以下, v11及以上
 	GrafanaHost         string `json:"grafanaHost" form:"grafanaHost"`
 	GrafanaFolderId     string `json:"grafanaFolderId" form:"grafanaFolderId"`

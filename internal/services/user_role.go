@@ -42,7 +42,7 @@ func (ur userRoleService) Create(req interface{}) (interface{}, interface{}) {
 		Name:        r.Name,
 		Description: r.Description,
 		Permissions: r.Permissions,
-		CreateAt:    time.Now().Unix(),
+		UpdateAt:    time.Now().Unix(),
 	})
 	if err != nil {
 		return nil, err
@@ -59,7 +59,7 @@ func (ur userRoleService) Update(req interface{}) (interface{}, interface{}) {
 		Name:        r.Name,
 		Description: r.Description,
 		Permissions: r.Permissions,
-		CreateAt:    r.CreateAt,
+		UpdateAt:    time.Now().Unix(),
 	})
 	if err != nil {
 		return nil, err

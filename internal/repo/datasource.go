@@ -2,8 +2,10 @@ package repo
 
 import (
 	"fmt"
-	"gorm.io/gorm"
+	"strings"
 	"watchAlert/internal/models"
+
+	"gorm.io/gorm"
 )
 
 type (
@@ -41,7 +43,11 @@ func (ds DatasourceRepo) List(tenantId, datasourceId, datasourceType, query stri
 		db.Where("id = ?", datasourceId)
 	}
 	if datasourceType != "" {
-		db.Where("type = ?", datasourceType)
+		if strings.Contains(datasourceType, ",") {
+			db.Where("type IN ?", strings.Split(datasourceType, ","))
+		} else {
+			db.Where("type = ?", datasourceType)
+		}
 	}
 	if query != "" {
 		db.Where("type LIKE ? OR id LIKE ? OR name LIKE ? OR description LIKE ?", "%"+query+"%", "%"+query+"%", "%"+query+"%", "%"+query+"%")

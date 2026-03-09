@@ -24,9 +24,7 @@ var WechatTestContent = fmt.Sprintf(`{
 	}
 }`, RobotTestContent)
 
-func NewWeChatSender() SendInter {
-	return &WeChatSender{}
-}
+func NewWeChatSender() SendInter { return &WeChatSender{} }
 
 func (w *WeChatSender) Send(params SendParams) error {
 	return w.post(params.Hook, params.Content)

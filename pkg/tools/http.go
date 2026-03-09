@@ -6,9 +6,12 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
-	"github.com/zeromicro/go-zero/core/logc"
+	"io"
 	"net/http"
 	"time"
+
+	"github.com/bytedance/sonic"
+	"github.com/zeromicro/go-zero/core/logc"
 )
 
 func Get(headers map[string]string, url string, timeout int) (*http.Response, error) {
@@ -17,7 +20,11 @@ func Get(headers map[string]string, url string, timeout int) (*http.Response, er
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
 		},
-		Proxy: http.ProxyFromEnvironment,
+		Proxy:               http.ProxyFromEnvironment,
+		MaxIdleConns:        100,
+		MaxIdleConnsPerHost: 10,
+		IdleConnTimeout:     90 * time.Second,
+		DisableKeepAlives:   false,
 	}
 
 	client := http.Client{
@@ -47,7 +54,11 @@ func Post(headers map[string]string, url string, bodyReader *bytes.Reader, timeo
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
 		},
-		Proxy: http.ProxyFromEnvironment,
+		Proxy:               http.ProxyFromEnvironment,
+		MaxIdleConns:        100,
+		MaxIdleConnsPerHost: 10,
+		IdleConnTimeout:     90 * time.Second,
+		DisableKeepAlives:   false,
 	}
 
 	client := http.Client{
@@ -76,7 +87,7 @@ func Post(headers map[string]string, url string, bodyReader *bytes.Reader, timeo
 // CreateBasicAuthHeader 创建带认证的HTTP头
 func CreateBasicAuthHeader(username, password string) map[string]string {
 	headers := make(map[string]string)
-	if username != "" || password != "" {
+	if username != "" && password != "" {
 		headers["Authorization"] = "Basic " + basicAuth(username, password)
 	}
 	return headers
@@ -85,4 +96,29 @@ func CreateBasicAuthHeader(username, password string) map[string]string {
 func basicAuth(username, password string) string {
 	auth := username + ":" + password
 	return base64.StdEncoding.EncodeToString([]byte(auth))
+}
+
+// MergeHeaders 合并HTTP头
+func MergeHeaders(headers1, headers2 map[string]string) map[string]string {
+	mergedHeaders := make(map[string]string)
+	for k, v := range headers1 {
+		mergedHeaders[k] = v
+	}
+	for k, v := range headers2 {
+		mergedHeaders[k] = v
+	}
+	return mergedHeaders
+}
+
+// ParseReaderBody 处理请求Body
+func ParseReaderBody(body io.Reader, req interface{}) error {
+	newBody := body
+	bodyByte, err := io.ReadAll(newBody)
+	if err != nil {
+		return fmt.Errorf("读取 Body 失败, err: %s", err.Error())
+	}
+	if err := sonic.Unmarshal(bodyByte, &req); err != nil {
+		return fmt.Errorf("解析 Body 失败, body: %s, err: %s", string(bodyByte), err.Error())
+	}
+	return nil
 }

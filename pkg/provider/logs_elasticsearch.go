@@ -5,17 +5,18 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/bytedance/sonic"
-	"github.com/olivere/elastic/v7"
 	"watchAlert/internal/models"
 	"watchAlert/pkg/tools"
+
+	"github.com/bytedance/sonic"
+	"github.com/olivere/elastic/v7"
 )
 
 type ElasticSearchDsProvider struct {
-	cli            *elastic.Client
-	url            string
-	username       string
-	password       string
+	Cli            *elastic.Client
+	Url            string
+	Username       string
+	Password       string
 	ExternalLabels map[string]interface{}
 }
 
@@ -30,10 +31,10 @@ func NewElasticSearchClient(ctx context.Context, ds models.AlertDataSource) (Log
 	}
 
 	return ElasticSearchDsProvider{
-		cli:            client,
-		url:            ds.HTTP.URL,
-		username:       ds.Auth.User,
-		password:       ds.Auth.Pass,
+		Cli:            client,
+		Url:            ds.HTTP.URL,
+		Username:       ds.Auth.User,
+		Password:       ds.Auth.Pass,
 		ExternalLabels: ds.Labels,
 	}, nil
 }
@@ -90,7 +91,7 @@ func (e ElasticSearchDsProvider) Query(options LogQueryOptions) (Logs, int, erro
 		return Logs{}, 0, fmt.Errorf("undefined QueryType, type: %s", options.ElasticSearch.QueryType)
 	}
 
-	res, err := e.cli.Search().
+	res, err := e.Cli.Search().
 		Index(indexName).
 		Query(query).
 		Pretty(true).
@@ -123,12 +124,12 @@ func (e ElasticSearchDsProvider) Query(options LogQueryOptions) (Logs, int, erro
 
 func (e ElasticSearchDsProvider) Check() (bool, error) {
 	header := make(map[string]string)
-	url := fmt.Sprintf("%s/_cat/health", e.url)
-	if e.username != "" {
-		auth := e.username + ":" + e.password
+	url := fmt.Sprintf("%s/_cat/health", e.Url)
+	if e.Username != "" {
+		auth := e.Username + ":" + e.Password
 		basicAuth := "Basic " + base64.StdEncoding.EncodeToString([]byte(auth))
 		header["Authorization"] = basicAuth
-		url = fmt.Sprintf("%s/_cat/health", e.url)
+		url = fmt.Sprintf("%s/_cat/health", e.Url)
 	}
 	res, err := tools.Get(header, url, 10)
 	if err != nil {

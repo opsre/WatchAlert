@@ -2,9 +2,10 @@ package client
 
 import (
 	"fmt"
-	"github.com/go-redis/redis"
 	"log"
-	"watchAlert/internal/global"
+	"watchAlert/config"
+
+	"github.com/go-redis/redis"
 )
 
 var Redis *redis.Client
@@ -12,9 +13,9 @@ var Redis *redis.Client
 func InitRedis() *redis.Client {
 
 	client := redis.NewClient(&redis.Options{
-		Addr:     fmt.Sprintf("%s:%s", global.Config.Redis.Host, global.Config.Redis.Port),
-		Password: global.Config.Redis.Pass,
-		DB:       global.Config.Redis.Database, // 使用默认的数据库
+		Addr:     fmt.Sprintf("%s:%s", config.Application.Redis.Host, config.Application.Redis.Port),
+		Password: config.Application.Redis.Pass,
+		DB:       config.Application.Redis.Database, // 使用默认的数据库
 	})
 
 	// 尝试连接到 Redis 服务器

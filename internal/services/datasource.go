@@ -2,6 +2,9 @@ package services
 
 import (
 	"fmt"
+	"time"
+	"watchAlert/alert"
+	"watchAlert/alert/probe"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
 	"watchAlert/internal/types"
@@ -39,12 +42,15 @@ func (ds datasourceService) Create(req interface{}) (interface{}, interface{}) {
 		Labels:           dataSource.Labels,
 		Type:             dataSource.Type,
 		HTTP:             dataSource.HTTP,
+		Write:            dataSource.Write,
 		Auth:             dataSource.Auth,
 		DsAliCloudConfig: dataSource.DsAliCloudConfig,
 		AWSCloudWatch:    dataSource.AWSCloudWatch,
 		ClickHouseConfig: dataSource.ClickHouseConfig,
 		Description:      dataSource.Description,
 		KubeConfig:       dataSource.KubeConfig,
+		UpdateBy:         dataSource.UpdateBy,
+		UpdateAt:         time.Now().Unix(),
 		Enabled:          dataSource.Enabled,
 	}
 
@@ -56,6 +62,14 @@ func (ds datasourceService) Create(req interface{}) (interface{}, interface{}) {
 	err = ds.WithAddClientToProviderPools(data)
 	if err != nil {
 		return nil, err
+	}
+
+	if dataSource.Type == "Prometheus" && dataSource.Write.Enabled == "On" {
+		alert.Probe.ResetWriteCache(data.ID, probe.NewWriter(probe.MetricsWriterConfig{
+			Endpoint: dataSource.Write.URL,
+			Username: dataSource.Auth.User,
+			Password: dataSource.Auth.Pass,
+		}))
 	}
 
 	return nil, nil
@@ -71,12 +85,15 @@ func (ds datasourceService) Update(req interface{}) (interface{}, interface{}) {
 		Labels:           dataSource.Labels,
 		Type:             dataSource.Type,
 		HTTP:             dataSource.HTTP,
+		Write:            dataSource.Write,
 		Auth:             dataSource.Auth,
 		DsAliCloudConfig: dataSource.DsAliCloudConfig,
 		AWSCloudWatch:    dataSource.AWSCloudWatch,
 		ClickHouseConfig: dataSource.ClickHouseConfig,
 		Description:      dataSource.Description,
 		KubeConfig:       dataSource.KubeConfig,
+		UpdateBy:         dataSource.UpdateBy,
+		UpdateAt:         time.Now().Unix(),
 		Enabled:          dataSource.Enabled,
 	}
 
@@ -90,6 +107,14 @@ func (ds datasourceService) Update(req interface{}) (interface{}, interface{}) {
 		return nil, err
 	}
 
+	if dataSource.Type == "Prometheus" && dataSource.Write.Enabled == "On" {
+		alert.Probe.ResetWriteCache(data.ID, probe.NewWriter(probe.MetricsWriterConfig{
+			Endpoint: dataSource.Write.URL,
+			Username: dataSource.Auth.User,
+			Password: dataSource.Auth.Pass,
+		}))
+	}
+
 	return nil, nil
 }
 
@@ -101,6 +126,8 @@ func (ds datasourceService) Delete(req interface{}) (interface{}, interface{}) {
 	}
 
 	ds.WithRemoveClientForProviderPools(dataSource.ID)
+
+	alert.Probe.DeleteWriteCache(dataSource.ID)
 
 	return nil, nil
 }
@@ -136,8 +163,6 @@ func (ds datasourceService) WithAddClientToProviderPools(datasource models.Alert
 	switch datasource.Type {
 	case provider.PrometheusDsProvider:
 		cli, err = provider.NewPrometheusClient(datasource)
-	case provider.VictoriaMetricsDsProvider:
-		cli, err = provider.NewVictoriaMetricsClient(datasource)
 	case provider.LokiDsProviderName:
 		cli, err = provider.NewLokiClient(datasource)
 	case provider.AliCloudSLSDsProviderName:

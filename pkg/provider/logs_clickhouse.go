@@ -4,10 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"github.com/ClickHouse/clickhouse-go/v2"
-	"github.com/zeromicro/go-zero/core/logc"
 	"time"
 	"watchAlert/internal/models"
+
+	"github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/zeromicro/go-zero/core/logc"
 )
 
 type ClickHouseProvider struct {
@@ -49,17 +50,13 @@ func (c ClickHouseProvider) Query(options LogQueryOptions) (Logs, int, error) {
 		return Logs{}, 0, err
 	}
 
-	var (
-		// 存储所有日志数据
-		message []map[string]interface{}
-		// 准备 values 数组，用于接收每行数据
-		values = make([]interface{}, len(columns))
-	)
+	var messages []map[string]interface{}
 
 	for rows.Next() {
 		// 每次循环都重新绑定指针,因为 Scan 是通过指针写入数据的.
+		var values = make([]interface{}, len(columns))
 		for i := range columns {
-			values[i] = new(string)
+			values[i] = new(interface{})
 		}
 
 		// 扫描数据到 values
@@ -68,26 +65,21 @@ func (c ClickHouseProvider) Query(options LogQueryOptions) (Logs, int, error) {
 			return Logs{}, 0, err
 		}
 
-		// 构造 map
 		entry := make(map[string]interface{})
 		for i, col := range columns {
-			val := values[i]
-
-			// 去掉 interface{} 的包装
-			if val != nil {
-				switch v := val.(type) {
-				case []byte:
-					// 转换字节切片为字符串
-					entry[col] = string(v)
-				default:
-					entry[col] = *val.(*string)
-				}
-			} else {
+			// 取出指针指向的实际数据
+			val := *(values[i].(*interface{}))
+			if val == nil {
 				entry[col] = ""
+				continue
+			}
+			if b, ok := val.([]byte); ok {
+				entry[col] = string(b)
+			} else {
+				entry[col] = val
 			}
 		}
-
-		message = append(message, entry)
+		messages = append(messages, entry)
 	}
 
 	if err := rows.Err(); err != nil {
@@ -96,8 +88,8 @@ func (c ClickHouseProvider) Query(options LogQueryOptions) (Logs, int, error) {
 
 	return Logs{
 		ProviderName: ClickHouseDsProviderName,
-		Message:      message,
-	}, len(message), nil
+		Message:      messages,
+	}, len(messages), nil
 }
 
 func (c ClickHouseProvider) Check() (bool, error) {

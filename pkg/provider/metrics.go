@@ -3,16 +3,17 @@ package provider
 import (
 	"fmt"
 	"strconv"
+	"time"
 	"watchAlert/pkg/tools"
 )
 
 const (
-	PrometheusDsProvider      string = "Prometheus"
-	VictoriaMetricsDsProvider string = "VictoriaMetrics"
+	PrometheusDsProvider string = "Prometheus"
 )
 
 type MetricsFactoryProvider interface {
 	Query(promQL string) ([]Metrics, error)
+	QueryRange(promQL string, start, end time.Time, step time.Duration) ([]Metrics, error)
 	Check() (bool, error)
 	GetExternalLabels() map[string]interface{}
 }
@@ -23,15 +24,12 @@ type Metrics struct {
 	Timestamp float64
 }
 
-func (m Metrics) GetFingerprint(ruleId string) string {
+func (m Metrics) GetFingerprint() string {
 	var labels = m.Metric
 
 	if len(labels) == 0 {
 		return strconv.FormatUint(tools.HashNew(), 10)
 	}
-
-	// 避免不同规则相同 label 出现相同指纹；
-	labels["rule_id"] = ruleId
 
 	var result uint64
 	for labelName, labelValue := range labels {

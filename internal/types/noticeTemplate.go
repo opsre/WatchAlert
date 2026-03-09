@@ -8,6 +8,7 @@ type RequestNoticeTemplateCreate struct {
 	TemplateFiring       string `json:"templateFiring"`
 	TemplateRecover      string `json:"templateRecover"`
 	EnableFeiShuJsonCard *bool  `json:"enableFeiShuJsonCard"`
+	UpdateBy             string `json:"updateBy"`
 }
 
 type RequestNoticeTemplateUpdate struct {
@@ -19,6 +20,7 @@ type RequestNoticeTemplateUpdate struct {
 	TemplateFiring       string `json:"templateFiring"`
 	TemplateRecover      string `json:"templateRecover"`
 	EnableFeiShuJsonCard *bool  `json:"enableFeiShuJsonCard"`
+	UpdateBy             string `json:"updateBy"`
 }
 
 type RequestNoticeTemplateQuery struct {

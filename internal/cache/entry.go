@@ -1,8 +1,9 @@
 package cache
 
 import (
-	"github.com/go-redis/redis"
 	"watchAlert/pkg/client"
+
+	"github.com/go-redis/redis"
 )
 
 type (
@@ -15,10 +16,10 @@ type (
 		Redis() *redis.Client
 		Silence() SilenceCacheInterface
 		Alert() AlertCacheInterface
-		Probing() ProbingCacheInterface
 		ProviderPools() *ProviderPoolStore
 		FaultCenter() FaultCenterCacheInterface
 		PendingRecover() PendingRecoverCacheInterface
+		Topology() TopologyCacheInterface
 	}
 )
 
@@ -35,11 +36,13 @@ func NewEntryCache() InterEntryCache {
 func (e entryCache) Redis() *redis.Client              { return e.redis }
 func (e entryCache) Silence() SilenceCacheInterface    { return newSilenceCacheInterface(e.redis) }
 func (e entryCache) Alert() AlertCacheInterface        { return newAlertCacheInterface(e.redis) }
-func (e entryCache) Probing() ProbingCacheInterface    { return newProbingCacheInterface(e.redis) }
 func (e entryCache) ProviderPools() *ProviderPoolStore { return e.provider }
 func (e entryCache) FaultCenter() FaultCenterCacheInterface {
 	return newFaultCenterCacheInterface(e.redis)
 }
 func (e entryCache) PendingRecover() PendingRecoverCacheInterface {
 	return newPendingRecoverCacheInterface(e.redis)
+}
+func (e entryCache) Topology() TopologyCacheInterface {
+	return newTopologyCacheInterface(e.redis)
 }

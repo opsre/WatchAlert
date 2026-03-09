@@ -50,8 +50,8 @@ func (dms *dutyManageService) Create(req interface{}) (interface{}, interface{})
 		Manager:     r.Manager,
 		Description: r.Description,
 		CurDutyUser: r.CurDutyUser,
-		CreateBy:    r.CreateBy,
-		CreateAt:    time.Now().Unix(),
+		UpdateBy:    r.UpdateBy,
+		UpdateAt:    time.Now().Unix(),
 	})
 	if err != nil {
 		return nil, err
@@ -68,8 +68,8 @@ func (dms *dutyManageService) Update(req interface{}) (interface{}, interface{})
 		Manager:     r.Manager,
 		Description: r.Description,
 		CurDutyUser: r.CurDutyUser,
-		CreateBy:    r.CreateBy,
-		CreateAt:    r.CreateAt,
+		UpdateBy:    r.UpdateBy,
+		UpdateAt:    time.Now().Unix(),
 	})
 	if err != nil {
 		return nil, err

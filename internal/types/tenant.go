@@ -5,8 +5,6 @@ import "watchAlert/internal/models"
 // RequestTenantCreate 请求创建租户
 type RequestTenantCreate struct {
 	Name             string `json:"name"`
-	CreateAt         int64  `json:"createAt"`
-	CreateBy         string `json:"createBy"`
 	Manager          string `json:"manager"`
 	Description      string `json:"description"`
 	UserNumber       int64  `json:"userNumber"`
@@ -15,6 +13,7 @@ type RequestTenantCreate struct {
 	NoticeNumber     int64  `json:"noticeNumber"`
 	RemoveProtection *bool  `json:"removeProtection" gorm:"type:BOOL"`
 	UserId           string `json:"userId" gorm:"-"`
+	UpdateAt         int64  `json:"updateAt"`
 }
 
 func (requestTenantCreate *RequestTenantCreate) GetRemoveProtection() *bool {
@@ -29,8 +28,6 @@ func (requestTenantCreate *RequestTenantCreate) GetRemoveProtection() *bool {
 type RequestTenantUpdate struct {
 	ID               string `json:"id"`
 	Name             string `json:"name"`
-	CreateAt         int64  `json:"createAt"`
-	CreateBy         string `json:"createBy"`
 	Manager          string `json:"manager"`
 	Description      string `json:"description"`
 	UserNumber       int64  `json:"userNumber"`
@@ -39,6 +36,7 @@ type RequestTenantUpdate struct {
 	NoticeNumber     int64  `json:"noticeNumber"`
 	RemoveProtection *bool  `json:"removeProtection" gorm:"type:BOOL"`
 	UserId           string `json:"userId" gorm:"-"`
+	UpdateAt         int64  `json:"updateAt"`
 }
 
 func (requestTenantUpdate *RequestTenantUpdate) GetRemoveProtection() *bool {

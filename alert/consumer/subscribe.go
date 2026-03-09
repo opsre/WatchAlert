@@ -2,13 +2,14 @@ package consumer
 
 import (
 	"fmt"
-	"github.com/zeromicro/go-zero/core/logc"
 	"strings"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
 	"watchAlert/pkg/sender"
 	"watchAlert/pkg/templates"
 	"watchAlert/pkg/tools"
+
+	"github.com/zeromicro/go-zero/core/logc"
 )
 
 type toUser struct {
@@ -85,8 +86,16 @@ func sendToSubscribeUser(ctx *ctx.Context, alert models.AlertCurEvent, toUsers [
 				// 释放信号量
 				<-sem
 			}()
-			emailTemp := templates.NewTemplate(ctx, alert, models.AlertNotice{NoticeType: "Email", NoticeTmplId: u.NoticeTemplateId})
-			err := sender.NewEmailSender().Send(sender.SendParams{
+			emailTemp, err := templates.NewTemplate(ctx, alert, models.Route{NoticeType: "Email", NoticeTmplId: u.NoticeTemplateId})
+			if err != nil {
+				logc.Error(ctx.Ctx, fmt.Sprintf("Email: %s, 邮件发送失败 创建模板错误, err: %s", u.Email, err.Error()))
+			}
+
+			cli, err := sender.NewEmailSender()
+			if err != nil {
+				logc.Error(ctx.Ctx, fmt.Sprintf("Email: %s, 邮件发送失败 创建发送器错误, err: %s", u.Email, err.Error()))
+			}
+			err = cli.Send(sender.SendParams{
 				IsRecovered: alert.IsRecovered,
 				Email: models.Email{
 					Subject: u.NoticeSubject,
@@ -96,7 +105,7 @@ func sendToSubscribeUser(ctx *ctx.Context, alert models.AlertCurEvent, toUsers [
 				Content: emailTemp.CardContentMsg,
 			})
 			if err != nil {
-				logc.Errorf(ctx.Ctx, fmt.Sprintf("Email: %s, 邮件发送失败, err: %s", u.Email, err.Error()))
+				logc.Error(ctx.Ctx, fmt.Sprintf("Email: %s, 邮件发送失败, err: %s", u.Email, err.Error()))
 			}
 		}(u, sem)
 	}

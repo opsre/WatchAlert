@@ -2,6 +2,7 @@ package tools
 
 import (
 	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 )
 
@@ -39,6 +40,13 @@ func Md5Hash(str []byte) string {
 
 }
 
+// WithKVCalculateHash calculates the hash of a key-value pair using MD5.
 func WithKVCalculateHash(key, value string) string {
 	return Md5Hash([]byte(key + ":" + value))
+}
+
+// GenerateHashPassword generates a hash password using MD5.
+func GenerateHashPassword(passwd string) string {
+	arr := md5.Sum([]byte(passwd))
+	return hex.EncodeToString(arr[:])
 }

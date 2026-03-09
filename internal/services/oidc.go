@@ -3,18 +3,19 @@ package services
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/bytedance/sonic"
-	"github.com/gin-gonic/gin"
-	"github.com/zeromicro/go-zero/core/logc"
 	"net/http"
 	"strings"
 	"time"
+	"watchAlert/config"
 	"watchAlert/internal/ctx"
-	"watchAlert/internal/global"
 	"watchAlert/internal/models"
 	"watchAlert/internal/types"
 	"watchAlert/pkg/oidc"
 	"watchAlert/pkg/tools"
+
+	"github.com/bytedance/sonic"
+	"github.com/gin-gonic/gin"
+	"github.com/zeromicro/go-zero/core/logc"
 )
 
 type oidcService struct {
@@ -40,10 +41,11 @@ func (os oidcService) GetOidcInfo() (interface{}, interface{}) {
 	}
 
 	return &types.OidcInfo{
-		AuthType:    setting.AuthType,
-		ClientID:    setting.OidcConfig.ClientID,
-		UpperURI:    setting.OidcConfig.UpperURI,
-		RedirectURI: setting.OidcConfig.RedirectURI,
+		AuthType:     setting.AuthType,
+		ClientID:     setting.OidcConfig.ClientID,
+		ClientSecret: setting.OidcConfig.ClientSecret,
+		UpperURI:     setting.OidcConfig.UpperURI,
+		RedirectURI:  setting.OidcConfig.RedirectURI,
 	}, nil
 }
 
@@ -59,7 +61,7 @@ func (os oidcService) CallBack(ctx *gin.Context, req interface{}) (interface{}, 
 	}
 
 	r := req.(*types.RequestOidcCodeQuery)
-	data, err := oidc.GetOauthToken(cfg.TokenEndpoint, r.Code)
+	data, err := oidc.GetOauthToken(cfg.TokenEndpoint, r.Code, setting.OidcConfig.ClientID, setting.OidcConfig.ClientSecret)
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +157,7 @@ func (os oidcService) CookieConvertToken(ctx *gin.Context) (interface{}, interfa
 		Password: tools.GenerateHashPassword(types.OidcPassword),
 	}
 
-	duration := time.Duration(global.Config.Jwt.Expire) * time.Second
+	duration := time.Duration(config.Application.Jwt.Expire) * time.Second
 	os.ctx.Redis.Redis().Set("uid-"+data.UserId, tools.JsonMarshalToString(r), duration)
 
 	return models.ResponseLoginInfo{

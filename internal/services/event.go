@@ -6,10 +6,10 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"watchAlert/alert/mute"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
 	"watchAlert/internal/types"
-	"watchAlert/pkg/tools"
 )
 
 type eventService struct {
@@ -20,6 +20,8 @@ type InterEventService interface {
 	ListCurrentEvent(req interface{}) (interface{}, interface{})
 	ListHistoryEvent(req interface{}) (interface{}, interface{})
 	ProcessAlertEvent(req interface{}) (interface{}, interface{})
+	DeleteAlertEvent(req interface{}) (interface{}, interface{})
+
 	ListComments(req interface{}) (interface{}, interface{})
 	AddComment(req interface{}) (interface{}, interface{})
 	DeleteComment(req interface{}) (interface{}, interface{})
@@ -44,26 +46,31 @@ func (e eventService) ProcessAlertEvent(req interface{}) (interface{}, interface
 				return
 			}
 
-			switch r.State {
-			case 1:
-				if cache.UpgradeState.IsConfirm {
-					return
-				}
-
-				cache.UpgradeState.IsConfirm = true
-				cache.UpgradeState.WhoAreConfirm = r.Username
-				cache.UpgradeState.ConfirmOkTime = r.Time
-			case 2:
-				if !cache.UpgradeState.IsConfirm && cache.UpgradeState.IsHandle {
-					return
-				}
-
-				cache.UpgradeState.IsHandle = true
-				cache.UpgradeState.WhoAreHandle = r.Username
-				cache.UpgradeState.HandleOkTime = r.Time
+			if cache.ConfirmState.IsOk {
+				return
 			}
 
+			cache.ConfirmState.IsOk = true
+			cache.ConfirmState.ConfirmUsername = r.Username
+			cache.ConfirmState.ConfirmActionTime = r.Time
+
 			e.ctx.Redis.Alert().PushAlertEvent(&cache)
+		}(fingerprint)
+	}
+
+	wg.Wait()
+	return nil, nil
+}
+
+func (e eventService) DeleteAlertEvent(req interface{}) (interface{}, interface{}) {
+	r := req.(*types.RequestProcessAlertEvent)
+
+	var wg sync.WaitGroup
+	wg.Add(len(r.Fingerprints))
+	for _, fingerprint := range r.Fingerprints {
+		go func(fingerprint string) {
+			defer wg.Done()
+			e.ctx.Redis.Alert().RemoveAlertEvent(r.TenantId, r.FaultCenterId, fingerprint)
 		}(fingerprint)
 	}
 
@@ -111,25 +118,15 @@ func (e eventService) ListCurrentEvent(req interface{}) (interface{}, interface{
 			continue
 		}
 
-		if r.Query != "" {
-			queryMatch := false
-			if strings.Contains(event.RuleName, r.Query) {
-				queryMatch = true
-			} else if strings.Contains(event.Annotations, r.Query) {
-				queryMatch = true
-			} else if event.Labels != nil && strings.Contains(tools.JsonMarshalToString(event.Labels), r.Query) {
-				queryMatch = true
-			}
-			if !queryMatch {
-				continue
-			}
-		}
-
 		if r.FaultCenterId != "" && !strings.Contains(event.FaultCenterId, r.FaultCenterId) {
 			continue
 		}
 
-		if r.Status != "" && string(event.Status) != r.Status {
+		if !matchQuery(event, r.Query) {
+			continue
+		}
+
+		if !matchStatus(&event, r.Status, mute.MuteParams{TenantId: r.TenantId, FaultCenterId: event.FaultCenterId, Labels: event.Labels}) {
 			continue
 		}
 
@@ -170,6 +167,55 @@ func (e eventService) ListCurrentEvent(req interface{}) (interface{}, interface{
 			Size:  r.Page.Size,
 		},
 	}, nil
+}
+
+func matchQuery(event models.AlertCurEvent, query string) bool {
+	if query == "" {
+		return true
+	}
+
+	// 检查 RuleName 和 Annotations
+	if strings.Contains(event.RuleName, query) || strings.Contains(event.Annotations, query) {
+		return true
+	}
+	// 遍历 Labels
+	for k, v := range event.Labels {
+		if strings.Contains(k, query) || strings.Contains(fmt.Sprint(v), query) {
+			return true
+		}
+	}
+	return false
+}
+
+func matchStatus(event *models.AlertCurEvent, status string, muteParams mute.MuteParams) bool {
+	if status == "" {
+		if event.ConfirmState.IsOk {
+			event.Status = "processing"
+		}
+		if mute.IsSilence(muteParams) {
+			event.Status = "muting"
+		}
+		return true
+	}
+
+	switch status {
+	case "pre_alert", "alerting", "pending_recovery":
+		return string(event.Status) == status
+	case "processing":
+		if event.ConfirmState.IsOk {
+			event.Status = "processing"
+			return true
+		}
+		return false
+	case "muting":
+		if mute.IsSilence(muteParams) {
+			event.Status = "muting"
+			return true
+		}
+		return false
+	default:
+		return true
+	}
 }
 
 func (e eventService) ListHistoryEvent(req interface{}) (interface{}, interface{}) {

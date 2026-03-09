@@ -3,13 +3,14 @@ package services
 import (
 	"errors"
 	"fmt"
-	"github.com/zeromicro/go-zero/core/logc"
 	"time"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
 	"watchAlert/internal/types"
 	"watchAlert/pkg/sender"
 	"watchAlert/pkg/tools"
+
+	"github.com/zeromicro/go-zero/core/logc"
 )
 
 type noticeService struct {
@@ -22,7 +23,6 @@ type InterNoticeService interface {
 	Update(req interface{}) (interface{}, interface{})
 	Delete(req interface{}) (interface{}, interface{})
 	Get(req interface{}) (interface{}, interface{})
-	Check(req interface{}) (interface{}, interface{})
 	ListRecord(req interface{}) (interface{}, interface{})
 	GetRecordMetric(req interface{}) (interface{}, interface{})
 	DeleteRecord(req interface{}) (interface{}, interface{})
@@ -52,17 +52,13 @@ func (n noticeService) Create(req interface{}) (interface{}, interface{}) {
 	}
 
 	err := n.ctx.DB.Notice().Create(models.AlertNotice{
-		TenantId:     r.TenantId,
-		Uuid:         "n-" + tools.RandId(),
-		Name:         r.Name,
-		DutyId:       r.DutyId,
-		NoticeType:   r.NoticeType,
-		NoticeTmplId: r.NoticeTmplId,
-		DefaultHook:  r.DefaultHook,
-		DefaultSign:  r.DefaultSign,
-		Routes:       r.Routes,
-		Email:        r.Email,
-		PhoneNumber:  r.PhoneNumber,
+		TenantId: r.TenantId,
+		Uuid:     "n-" + tools.RandId(),
+		Name:     r.Name,
+		DutyId:   r.DutyId,
+		Routes:   r.Routes,
+		UpdateAt: time.Now().Unix(),
+		UpdateBy: r.UpdateBy,
 	})
 	if err != nil {
 		return nil, err
@@ -73,17 +69,13 @@ func (n noticeService) Create(req interface{}) (interface{}, interface{}) {
 func (n noticeService) Update(req interface{}) (interface{}, interface{}) {
 	r := req.(*types.RequestNoticeUpdate)
 	err := n.ctx.DB.Notice().Update(models.AlertNotice{
-		TenantId:     r.TenantId,
-		Uuid:         r.Uuid,
-		Name:         r.Name,
-		DutyId:       r.GetDutyId(),
-		NoticeType:   r.NoticeType,
-		NoticeTmplId: r.NoticeTmplId,
-		DefaultHook:  r.DefaultHook,
-		DefaultSign:  r.DefaultSign,
-		Routes:       r.Routes,
-		Email:        r.Email,
-		PhoneNumber:  r.PhoneNumber,
+		TenantId: r.TenantId,
+		Uuid:     r.Uuid,
+		Name:     r.Name,
+		DutyId:   r.GetDutyId(),
+		Routes:   r.Routes,
+		UpdateAt: time.Now().Unix(),
+		UpdateBy: r.UpdateBy,
 	})
 	if err != nil {
 		return nil, err
@@ -110,16 +102,9 @@ func (n noticeService) Get(req interface{}) (interface{}, interface{}) {
 	return data, nil
 }
 
-func (n noticeService) Check(req interface{}) (interface{}, interface{}) {
-
-	// ToDo
-
-	return nil, nil
-}
-
 func (n noticeService) ListRecord(req interface{}) (interface{}, interface{}) {
 	r := req.(*types.RequestNoticeQuery)
-	data, err := n.ctx.DB.Notice().ListRecord(r.TenantId, r.Severity, r.Status, r.Query, r.Page)
+	data, err := n.ctx.DB.Notice().ListRecord(r.TenantId, r.EventId, r.Severity, r.Status, r.Uuid, r.Query, r.Page)
 	if err != nil {
 		return nil, err
 	}
@@ -204,33 +189,15 @@ func (n noticeService) Test(req interface{}) (interface{}, interface{}) {
 
 	err := sender.Tester(n.ctx, sender.SendParams{
 		NoticeType: r.NoticeType,
-		Hook:       r.DefaultHook,
+		Hook:       r.Hook,
 		Email:      r.Email,
-		Sign:       r.DefaultSign,
+		Sign:       r.Sign,
 	})
 	if err != nil {
 		errList = append(errList, struct {
 			Hook  string
 			Error string
-		}{Hook: r.DefaultHook, Error: err.Error()})
-	}
-
-	for _, route := range r.Routes {
-		err := sender.Tester(n.ctx, sender.SendParams{
-			NoticeType: r.NoticeType,
-			Hook:       route.Hook,
-			Email: models.Email{
-				To: route.To,
-				CC: route.CC,
-			},
-			Sign: route.Sign,
-		})
-		if err != nil {
-			errList = append(errList, struct {
-				Hook  string
-				Error string
-			}{Hook: route.Hook, Error: err.Error()})
-		}
+		}{Hook: r.Hook, Error: err.Error()})
 	}
 
 	if len(errList) != 0 {

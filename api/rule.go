@@ -1,10 +1,13 @@
 package api
 
 import (
-	"github.com/gin-gonic/gin"
+	"errors"
 	middleware "watchAlert/internal/middleware"
 	"watchAlert/internal/services"
 	"watchAlert/internal/types"
+	"watchAlert/pkg/tools"
+
+	"github.com/gin-gonic/gin"
 )
 
 type ruleController struct{}
@@ -46,6 +49,7 @@ func (ruleController ruleController) API(gin *gin.RouterGroup) {
 	{
 		c.POST("import", ruleController.Import)
 		c.POST("ruleChangeStatus", ruleController.ChangeStatus)
+		c.POST("change", ruleController.Change)
 	}
 }
 
@@ -53,10 +57,16 @@ func (ruleController ruleController) Create(ctx *gin.Context) {
 	r := new(types.RequestRuleCreate)
 	BindJson(ctx, r)
 
-	tid, _ := ctx.Get("TenantID")
-	r.TenantId = tid.(string)
-
 	Service(ctx, func() (interface{}, interface{}) {
+		tokenStr := ctx.Request.Header.Get("Authorization")
+		if len(tokenStr) <= 0 {
+			return nil, errors.New("用户未登录")
+		}
+		r.UpdateBy = tools.GetUser(tokenStr)
+
+		tid, _ := ctx.Get("TenantID")
+		r.TenantId = tid.(string)
+
 		return services.RuleService.Create(r)
 	})
 }
@@ -65,10 +75,16 @@ func (ruleController ruleController) Update(ctx *gin.Context) {
 	r := new(types.RequestRuleUpdate)
 	BindJson(ctx, r)
 
-	tid, _ := ctx.Get("TenantID")
-	r.TenantId = tid.(string)
-
 	Service(ctx, func() (interface{}, interface{}) {
+		tokenStr := ctx.Request.Header.Get("Authorization")
+		if len(tokenStr) <= 0 {
+			return nil, errors.New("用户未登录")
+		}
+		r.UpdateBy = tools.GetUser(tokenStr)
+
+		tid, _ := ctx.Get("TenantID")
+		r.TenantId = tid.(string)
+
 		return services.RuleService.Update(r)
 	})
 }
@@ -130,5 +146,23 @@ func (ruleController ruleController) Import(ctx *gin.Context) {
 
 	Service(ctx, func() (interface{}, interface{}) {
 		return services.RuleService.Import(r)
+	})
+}
+
+func (ruleController ruleController) Change(ctx *gin.Context) {
+	r := new(types.RequestRuleChange)
+	BindJson(ctx, r)
+
+	Service(ctx, func() (interface{}, interface{}) {
+		tokenStr := ctx.Request.Header.Get("Authorization")
+		if len(tokenStr) <= 0 {
+			return nil, errors.New("用户未登录")
+		}
+		r.UpdateBy = tools.GetUser(tokenStr)
+
+		tid, _ := ctx.Get("TenantID")
+		r.TenantId = tid.(string)
+
+		return services.RuleService.Change(r)
 	})
 }

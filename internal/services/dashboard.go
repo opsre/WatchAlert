@@ -56,6 +56,7 @@ func (ds dashboardService) CreateFolder(req interface{}) (data interface{}, erro
 		ID:                  "f-" + tools.RandId(),
 		Name:                r.Name,
 		Theme:               r.Theme,
+		ApiKey:              r.ApiKey,
 		GrafanaVersion:      r.GrafanaVersion,
 		GrafanaHost:         r.GrafanaHost,
 		GrafanaFolderId:     r.GrafanaFolderId,
@@ -75,6 +76,7 @@ func (ds dashboardService) UpdateFolder(req interface{}) (data interface{}, erro
 		ID:                  r.ID,
 		Name:                r.Name,
 		Theme:               r.Theme,
+		ApiKey:              r.ApiKey,
 		GrafanaVersion:      r.GrafanaVersion,
 		GrafanaHost:         r.GrafanaHost,
 		GrafanaFolderId:     r.GrafanaFolderId,
@@ -115,8 +117,13 @@ func (ds dashboardService) ListGrafanaDashboards(req interface{}) (data interfac
 		return nil, fmt.Errorf("invalid grafana version, please change v10 or v11")
 	}
 
+	var headers = make(map[string]string)
+	if folder.ApiKey != "" {
+		headers["Authorization"] = "Bearer " + folder.ApiKey
+	}
+
 	requestURL := fmt.Sprintf("%s/api/search?%s", folder.GrafanaHost, query)
-	get, err := tools.Get(nil, requestURL, 10)
+	get, err := tools.Get(headers, requestURL, 10)
 	if err != nil {
 		return nil, fmt.Errorf("请求错误, err: %s", err.Error())
 	}

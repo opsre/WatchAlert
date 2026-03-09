@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/bytedance/sonic"
 	"io"
 	"net/http"
 	"net/url"
@@ -13,6 +12,8 @@ import (
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
 	"watchAlert/pkg/tools"
+
+	"github.com/bytedance/sonic"
 
 	"github.com/zeromicro/go-zero/core/logc"
 )
@@ -23,8 +24,9 @@ type (
 		Timeout        int64          `json:"timeout"`
 		ExternalLabels map[string]any `json:"external_labels"`
 		Ctx            context.Context
-		Username       string `json:"username"`
-		Password       string `json:"password"`
+		Username       string            `json:"username"`
+		Password       string            `json:"password"`
+		Headers        map[string]string `json:"headers"`
 	}
 )
 
@@ -37,6 +39,7 @@ func NewVictoriaLogsClient(ctx context.Context, datasource models.AlertDataSourc
 		Username:       datasource.Auth.User,
 		Password:       datasource.Auth.Pass,
 		Ctx:            ctx,
+		Headers:        datasource.HTTP.Headers,
 	}, nil
 }
 
@@ -57,7 +60,16 @@ func (v VictoriaLogsProvider) Query(options LogQueryOptions) (Logs, int, error) 
 
 	args := fmt.Sprintf("/select/logsql/query?query=%s&limit=%d&start=%d&end=%d", url.QueryEscape(options.VictoriaLogs.Query), options.VictoriaLogs.Limit, options.StartAt.(int32), options.EndAt.(int32))
 	requestURL := v.URL + args
-	res, err := tools.Get(tools.CreateBasicAuthHeader(v.Username, v.Password), requestURL, 10)
+
+	var headers = make(map[string]string)
+	for key, value := range v.Headers {
+		headers[key] = value
+	}
+	for key, value := range tools.CreateBasicAuthHeader(v.Username, v.Password) {
+		headers[key] = value
+	}
+
+	res, err := tools.Get(headers, requestURL, 10)
 
 	if err != nil {
 		logc.Error(ctx.Ctx, fmt.Sprintf("查询VictoriaLogs失败: %s", err.Error()))
@@ -98,7 +110,15 @@ func (v VictoriaLogsProvider) Query(options LogQueryOptions) (Logs, int, error) 
 }
 
 func (v VictoriaLogsProvider) Check() (bool, error) {
-	res, err := tools.Get(nil, v.URL+"/health", int(v.Timeout))
+	var headers = make(map[string]string)
+	for key, value := range v.Headers {
+		headers[key] = value
+	}
+	for key, value := range tools.CreateBasicAuthHeader(v.Username, v.Password) {
+		headers[key] = value
+	}
+
+	res, err := tools.Get(headers, v.URL+"/health", int(v.Timeout))
 	if err != nil {
 		return false, err
 	}

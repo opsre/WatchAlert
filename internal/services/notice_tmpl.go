@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"time"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
 	"watchAlert/internal/types"
@@ -15,6 +16,7 @@ type noticeTmplService struct {
 
 type InterNoticeTmplService interface {
 	List(req interface{}) (interface{}, interface{})
+	Get(req interface{}) (interface{}, interface{})
 	Create(req interface{}) (interface{}, interface{})
 	Update(req interface{}) (interface{}, interface{})
 	Delete(req interface{}) (interface{}, interface{})
@@ -36,6 +38,16 @@ func (nts noticeTmplService) List(req interface{}) (interface{}, interface{}) {
 	return data, nil
 }
 
+func (nts noticeTmplService) Get(req interface{}) (interface{}, interface{}) {
+	r := req.(*types.RequestNoticeTemplateQuery)
+	data, err := nts.ctx.DB.NoticeTmpl().Get(r.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
 func (nts noticeTmplService) Create(req interface{}) (interface{}, interface{}) {
 	r := req.(*types.RequestNoticeTemplateCreate)
 	err := nts.ctx.DB.NoticeTmpl().Create(models.NoticeTemplateExample{
@@ -47,6 +59,8 @@ func (nts noticeTmplService) Create(req interface{}) (interface{}, interface{}) 
 		TemplateFiring:       r.TemplateFiring,
 		TemplateRecover:      r.TemplateRecover,
 		EnableFeiShuJsonCard: r.EnableFeiShuJsonCard,
+		UpdateAt:             time.Now().Unix(),
+		UpdateBy:             r.UpdateBy,
 	})
 	if err != nil {
 		return nil, err
@@ -66,6 +80,8 @@ func (nts noticeTmplService) Update(req interface{}) (interface{}, interface{}) 
 		TemplateFiring:       r.TemplateFiring,
 		TemplateRecover:      r.TemplateRecover,
 		EnableFeiShuJsonCard: r.EnableFeiShuJsonCard,
+		UpdateAt:             time.Now().Unix(),
+		UpdateBy:             r.UpdateBy,
 	})
 	if err != nil {
 		return nil, err

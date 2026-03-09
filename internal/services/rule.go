@@ -2,15 +2,17 @@ package services
 
 import (
 	"fmt"
-	"github.com/bytedance/sonic"
-	"github.com/zeromicro/go-zero/core/logc"
-	"gopkg.in/yaml.v3"
 	"time"
 	"watchAlert/alert"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
 	"watchAlert/internal/types"
+	"watchAlert/pkg/client"
 	"watchAlert/pkg/tools"
+
+	"github.com/bytedance/sonic"
+	"github.com/zeromicro/go-zero/core/logc"
+	"gopkg.in/yaml.v3"
 )
 
 type ruleService struct {
@@ -25,6 +27,7 @@ type InterRuleService interface {
 	Get(req interface{}) (interface{}, interface{})
 	ChangeStatus(req interface{}) (interface{}, interface{})
 	Import(req interface{}) (interface{}, interface{})
+	Change(req interface{}) (interface{}, interface{})
 }
 
 func newInterRuleService(ctx *ctx.Context) InterRuleService {
@@ -49,7 +52,6 @@ func (rs ruleService) Create(req interface{}) (interface{}, interface{}) {
 		DatasourceIdList:     r.DatasourceIdList,
 		RuleName:             r.RuleName,
 		EvalInterval:         r.EvalInterval,
-		EvalTimeType:         r.EvalTimeType,
 		RepeatNoticeInterval: r.RepeatNoticeInterval,
 		Description:          r.Description,
 		EffectiveTime:        r.EffectiveTime,
@@ -65,16 +67,30 @@ func (rs ruleService) Create(req interface{}) (interface{}, interface{}) {
 		ElasticSearchConfig:  r.ElasticSearchConfig,
 		LogEvalCondition:     r.LogEvalCondition,
 		FaultCenterId:        r.FaultCenterId,
+		UpdateAt:             time.Now().Unix(),
+		UpdateBy:             r.UpdateBy,
 		Enabled:              r.Enabled,
-	}
-
-	if *r.GetEnabled() {
-		alert.AlertRule.Submit(data)
 	}
 
 	err := rs.ctx.DB.Rule().Create(data)
 	if err != nil {
 		return nil, err
+	}
+
+	// 判断当前节点角色
+	if *r.GetEnabled() {
+		if alert.IsLeader() {
+			// Leader: 直接启动评估协程
+			alert.AlertRule.Submit(data)
+		} else {
+			// Follower: 发布 Redis 消息通知 Leader
+			tools.PublishReloadMessage(rs.ctx.Ctx, client.Redis, tools.ChannelRuleReload, tools.ReloadMessage{
+				Action:   tools.ActionCreate,
+				ID:       data.RuleId,
+				TenantID: data.TenantId,
+				Name:     data.RuleName,
+			})
+		}
 	}
 
 	return nil, nil
@@ -98,11 +114,13 @@ func (rs ruleService) Update(req interface{}) (interface{}, interface{}) {
 		重启协程
 		判断当前状态是否是false 并且 历史状态是否为true
 	*/
+	var action string
 	if *oldRule.Enabled == true && *r.Enabled == false {
-		alert.AlertRule.Stop(r.RuleId)
-	}
-	if *oldRule.Enabled == true && *r.Enabled == true {
-		alert.AlertRule.Stop(r.RuleId)
+		action = tools.ActionDisable
+	} else if *oldRule.Enabled == false && *r.Enabled == true {
+		action = tools.ActionEnable
+	} else if *oldRule.Enabled == true && *r.Enabled == true {
+		action = tools.ActionUpdate
 	}
 
 	data := models.AlertRule{
@@ -114,7 +132,6 @@ func (rs ruleService) Update(req interface{}) (interface{}, interface{}) {
 		DatasourceIdList:     r.DatasourceIdList,
 		RuleName:             r.RuleName,
 		EvalInterval:         r.EvalInterval,
-		EvalTimeType:         r.EvalTimeType,
 		RepeatNoticeInterval: r.RepeatNoticeInterval,
 		Description:          r.Description,
 		EffectiveTime:        r.EffectiveTime,
@@ -130,25 +147,44 @@ func (rs ruleService) Update(req interface{}) (interface{}, interface{}) {
 		ElasticSearchConfig:  r.ElasticSearchConfig,
 		LogEvalCondition:     r.LogEvalCondition,
 		FaultCenterId:        r.FaultCenterId,
+		UpdateAt:             time.Now().Unix(),
+		UpdateBy:             r.UpdateBy,
 		Enabled:              r.Enabled,
-	}
-
-	// 启动协程
-	if *r.GetEnabled() {
-		alert.AlertRule.Submit(data)
-		logc.Infof(rs.ctx.Ctx, fmt.Sprintf("重启 RuleId 为 %s 的 Worker 进程", r.RuleId))
-	} else {
-		// 删除缓存
-		fingerprints := rs.ctx.Redis.Alert().GetFingerprintsByRuleId(r.TenantId, r.FaultCenterId, r.RuleId)
-		for _, fingerprint := range fingerprints {
-			rs.ctx.Redis.Alert().RemoveAlertEvent(r.TenantId, r.FaultCenterId, fingerprint)
-		}
 	}
 
 	// 更新数据
 	err := rs.ctx.DB.Rule().Update(data)
 	if err != nil {
 		return nil, err
+	}
+
+	// 判断当前节点角色并处理
+	if action != "" {
+		if alert.IsLeader() {
+			// Leader: 直接操作协程
+			if action == tools.ActionDisable || action == tools.ActionUpdate {
+				alert.AlertRule.Stop(r.RuleId)
+			}
+			if (action == tools.ActionEnable || action == tools.ActionUpdate) && *r.GetEnabled() {
+				alert.AlertRule.Submit(data)
+			}
+		} else {
+			// Follower: 发布消息通知 Leader
+			tools.PublishReloadMessage(rs.ctx.Ctx, client.Redis, tools.ChannelRuleReload, tools.ReloadMessage{
+				Action:   action,
+				ID:       r.RuleId,
+				TenantID: r.TenantId,
+				Name:     r.RuleName,
+			})
+		}
+	}
+
+	// 如果禁用，删除缓存
+	if !*r.GetEnabled() {
+		fingerprints := rs.ctx.Redis.Alert().GetFingerprintsByRuleId(r.TenantId, r.FaultCenterId, r.RuleId)
+		for _, fingerprint := range fingerprints {
+			rs.ctx.Redis.Alert().RemoveAlertEvent(r.TenantId, r.FaultCenterId, fingerprint)
+		}
 	}
 
 	return nil, nil
@@ -166,10 +202,20 @@ func (rs ruleService) Delete(req interface{}) (interface{}, interface{}) {
 		return nil, err
 	}
 
-	// 退出该规则的协程
+	// 判断当前节点角色
 	if *info.GetEnabled() {
-		logc.Infof(rs.ctx.Ctx, fmt.Sprintf("停止 RuleId 为 %s 的 Worker 进程", r.RuleId))
-		alert.AlertRule.Stop(r.RuleId)
+		if alert.IsLeader() {
+			// Leader: 直接停止协程
+			alert.AlertRule.Stop(r.RuleId)
+		} else {
+			// Follower: 发布消息通知 Leader
+			tools.PublishReloadMessage(rs.ctx.Ctx, client.Redis, tools.ChannelRuleReload, tools.ReloadMessage{
+				Action:   tools.ActionDelete,
+				ID:       r.RuleId,
+				TenantID: r.TenantId,
+				Name:     info.RuleName,
+			})
+		}
 	}
 
 	// 删除缓存
@@ -210,18 +256,12 @@ func (rs ruleService) Get(req interface{}) (interface{}, interface{}) {
 
 func (rs ruleService) ChangeStatus(req interface{}) (interface{}, interface{}) {
 	r := req.(*types.RequestRuleChangeStatus)
+	var action string
 	switch *r.GetEnabled() {
 	case true:
-		logc.Infof(rs.ctx.Ctx, fmt.Sprintf("重启 RuleId 为 %s 的 Worker 进程", r.RuleId))
-		var enable = true
-		rule := rs.ctx.DB.Rule().GetRuleObject(r.RuleId)
-		newRule := rule
-		newRule.Enabled = &enable
-		alert.AlertRule.Submit(newRule)
-
+		action = tools.ActionEnable
 	case false:
-		logc.Infof(rs.ctx.Ctx, fmt.Sprintf("停止 RuleId 为 %s 的 Worker 进程", r.RuleId))
-		alert.AlertRule.Stop(r.RuleId)
+		action = tools.ActionDisable
 		// 删除缓存
 		fingerprints := rs.ctx.Redis.Alert().GetFingerprintsByRuleId(r.TenantId, r.FaultCenterId, r.RuleId)
 		for _, fingerprint := range fingerprints {
@@ -229,7 +269,36 @@ func (rs ruleService) ChangeStatus(req interface{}) (interface{}, interface{}) {
 		}
 	}
 
-	return nil, rs.ctx.DB.Rule().ChangeStatus(r.TenantId, r.RuleGroupId, r.RuleId, r.GetEnabled())
+	// 更新数据库
+	err := rs.ctx.DB.Rule().ChangeStatus(r.TenantId, r.RuleGroupId, r.RuleId, r.GetEnabled())
+	if err != nil {
+		return nil, err
+	}
+
+	// 判断当前节点角色
+	rule := rs.ctx.DB.Rule().GetRuleObject(r.RuleId)
+	if alert.LeaderElector != nil && alert.LeaderElector.IsLeader() {
+		// Leader: 直接操作协程
+		switch *r.GetEnabled() {
+		case true:
+			var enable = true
+			newRule := rule
+			newRule.Enabled = &enable
+			alert.AlertRule.Submit(newRule)
+		case false:
+			alert.AlertRule.Stop(r.RuleId)
+		}
+	} else {
+		// Follower: 发布消息通知 Leader
+		tools.PublishReloadMessage(rs.ctx.Ctx, client.Redis, tools.ChannelRuleReload, tools.ReloadMessage{
+			Action:   action,
+			ID:       r.RuleId,
+			TenantID: r.TenantId,
+			Name:     rule.RuleName,
+		})
+	}
+
+	return nil, nil
 }
 
 func (rs ruleService) Import(req interface{}) (interface{}, interface{}) {
@@ -265,7 +334,6 @@ func (rs ruleService) Import(req interface{}) (interface{}, interface{}) {
 				DatasourceIdList: r.DatasourceIdList,
 				RuleName:         alert.Alert,
 				EvalInterval:     15,
-				EvalTimeType:     "second",
 				PrometheusConfig: models.PrometheusConfig{
 					PromQL:      alert.Expr,
 					Annotations: alert.Annotations.Description,
@@ -308,7 +376,6 @@ func (rs ruleService) Import(req interface{}) (interface{}, interface{}) {
 			DatasourceIdList:     rule.DatasourceIdList,
 			RuleName:             rule.RuleName,
 			EvalInterval:         rule.EvalInterval,
-			EvalTimeType:         rule.EvalTimeType,
 			RepeatNoticeInterval: rule.RepeatNoticeInterval,
 			Description:          rule.Description,
 			EffectiveTime:        rule.EffectiveTime,
@@ -329,6 +396,128 @@ func (rs ruleService) Import(req interface{}) (interface{}, interface{}) {
 		if err != nil {
 			logc.Errorf(rs.ctx.Ctx, err.Error())
 			continue
+		}
+	}
+
+	return nil, nil
+}
+
+func (rs ruleService) Change(req interface{}) (interface{}, interface{}) {
+	r := req.(*types.RequestRuleChange)
+
+	if len(r.RuleIds) == 0 {
+		return nil, fmt.Errorf("rule_ids 不能为空")
+	}
+
+	if len(r.Change) == 0 {
+		return nil, fmt.Errorf("change 参数不能为空")
+	}
+
+	// 遍历所有要更新的规则ID
+	for _, ruleId := range r.RuleIds {
+		// 获取当前规则
+		rule := models.AlertRule{}
+		err := rs.ctx.DB.DB().Model(&models.AlertRule{}).
+			Where("tenant_id = ? AND rule_id = ?", r.TenantId, ruleId).
+			First(&rule).Error
+		if err != nil {
+			return nil, fmt.Errorf("获取规则失败, ruleId: %s, error: %v", ruleId, err)
+		}
+
+		rule.UpdateAt = time.Now().Unix()
+		rule.UpdateBy = r.UpdateBy
+
+		// 根据 change 参数动态更新字段
+		for field, value := range r.Change {
+			switch field {
+			case "rule_group_id":
+				if v, ok := value.(string); ok {
+					rule.RuleGroupId = v
+				} else {
+					return nil, fmt.Errorf("字段 %s 的值类型错误", field)
+				}
+				break
+			case "datasource_ids":
+				if v, ok := value.([]interface{}); ok {
+					var datasourceIds []string
+					for _, val := range v {
+						ds, err := rs.ctx.DB.Datasource().Get(val.(string))
+						if err != nil {
+							logc.Errorf(rs.ctx.Ctx, "获取数据源信息错误, id: %s, error: %v", val.(string), err)
+						}
+						if ds.Type != rule.DatasourceType {
+							continue
+						}
+						datasourceIds = append(datasourceIds, fmt.Sprintf("%v", val))
+					}
+					if len(datasourceIds) != 0 {
+						rule.DatasourceIdList = datasourceIds
+					}
+				} else if v, ok := value.([]string); ok {
+					rule.DatasourceIdList = v
+				} else {
+					return nil, fmt.Errorf("字段 %s 的值类型错误", field)
+				}
+				break
+			case "fault_center_id":
+				if v, ok := value.(string); ok {
+					rule.FaultCenterId = v
+				} else {
+					return nil, fmt.Errorf("필드 %s 의 값 타입이 잘못되었습니다", field)
+				}
+				break
+			case "enabled":
+				if v, ok := value.(bool); ok {
+					isEnabled := v
+					rule.Enabled = &isEnabled
+				} else {
+					return nil, fmt.Errorf("필드 %s 의 값 타입이 잘못되었습니다", field)
+				}
+				break
+			default:
+				return nil, fmt.Errorf("지원되지 않는 필드: %s", field)
+			}
+		}
+
+		// 데이터베이스 업데이트
+		err = rs.ctx.DB.Rule().Update(rule)
+		if err != nil {
+			return nil, fmt.Errorf("규칙 업데이트 실패, ruleId: %s, 오류: %v", ruleId, err)
+		}
+
+		// 규칙 활성화 상태에 따라 적절한 처리
+		if *rule.Enabled {
+			if alert.IsLeader() {
+				// 리더: 기존 평가 고루틴을 중지하고 새로운 것을 시작합니다
+				alert.AlertRule.Stop(ruleId)
+				alert.AlertRule.Submit(rule)
+			} else {
+				tools.PublishReloadMessage(rs.ctx.Ctx, client.Redis, tools.ChannelRuleReload, tools.ReloadMessage{
+					Action:   tools.ActionUpdate,
+					ID:       rule.RuleId,
+					TenantID: rule.TenantId,
+					Name:     rule.RuleName,
+				})
+			}
+		} else {
+			// 删除缓存
+			fingerprints := rs.ctx.Redis.Alert().GetFingerprintsByRuleId(r.TenantId, rule.FaultCenterId, rule.RuleId)
+			for _, fingerprint := range fingerprints {
+				rs.ctx.Redis.Alert().RemoveAlertEvent(r.TenantId, rule.FaultCenterId, fingerprint)
+			}
+
+			if alert.IsLeader() {
+				// 리더: 평가 고루틴 중지
+				alert.AlertRule.Stop(ruleId)
+			} else {
+				// 팔로워: 비활성화 메시지를 발행하여 리더에게 알림
+				tools.PublishReloadMessage(rs.ctx.Ctx, client.Redis, tools.ChannelRuleReload, tools.ReloadMessage{
+					Action:   tools.ActionDisable,
+					ID:       rule.RuleId,
+					TenantID: rule.TenantId,
+					Name:     rule.RuleName,
+				})
+			}
 		}
 	}
 

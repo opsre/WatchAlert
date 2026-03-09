@@ -2,9 +2,10 @@ package repo
 
 import (
 	"context"
+	"watchAlert/internal/models"
+
 	"github.com/zeromicro/go-zero/core/logc"
 	"gorm.io/gorm"
-	"watchAlert/internal/models"
 )
 
 type (
@@ -48,12 +49,6 @@ func (tr TenantRepo) Create(t models.Tenant) error {
 			UserID:   "admin",
 			UserName: "admin",
 		},
-	}
-	if t.UserId != "admin" {
-		users = append(users, models.TenantUser{
-			UserID:   t.UserId,
-			UserName: t.CreateBy,
-		})
 	}
 
 	for _, u := range users {

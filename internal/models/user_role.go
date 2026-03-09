@@ -5,5 +5,5 @@ type UserRole struct {
 	Name        string            `json:"name"`
 	Description string            `json:"description"`
 	Permissions []UserPermissions `json:"permissions" gorm:"permissions;serializer:json"`
-	CreateAt    int64             `json:"create_at"`
+	UpdateAt    int64             `json:"updateAt"`
 }
