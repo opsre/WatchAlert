@@ -73,6 +73,11 @@ func (l ldapService) ListUsers() ([]ldapUser, error) {
 	pages := 0
 	pagingControl := ldap.NewControlPaging(pageSize)
 
+	listFilter := "(objectClass=person)"
+	if l.ldapConfig.Filter != "" {
+		listFilter = fmt.Sprintf("(&%s(objectClass=person))", l.ldapConfig.Filter)
+	}
+
 	for {
 		pages++
 
@@ -82,7 +87,7 @@ func (l ldapService) ListUsers() ([]ldapUser, error) {
 			ldap.ScopeWholeSubtree,
 			ldap.NeverDerefAliases,
 			0, 0, false,
-			"(objectClass=person)",
+			listFilter,
 			[]string{"sAMAccountName", "cn", "mail", "mobile"},
 			[]ldap.Control{pagingControl},
 		)
@@ -190,12 +195,17 @@ func (l ldapService) Login(username, password string) error {
 	defer auth.Close()
 
 	// 先搜索用户，获取真实的DN
+	loginFilter := fmt.Sprintf("(sAMAccountName=%s)", ldap.EscapeFilter(username))
+	if l.ldapConfig.Filter != "" {
+		loginFilter = fmt.Sprintf("(&%s(sAMAccountName=%s))", l.ldapConfig.Filter, ldap.EscapeFilter(username))
+	}
+
 	searchRequest := ldap.NewSearchRequest(
 		l.ldapConfig.BaseDN,
 		ldap.ScopeWholeSubtree,
 		ldap.NeverDerefAliases,
 		1, 0, false,
-		fmt.Sprintf("(sAMAccountName=%s)", ldap.EscapeFilter(username)),
+		loginFilter,
 		[]string{"dn"},
 		nil,
 	)

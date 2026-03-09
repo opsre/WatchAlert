@@ -53,6 +53,8 @@ type LdapConfig struct {
 	UserPrefix      string `json:"userPrefix"`
 	DefaultUserRole string `json:"defaultUserRole"`
 	Cronjob         string `json:"cronjob"`
+	// Filter 用于限制允许登录的用户范围，例如: (&(objectClass=person)(memberOf=cn=jms,ou=groups,dc=test,dc=com))
+	Filter string `json:"filter"`
 }
 
 type OidcConfig struct {
