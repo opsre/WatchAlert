@@ -9,7 +9,7 @@ type RequestFaultCenterCreate struct {
 	Description           string                 `json:"description"`
 	NoticeIds             []string               `json:"noticeIds" gorm:"column:noticeIds;serializer:json"`
 	NoticeRoutes          []models.NoticeRoute   `json:"noticeRoutes" gorm:"noticeRoutes;serializer:json"`
-	RepeatNoticeInterval  int64                  `json:"repeatNoticeInterval"`
+	RepeatNoticeInterval  map[string]int         `json:"repeatNoticeInterval" gorm:"repeatNoticeInterval;serializer:json"`
 	RecoverNotify         *bool                  `json:"recoverNotify"`
 	AggregationType       string                 `json:"aggregationType"`
 	CreateAt              int64                  `json:"createAt"`
@@ -30,7 +30,7 @@ type RequestFaultCenterUpdate struct {
 	Description           string                 `json:"description"`
 	NoticeIds             []string               `json:"noticeIds" gorm:"column:noticeIds;serializer:json"`
 	NoticeRoutes          []models.NoticeRoute   `json:"noticeRoutes" gorm:"noticeRoutes;serializer:json"`
-	RepeatNoticeInterval  int64                  `json:"repeatNoticeInterval"`
+	RepeatNoticeInterval  map[string]int         `json:"repeatNoticeInterval" gorm:"repeatNoticeInterval;serializer:json"`
 	RecoverNotify         *bool                  `json:"recoverNotify"`
 	AggregationType       string                 `json:"aggregationType"`
 	CreateAt              int64                  `json:"createAt"`

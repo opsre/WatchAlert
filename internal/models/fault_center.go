@@ -18,7 +18,7 @@ type FaultCenter struct {
 	Description           string          `json:"description"`
 	NoticeIds             []string        `json:"noticeIds" gorm:"column:noticeIds;serializer:json"`
 	NoticeRoutes          []NoticeRoute   `json:"noticeRoutes" gorm:"noticeRoutes;serializer:json"`
-	RepeatNoticeInterval  int64           `json:"repeatNoticeInterval"`
+	RepeatNoticeInterval  map[string]int  `json:"repeatNoticeInterval" gorm:"repeatNoticeInterval;serializer:json"`
 	RecoverNotify         *bool           `json:"recoverNotify"`
 	AggregationType       string          `json:"aggregationType"`
 	CreateAt              int64           `json:"createAt"`
@@ -29,6 +29,16 @@ type FaultCenter struct {
 	IsUpgradeEnabled      *bool           `json:"isUpgradeEnabled" gorm:"column:isUpgradeEnabled"`
 	UpgradableSeverity    []string        `json:"upgradableSeverity" gorm:"column:upgradableSeverity;serializer:json"`
 	UpgradeStrategy       UpgradeStrategy `json:"upgradeStrategy" gorm:"column:upgradeStrategy;serializer:json"`
+}
+
+func (f *FaultCenter) GetRepeatNoticeInterval(level string) int {
+	if f.RepeatNoticeInterval == nil {
+		return 30
+	}
+	if _, ok := f.RepeatNoticeInterval[level]; !ok {
+		return 30
+	}
+	return f.RepeatNoticeInterval[level]
 }
 
 type UpgradeStrategy struct {

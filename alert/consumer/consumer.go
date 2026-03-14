@@ -238,7 +238,7 @@ func (c *Consume) filterAlertEvents(faultCenter models.FaultCenter, alerts map[s
 // validateEvent 事件验证
 func (c *Consume) validateEvent(event *models.AlertCurEvent, faultCenter models.FaultCenter) bool {
 	return event.IsRecovered || event.LastSendTime == 0 ||
-		event.LastEvalTime >= event.LastSendTime+faultCenter.RepeatNoticeInterval*60
+		event.LastEvalTime >= event.LastSendTime+int64(faultCenter.GetRepeatNoticeInterval(event.Severity))*60
 }
 
 // alarmGrouping 告警分组
