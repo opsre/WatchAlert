@@ -15,11 +15,9 @@ import (
 
 // ProbeService 拨测服务
 type ProbeService struct {
-	ctx           *ctx.Context
-	watchCtxMap   map[string]context.CancelFunc
-	mu            sync.RWMutex
-	writerCache   map[string]MetricsWriter // 数据源写入器缓存，key为datasourceId
-	writerCacheMu sync.RWMutex             // 写入器缓存锁
+	ctx         *ctx.Context
+	watchCtxMap map[string]context.CancelFunc
+	mu          sync.RWMutex
 }
 
 // NewProbeService 创建新的拨测服务
@@ -27,7 +25,6 @@ func NewProbeService(ctx *ctx.Context) *ProbeService {
 	return &ProbeService{
 		ctx:         ctx,
 		watchCtxMap: make(map[string]context.CancelFunc),
-		writerCache: make(map[string]MetricsWriter),
 	}
 }
 
@@ -84,16 +81,6 @@ func (s *ProbeService) StopAll() error {
 		delete(s.watchCtxMap, ruleID)
 	}
 
-	// 关闭所有缓存的指标写入器
-	s.writerCacheMu.Lock()
-	for datasourceId, writer := range s.writerCache {
-		if err := writer.Close(); err != nil {
-			logc.Errorf(s.ctx.Ctx, "关闭数据源%s的指标写入器失败: %v", datasourceId, err)
-		}
-	}
-	s.writerCache = make(map[string]MetricsWriter) // 清空缓存
-	s.writerCacheMu.Unlock()
-
 	logc.Infof(s.ctx.Ctx, "All probing tasks stopped")
 	return nil
 }
@@ -103,18 +90,6 @@ func (s *ProbeService) GetActiveRules() int {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return len(s.watchCtxMap)
-}
-
-func (s *ProbeService) ResetWriteCache(datasourceId string, writer MetricsWriter) {
-	s.writerCacheMu.Lock()
-	s.writerCache[datasourceId] = writer
-	s.writerCacheMu.Unlock()
-}
-
-func (s *ProbeService) DeleteWriteCache(datasourceId string) {
-	s.writerCacheMu.Lock()
-	delete(s.writerCache, datasourceId)
-	s.writerCacheMu.Unlock()
 }
 
 // runProbing 运行拨测
@@ -145,17 +120,24 @@ func (s *ProbeService) executeProbing(rule models.ProbeRule) {
 		return
 	}
 
+	pools := s.ctx.Redis.ProviderPools()
+
 	// 写入指标到数据源
 	if len(metrics) > 0 && rule.DatasourceId != "" {
-		if err := s.writeMetricsToDataSource(rule.DatasourceId, metrics); err != nil {
-			logc.Errorf(s.ctx.Ctx, "Failed to write metrics for rule %s to datasource %s: %v",
-				rule.RuleId, rule.DatasourceId, err)
+		cli, err := pools.GetClient(rule.DatasourceId)
+		if err != nil {
+			logc.Errorf(ctx.Ctx, "获取数据源客户端失败, 规则ID: %s, 规则名称: %s, 数据源ID: %s, 错误: %v", rule.RuleId, rule.RuleName, rule.DatasourceId, err)
+		}
+
+		err = cli.(provider.PrometheusProvider).Write(s.ctx.Ctx, metrics, nil)
+		if err != nil {
+			logc.Errorf(s.ctx.Ctx, "写入指标失败, 规则ID: %s, 规则名称: %s, 数据源ID: %s, 错误: %v", rule.RuleId, rule.RuleName, rule.DatasourceId, err)
 		}
 	}
 }
 
 // executeProbeWithMetrics 执行拨测并获取指标
-func (s *ProbeService) executeProbeWithMetrics(rule models.ProbeRule) ([]provider.ProbeMetric, error) {
+func (s *ProbeService) executeProbeWithMetrics(rule models.ProbeRule) ([]provider.Metrics, error) {
 	config := rule.ProbingEndpointConfig
 
 	// 准备规则信息
@@ -167,7 +149,7 @@ func (s *ProbeService) executeProbeWithMetrics(rule models.ProbeRule) ([]provide
 		Endpoint: config.Endpoint,
 	}
 
-	var metrics []provider.ProbeMetric
+	var metrics []provider.Metrics
 
 	// 根据协议类型选择相应的指标感知探测器
 	switch rule.RuleType {
@@ -215,128 +197,6 @@ func (s *ProbeService) executeProbeWithMetrics(rule models.ProbeRule) ([]provide
 	return metrics, nil
 }
 
-// writeMetricsToDataSource 根据datasourceId写入指标到对应数据源
-func (s *ProbeService) writeMetricsToDataSource(datasourceId string, metrics []provider.ProbeMetric) error {
-	// 获取或创建写入器
-	writer, err := s.getOrCreateWriter(datasourceId)
-	if err != nil {
-		return fmt.Errorf("获取数据源写入器失败: %w", err)
-	}
-
-	if writer == nil {
-		// 如果没有写入器，只记录日志
-		for _, metric := range metrics {
-			logc.Debugf(s.ctx.Ctx, "Metric (no writer for datasource %s): %s{%v} %f @%d",
-				datasourceId, metric.Name, metric.Labels, metric.Value, metric.Timestamp)
-		}
-		return nil
-	}
-
-	// 使用写入器写入指标
-	ctx, cancel := context.WithTimeout(s.ctx.Ctx, 30*time.Second)
-	defer cancel()
-
-	if err := writer.WriteMetrics(ctx, metrics); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// getOrCreateWriter 获取或创建指定数据源的写入器
-func (s *ProbeService) getOrCreateWriter(datasourceId string) (MetricsWriter, error) {
-	// 先从缓存中查找
-	s.writerCacheMu.RLock()
-	if writer, exists := s.writerCache[datasourceId]; exists {
-		s.writerCacheMu.RUnlock()
-		return writer, nil
-	}
-	s.writerCacheMu.RUnlock()
-
-	// 缓存中没有，需要创建新的写入器
-	s.writerCacheMu.Lock()
-	defer s.writerCacheMu.Unlock()
-
-	// 双重检查，防止并发创建
-	if writer, exists := s.writerCache[datasourceId]; exists {
-		return writer, nil
-	}
-
-	// 从数据库获取数据源配置
-	datasource, err := s.ctx.DB.Datasource().Get(datasourceId)
-	if err != nil {
-		return nil, fmt.Errorf("获取数据源配置失败: %w", err)
-	}
-
-	// 检查数据源是否启用
-	if !datasource.GetEnabled() || datasource.Write.Enabled == "Off" {
-		logc.Infof(s.ctx.Ctx, "数据源 %s 已禁用或未开启写入，跳过指标写入", datasourceId)
-		return nil, nil
-	}
-
-	// 根据数据源类型创建写入器
-	writer, err := s.createWriterFromDataSource(datasource)
-	if err != nil {
-		return nil, fmt.Errorf("创建数据源写入器失败: %w", err)
-	}
-
-	// 缓存写入器
-	if writer != nil {
-		s.writerCache[datasourceId] = writer
-		logc.Infof(s.ctx.Ctx, "为数据源 %s (%s) 创建并缓存写入器",
-			datasourceId, datasource.Name)
-	}
-
-	return writer, nil
-}
-
-// createWriterFromDataSource 根据数据源配置创建写入器
-func (s *ProbeService) createWriterFromDataSource(datasource models.AlertDataSource) (MetricsWriter, error) {
-	config := MetricsWriterConfig{
-		Endpoint: datasource.Write.URL,
-		Username: datasource.Auth.User,
-		Password: datasource.Auth.Pass,
-	}
-
-	// 验证配置
-	if err := ValidateWriteConfig(config); err != nil {
-		return nil, fmt.Errorf("Write 配置验证失败: %w", err)
-	}
-
-	logc.Infof(s.ctx.Ctx, "创建 Write 写入器，端点: %s",
-		config.Endpoint)
-
-	return NewWriter(config), nil
-}
-
-// RemoveWriterFromCache 从缓存中移除指定数据源的写入器
-func (s *ProbeService) RemoveWriterFromCache(datasourceId string) {
-	s.writerCacheMu.Lock()
-	defer s.writerCacheMu.Unlock()
-
-	if writer, exists := s.writerCache[datasourceId]; exists {
-		if err := writer.Close(); err != nil {
-			logc.Errorf(s.ctx.Ctx, "关闭数据源 %s 的写入器失败: %v", datasourceId, err)
-		}
-		delete(s.writerCache, datasourceId)
-		logc.Infof(s.ctx.Ctx, "从缓存中移除数据源 %s 的写入器", datasourceId)
-	}
-}
-
-// ClearWriterCache 清空写入器缓存
-func (s *ProbeService) ClearWriterCache() {
-	s.writerCacheMu.Lock()
-	defer s.writerCacheMu.Unlock()
-
-	for datasourceId, writer := range s.writerCache {
-		if err := writer.Close(); err != nil {
-			logc.Errorf(s.ctx.Ctx, "关闭数据源%s的写入器失败: %v", datasourceId, err)
-		}
-	}
-	s.writerCache = make(map[string]MetricsWriter)
-	logc.Infof(s.ctx.Ctx, "已清空所有写入器缓存")
-}
-
 // RePushRule 重新推送规则
 func (s *ProbeService) RePushRule() error {
 	var ruleList []models.ProbeRule
@@ -356,11 +216,4 @@ func (s *ProbeService) RePushRule() error {
 	}
 
 	return g.Wait()
-}
-
-// GetCachedWritersCount 获取缓存的写入器数量
-func (s *ProbeService) GetCachedWritersCount() int {
-	s.writerCacheMu.RLock()
-	defer s.writerCacheMu.RUnlock()
-	return len(s.writerCache)
 }

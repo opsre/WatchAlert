@@ -1,8 +1,9 @@
 package repo
 
 import (
-	"gorm.io/gorm"
 	"watchAlert/internal/models"
+
+	"gorm.io/gorm"
 )
 
 type (
@@ -11,7 +12,7 @@ type (
 	}
 
 	InterSilenceRepo interface {
-		List(tenantId, faultCenterId, query string, page models.Page) ([]models.AlertSilences, int64, error)
+		List(tenantId, faultCenterId, query string, status string, page models.Page) ([]models.AlertSilences, int64, error)
 		Create(r models.AlertSilences) error
 		Update(r models.AlertSilences) error
 		Delete(tenantId, id string) error
@@ -27,7 +28,7 @@ func newSilenceInterface(db *gorm.DB, g InterGormDBCli) InterSilenceRepo {
 	}
 }
 
-func (sr SilenceRepo) List(tenantId, faultCenterId, query string, page models.Page) ([]models.AlertSilences, int64, error) {
+func (sr SilenceRepo) List(tenantId, faultCenterId, query string, status string, page models.Page) ([]models.AlertSilences, int64, error) {
 	var (
 		silenceList []models.AlertSilences
 		count       int64
@@ -43,6 +44,10 @@ func (sr SilenceRepo) List(tenantId, faultCenterId, query string, page models.Pa
 
 	if query != "" {
 		db.Where("id LIKE ? OR comment LIKE ?", "%"+query+"%", "%"+query+"%")
+	}
+
+	if status != "all" {
+		db.Where("status = ?", status)
 	}
 
 	db.Count(&count)

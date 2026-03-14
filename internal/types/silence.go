@@ -37,7 +37,7 @@ type RequestSilenceQuery struct {
 	ID            string `json:"id" form:"id"`
 	Query         string `json:"query" form:"query"`
 	FaultCenterId string `json:"faultCenterId" form:"faultCenterId"`
-	Status        int    `json:"status" form:"status"`
+	Status        string `json:"status" form:"status"`
 	models.Page
 }
 

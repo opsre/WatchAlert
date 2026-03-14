@@ -19,6 +19,8 @@ var (
 
 	Probe *probing.ProbeService
 
+	RecordingRule eval.RecordingRuleEval
+
 	// Leader 选举器
 	LeaderElector *tools.LeaderElector
 
@@ -36,6 +38,9 @@ func Initialize(ctx *ctx.Context) {
 
 	// 初始化拨测任务
 	Probe = probing.NewProbeService(ctx)
+
+	// 初始化记录规则评估任务
+	RecordingRule = eval.NewRecordingRuleEval(ctx)
 
 	// 检查 Leader 选举是否启用
 	leaderElectionEnabled = config.Application.Server.EnableElection
@@ -63,6 +68,9 @@ func loadRules() {
 	// 重启所有告警规则评估器
 	AlertRule.RestartAllEvals()
 
+	// 重启所有记录规则评估器
+	RecordingRule.RestartAllEvals()
+
 	// 重启所有故障中心消费者
 	ConsumerWork.RestartAllConsumers()
 
@@ -84,15 +92,20 @@ func startMessageSubscribers() {
 	subscriberCancels = append(subscriberCancels, cancel1)
 	go tools.SubscribeReloadMessages(subCtx1, client.Redis, tools.ChannelRuleReload, handleRuleReload)
 
-	// 订阅故障中心重载消息
+	// 订阅记录规则重载消息
 	subCtx2, cancel2 := context.WithCancel(ctx.Ctx)
 	subscriberCancels = append(subscriberCancels, cancel2)
-	go tools.SubscribeReloadMessages(subCtx2, client.Redis, tools.ChannelFaultCenterReload, handleFaultCenterReload)
+	go tools.SubscribeReloadMessages(subCtx2, client.Redis, tools.ChannelRecordingRuleReload, handleRecordingRuleReload)
 
-	// 订阅拨测规则重载消息
+	// 订阅故障中心重载消息
 	subCtx3, cancel3 := context.WithCancel(ctx.Ctx)
 	subscriberCancels = append(subscriberCancels, cancel3)
-	go tools.SubscribeReloadMessages(subCtx3, client.Redis, tools.ChannelProbingReload, handleProbingReload)
+	go tools.SubscribeReloadMessages(subCtx3, client.Redis, tools.ChannelFaultCenterReload, handleFaultCenterReload)
+
+	// 订阅拨测规则重载消息
+	subCtx4, cancel4 := context.WithCancel(ctx.Ctx)
+	subscriberCancels = append(subscriberCancels, cancel4)
+	go tools.SubscribeReloadMessages(subCtx4, client.Redis, tools.ChannelProbingReload, handleProbingReload)
 }
 
 // stopMessageSubscribers 停止消息订阅器
@@ -131,6 +144,34 @@ func handleRuleReload(msg tools.ReloadMessage) {
 	case tools.ActionDelete, tools.ActionDisable:
 		AlertRule.Stop(msg.ID)
 		logc.Infof(ctx.Ctx, "[Leader] 已停止规则评估: %s", msg.Name)
+	}
+}
+
+// handleRecordingRuleReload 处理记录规则重载消息
+func handleRecordingRuleReload(msg tools.ReloadMessage) {
+	rule := ctx.DB.RecordingRule().GetRuleObject(msg.ID)
+	if rule.RuleId == "" {
+		logc.Errorf(ctx.Ctx, "记录规则不存在: %s", msg.ID)
+		return
+	}
+
+	switch msg.Action {
+	case tools.ActionCreate, tools.ActionEnable:
+		if rule.Enabled != nil && *rule.Enabled {
+			RecordingRule.Submit(rule)
+			logc.Infof(ctx.Ctx, "[Leader] 已启动记录规则评估: %s", msg.Name)
+		}
+
+	case tools.ActionUpdate:
+		RecordingRule.Stop(msg.ID)
+		if rule.Enabled != nil && *rule.Enabled {
+			RecordingRule.Submit(rule)
+			logc.Infof(ctx.Ctx, "[Leader] 已重启记录规则评估: %s", msg.Name)
+		}
+
+	case tools.ActionDelete, tools.ActionDisable:
+		RecordingRule.Stop(msg.ID)
+		logc.Infof(ctx.Ctx, "[Leader] 已停止记录规则评估: %s", msg.Name)
 	}
 }
 
@@ -205,6 +246,9 @@ func unloadRules() {
 
 	// 停止所有告警规则评估器
 	AlertRule.StopAllEvals()
+
+	// 停止所有记录规则评估器
+	RecordingRule.StopAllEvals()
 
 	// 停止所有故障中心消费者
 	ConsumerWork.StopAllConsumers()

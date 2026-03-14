@@ -13,8 +13,7 @@ func NewMetricsAwareTcper() MetricsAwareProbe {
 }
 
 // PilotWithMetrics 执行TCP探测并直接返回指标
-func (p Tcper) PilotWithMetrics(option EndpointOption, ruleInfo ProbeRuleInfo) []ProbeMetric {
-	timestamp := time.Now().Unix()
+func (p Tcper) PilotWithMetrics(option EndpointOption, ruleInfo ProbeRuleInfo) []Metrics {
 	startTime := time.Now()
 
 	// 尝试拨测指定地址和端口
@@ -37,22 +36,18 @@ func (p Tcper) PilotWithMetrics(option EndpointOption, ruleInfo ProbeRuleInfo) [
 	}
 
 	// 创建TCP指标
-	metrics := []ProbeMetric{
+	metrics := []Metrics{
 		{
-			Name:      "probe_tcp_success",
-			Help:      "TCP probe success (1 for success, 0 for failure)",
-			Type:      "gauge",
-			Labels:    copyLabelsMap(baseLabels),
-			Value:     BoolToFloat(isSuccessful),
-			Timestamp: timestamp,
+			Name:   "probe_tcp_success",
+			Help:   "TCP probe success (1 for success, 0 for failure)",
+			Labels: copyLabelsMap(baseLabels),
+			Value:  BoolToFloat(isSuccessful),
 		},
 		{
-			Name:      "probe_tcp_response_time_ms",
-			Help:      "TCP connection response time in milliseconds",
-			Type:      "gauge",
-			Labels:    copyLabelsMap(baseLabels),
-			Value:     float64(responseTime.Milliseconds()),
-			Timestamp: timestamp,
+			Name:   "probe_tcp_response_time_ms",
+			Help:   "TCP connection response time in milliseconds",
+			Labels: copyLabelsMap(baseLabels),
+			Value:  float64(responseTime.Milliseconds()),
 		},
 	}
 

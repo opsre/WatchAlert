@@ -85,7 +85,7 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 			}
 
 			fingerprintMetric := provider.Metrics{
-				Metric: fingerprintLabels,
+				Labels: fingerprintLabels,
 			}
 			fingerprint := fingerprintMetric.GetFingerprint()
 

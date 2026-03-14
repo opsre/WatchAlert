@@ -15,7 +15,7 @@ func NewMetricsAwarePinger() MetricsAwareProbe {
 }
 
 // PilotWithMetrics 执行ICMP探测并直接返回指标
-func (p Pinger) PilotWithMetrics(option EndpointOption, ruleInfo ProbeRuleInfo) []ProbeMetric {
+func (p Pinger) PilotWithMetrics(option EndpointOption, ruleInfo ProbeRuleInfo) []Metrics {
 	timestamp := time.Now().Unix()
 
 	// 执行ICMP探测
@@ -65,54 +65,42 @@ func (p Pinger) PilotWithMetrics(option EndpointOption, ruleInfo ProbeRuleInfo) 
 	}
 
 	// 创建ICMP指标
-	metrics := []ProbeMetric{
+	metrics := []Metrics{
 		{
-			Name:      "probe_icmp_packet_loss_percent",
-			Help:      "ICMP packet loss percentage",
-			Type:      "gauge",
-			Labels:    copyLabelsMap(baseLabels),
-			Value:     detail.PacketLoss,
-			Timestamp: timestamp,
+			Name:   "probe_icmp_packet_loss_percent",
+			Help:   "ICMP packet loss percentage",
+			Labels: copyLabelsMap(baseLabels),
+			Value:  detail.PacketLoss,
 		},
 		{
-			Name:      "probe_icmp_rtt_min_ms",
-			Help:      "ICMP minimum round trip time in milliseconds",
-			Type:      "gauge",
-			Labels:    copyLabelsMap(baseLabels),
-			Value:     detail.MinRtt,
-			Timestamp: timestamp,
+			Name:   "probe_icmp_rtt_min_ms",
+			Help:   "ICMP minimum round trip time in milliseconds",
+			Labels: copyLabelsMap(baseLabels),
+			Value:  detail.MinRtt,
 		},
 		{
-			Name:      "probe_icmp_rtt_max_ms",
-			Help:      "ICMP maximum round trip time in milliseconds",
-			Type:      "gauge",
-			Labels:    copyLabelsMap(baseLabels),
-			Value:     detail.MaxRtt,
-			Timestamp: timestamp,
+			Name:   "probe_icmp_rtt_max_ms",
+			Help:   "ICMP maximum round trip time in milliseconds",
+			Labels: copyLabelsMap(baseLabels),
+			Value:  detail.MaxRtt,
 		},
 		{
-			Name:      "probe_icmp_rtt_avg_ms",
-			Help:      "ICMP average round trip time in milliseconds",
-			Type:      "gauge",
-			Labels:    copyLabelsMap(baseLabels),
-			Value:     detail.AvgRtt,
-			Timestamp: timestamp,
+			Name:   "probe_icmp_rtt_avg_ms",
+			Help:   "ICMP average round trip time in milliseconds",
+			Labels: copyLabelsMap(baseLabels),
+			Value:  detail.AvgRtt,
 		},
 		{
-			Name:      "probe_icmp_packets_sent_total",
-			Help:      "Total ICMP packets sent",
-			Type:      "counter",
-			Labels:    copyLabelsMap(baseLabels),
-			Value:     float64(detail.PacketsSent),
-			Timestamp: timestamp,
+			Name:   "probe_icmp_packets_sent_total",
+			Help:   "Total ICMP packets sent",
+			Labels: copyLabelsMap(baseLabels),
+			Value:  float64(detail.PacketsSent),
 		},
 		{
-			Name:      "probe_icmp_packets_received_total",
-			Help:      "Total ICMP packets received",
-			Type:      "counter",
-			Labels:    copyLabelsMap(baseLabels),
-			Value:     float64(detail.PacketsRecv),
-			Timestamp: timestamp,
+			Name:   "probe_icmp_packets_received_total",
+			Help:   "Total ICMP packets received",
+			Labels: copyLabelsMap(baseLabels),
+			Value:  float64(detail.PacketsRecv),
 		},
 	}
 
@@ -120,7 +108,7 @@ func (p Pinger) PilotWithMetrics(option EndpointOption, ruleInfo ProbeRuleInfo) 
 }
 
 // createFailureMetrics 创建失败时的指标
-func (p Pinger) createFailureMetrics(ruleInfo ProbeRuleInfo, timestamp int64, errorMsg string) []ProbeMetric {
+func (p Pinger) createFailureMetrics(ruleInfo ProbeRuleInfo, timestamp int64, errorMsg string) []Metrics {
 	baseLabels := map[string]any{
 		"tenant_id":  ruleInfo.TenantID,
 		"probe_id":   ruleInfo.RuleID,
@@ -130,11 +118,10 @@ func (p Pinger) createFailureMetrics(ruleInfo ProbeRuleInfo, timestamp int64, er
 		"error":      errorMsg,
 	}
 
-	return []ProbeMetric{
+	return []Metrics{
 		{
 			Name:      "probe_icmp_packet_loss_percent",
 			Help:      "ICMP packet loss percentage",
-			Type:      "gauge",
 			Labels:    copyLabelsMap(baseLabels),
 			Value:     100.0, // 完全失败
 			Timestamp: timestamp,
@@ -142,7 +129,6 @@ func (p Pinger) createFailureMetrics(ruleInfo ProbeRuleInfo, timestamp int64, er
 		{
 			Name:      "probe_icmp_success",
 			Help:      "ICMP probe success (1 for success, 0 for failure)",
-			Type:      "gauge",
 			Labels:    copyLabelsMap(baseLabels),
 			Value:     0.0, // 失败
 			Timestamp: timestamp,

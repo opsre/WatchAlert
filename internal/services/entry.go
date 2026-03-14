@@ -7,37 +7,39 @@ import (
 )
 
 var (
-	DatasourceService       InterDatasourceService
-	AuditLogService         InterAuditLogService
-	DashboardService        InterDashboardService
-	DutyManageService       InterDutyManageService
-	DutyCalendarService     InterDutyCalendarService
-	EventService            InterEventService
-	NoticeService           InterNoticeService
-	NoticeTmplService       InterNoticeTmplService
-	RuleService             InterRuleService
-	RuleGroupService        InterRuleGroupService
-	RuleTmplService         InterRuleTmplService
-	SilenceService          InterSilenceService
-	TenantService           InterTenantService
-	UserService             InterUserService
-	UserRoleService         InterUserRoleService
-	AlertService            InterAlertService
-	RuleTmplGroupService    InterRuleTmplGroupService
-	UserPermissionService   InterUserPermissionService
-	AWSRegionService        region.InterAwsRegionService
-	AWSCloudWatchService    cloudwatch.InterAwsCloudWatchService
-	AWSCloudWatchRdsService cloudwatch.InterAwsRdsService
-	SettingService          InterSettingService
-	ClientService           InterClientService
-	LdapService             InterLdapService
-	SubscribeService        InterAlertSubscribeService
-	ProbingService          InterProbingService
-	FaultCenterService      InterFaultCenterService
-	AiService               InterAiService
-	OidcService             InterOidcService
-	TopologyService         InterTopologyService
-	ApiKeyService           InterApiKeyService
+	DatasourceService         InterDatasourceService
+	AuditLogService           InterAuditLogService
+	DashboardService          InterDashboardService
+	DutyManageService         InterDutyManageService
+	DutyCalendarService       InterDutyCalendarService
+	EventService              InterEventService
+	NoticeService             InterNoticeService
+	NoticeTmplService         InterNoticeTmplService
+	RuleService               InterRuleService
+	RuleGroupService          InterRuleGroupService
+	RuleTmplService           InterRuleTmplService
+	SilenceService            InterSilenceService
+	TenantService             InterTenantService
+	UserService               InterUserService
+	UserRoleService           InterUserRoleService
+	AlertService              InterAlertService
+	RuleTmplGroupService      InterRuleTmplGroupService
+	UserPermissionService     InterUserPermissionService
+	AWSRegionService          region.InterAwsRegionService
+	AWSCloudWatchService      cloudwatch.InterAwsCloudWatchService
+	AWSCloudWatchRdsService   cloudwatch.InterAwsRdsService
+	SettingService            InterSettingService
+	ClientService             InterClientService
+	LdapService               InterLdapService
+	SubscribeService          InterAlertSubscribeService
+	ProbingService            InterProbingService
+	FaultCenterService        InterFaultCenterService
+	AiService                 InterAiService
+	OidcService               InterOidcService
+	TopologyService           InterTopologyService
+	ApiKeyService             InterApiKeyService
+	RecordingRuleService      InterRecordingRuleService
+	RecordingRuleGroupService InterRecordingRuleGroupService
 )
 
 func NewServices(ctx *ctx.Context) {
@@ -72,4 +74,6 @@ func NewServices(ctx *ctx.Context) {
 	OidcService = newInterOidcService(ctx)
 	TopologyService = newInterTopologyService(ctx)
 	ApiKeyService = newInterApiKeyService(ctx)
+	RecordingRuleService = newInterRecordingRuleService(ctx)
+	RecordingRuleGroupService = newInterRecordingRuleGroupService(ctx)
 }

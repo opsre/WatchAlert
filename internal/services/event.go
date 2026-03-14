@@ -200,6 +200,12 @@ func matchStatus(event *models.AlertCurEvent, status string, muteParams mute.Mut
 
 	switch status {
 	case "pre_alert", "alerting", "pending_recovery":
+		if event.ConfirmState.IsOk {
+			event.Status = "processing"
+		}
+		if mute.IsSilence(muteParams) {
+			event.Status = "muting"
+		}
 		return string(event.Status) == status
 	case "processing":
 		if event.ConfirmState.IsOk {

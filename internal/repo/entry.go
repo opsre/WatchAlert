@@ -40,6 +40,8 @@ type (
 		Comment() InterCommentRepo
 		Topology() InterTopologyRepo
 		ApiKey() InterApiKeyRepo
+		RecordingRule() InterRecordingRuleRepo
+		RecordingRuleGroup() InterRecordingRuleGroupRepo
 	}
 )
 
@@ -92,3 +94,9 @@ func (e *entryRepo) Ai() InterAiRepo                   { return newAiRepoInterfa
 func (e *entryRepo) Comment() InterCommentRepo         { return newCommentInterface(e.db, e.g) }
 func (e *entryRepo) Topology() InterTopologyRepo       { return newInterTopologyRepo(e.db, e.g) }
 func (e *entryRepo) ApiKey() InterApiKeyRepo           { return newApiKeyInterface(e.db, e.g) }
+func (e *entryRepo) RecordingRule() InterRecordingRuleRepo {
+	return newRecordingRuleInterface(e.db, e.g)
+}
+func (e *entryRepo) RecordingRuleGroup() InterRecordingRuleGroupRepo {
+	return newRecordingRuleGroupInterface(e.db, e.g)
+}

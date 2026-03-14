@@ -2,7 +2,6 @@ package probe
 
 import (
 	"fmt"
-	"strings"
 	"watchAlert/internal/models"
 )
 
@@ -22,20 +21,6 @@ func ValidateProbeRule(rule models.ProbeRule) error {
 
 	if rule.ProbingEndpointConfig.Strategy.EvalInterval <= 0 {
 		return fmt.Errorf("eval interval must be greater than 0")
-	}
-
-	return nil
-}
-
-// ValidatePrometheusConfig 验证Prometheus配置
-func ValidateWriteConfig(config MetricsWriterConfig) error {
-	if config.Endpoint == "" {
-		return fmt.Errorf("Write endpoint不能为空")
-	}
-
-	// 验证URL格式
-	if !strings.HasPrefix(config.Endpoint, "http://") && !strings.HasPrefix(config.Endpoint, "https://") {
-		return fmt.Errorf("Write endpoint必须以http://或https://开头")
 	}
 
 	return nil

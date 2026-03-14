@@ -7,19 +7,9 @@ const (
 	SSLEndpointProvider  string = "SSL"
 )
 
-// ProbeMetric 探测指标结构
-type ProbeMetric struct {
-	Name      string         `json:"name"`
-	Help      string         `json:"help"`
-	Type      string         `json:"type"`
-	Labels    map[string]any `json:"labels"`
-	Value     float64        `json:"value"`
-	Timestamp int64          `json:"timestamp"`
-}
-
 // MetricsAwareProbe 支持直接返回指标的探测接口（通用）
 type MetricsAwareProbe interface {
-	PilotWithMetrics(option EndpointOption, ruleInfo ProbeRuleInfo) []ProbeMetric
+	PilotWithMetrics(option EndpointOption, ruleInfo ProbeRuleInfo) []Metrics
 }
 
 // ProbeRuleInfo 探测规则信息，用于生成指标标签（通用）

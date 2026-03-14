@@ -76,3 +76,8 @@ func IsEndOfWeek(dateStr string) bool {
 	}
 	return date.Weekday() == time.Sunday
 }
+
+// NowUnix 获取当前时间戳（秒）
+func NowUnix() int64 {
+	return time.Now().Unix()
+}

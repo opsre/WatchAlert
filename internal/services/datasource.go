@@ -3,8 +3,6 @@ package services
 import (
 	"fmt"
 	"time"
-	"watchAlert/alert"
-	"watchAlert/alert/probe"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
 	"watchAlert/internal/types"
@@ -64,14 +62,6 @@ func (ds datasourceService) Create(req interface{}) (interface{}, interface{}) {
 		return nil, err
 	}
 
-	if dataSource.Type == "Prometheus" && dataSource.Write.Enabled == "On" {
-		alert.Probe.ResetWriteCache(data.ID, probe.NewWriter(probe.MetricsWriterConfig{
-			Endpoint: dataSource.Write.URL,
-			Username: dataSource.Auth.User,
-			Password: dataSource.Auth.Pass,
-		}))
-	}
-
 	return nil, nil
 }
 
@@ -107,14 +97,6 @@ func (ds datasourceService) Update(req interface{}) (interface{}, interface{}) {
 		return nil, err
 	}
 
-	if dataSource.Type == "Prometheus" && dataSource.Write.Enabled == "On" {
-		alert.Probe.ResetWriteCache(data.ID, probe.NewWriter(probe.MetricsWriterConfig{
-			Endpoint: dataSource.Write.URL,
-			Username: dataSource.Auth.User,
-			Password: dataSource.Auth.Pass,
-		}))
-	}
-
 	return nil, nil
 }
 
@@ -126,8 +108,6 @@ func (ds datasourceService) Delete(req interface{}) (interface{}, interface{}) {
 	}
 
 	ds.WithRemoveClientForProviderPools(dataSource.ID)
-
-	alert.Probe.DeleteWriteCache(dataSource.ID)
 
 	return nil, nil
 }

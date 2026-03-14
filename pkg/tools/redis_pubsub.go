@@ -11,9 +11,10 @@ import (
 
 const (
 	// Redis 消息通道
-	ChannelRuleReload        = "w8t:rule:reload"
-	ChannelFaultCenterReload = "w8t:faultcenter:reload"
-	ChannelProbingReload     = "w8t:probing:reload"
+	ChannelRuleReload          = "w8t:rule:reload"
+	ChannelRecordingRuleReload = "w8t:recordingrule:reload"
+	ChannelFaultCenterReload   = "w8t:faultcenter:reload"
+	ChannelProbingReload       = "w8t:probing:reload"
 )
 
 // 操作类型

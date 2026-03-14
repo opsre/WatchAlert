@@ -132,7 +132,7 @@ func importClientPools(ctx *ctx.Context) {
 }
 
 func pushMuteRuleToRedis() {
-	list, _, err := ctx.DB.Silence().List("", "", "", models.Page{
+	list, _, err := ctx.DB.Silence().List("", "", "", "all", models.Page{
 		Index: 0,
 		Size:  1000,
 	})

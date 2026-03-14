@@ -31,9 +31,7 @@ type HTTPResult struct {
 }
 
 // PilotWithMetrics 执行HTTP探测并直接返回指标
-func (h HTTPer) PilotWithMetrics(option EndpointOption, ruleInfo ProbeRuleInfo) []ProbeMetric {
-	timestamp := time.Now().Unix()
-
+func (h HTTPer) PilotWithMetrics(option EndpointOption, ruleInfo ProbeRuleInfo) []Metrics {
 	// 执行HTTP探测
 	httpResult := h.executeHTTPProbe(option)
 
@@ -53,30 +51,24 @@ func (h HTTPer) PilotWithMetrics(option EndpointOption, ruleInfo ProbeRuleInfo) 
 	}
 
 	// 创建指标列表
-	metrics := []ProbeMetric{
+	metrics := []Metrics{
 		{
-			Name:      "probe_http_response_time_ms",
-			Help:      "HTTP response time in milliseconds",
-			Type:      "gauge",
-			Labels:    copyLabelsMap(httpLabels),
-			Value:     float64(httpResult.Latency.Milliseconds()),
-			Timestamp: timestamp,
+			Name:   "probe_http_response_time_ms",
+			Help:   "HTTP response time in milliseconds",
+			Labels: copyLabelsMap(httpLabels),
+			Value:  float64(httpResult.Latency.Milliseconds()),
 		},
 		{
-			Name:      "probe_http_status_code",
-			Help:      "HTTP response status code",
-			Type:      "gauge",
-			Labels:    copyLabelsMap(baseLabels),
-			Value:     float64(httpResult.StatusCode),
-			Timestamp: timestamp,
+			Name:   "probe_http_status_code",
+			Help:   "HTTP response status code",
+			Labels: copyLabelsMap(baseLabels),
+			Value:  float64(httpResult.StatusCode),
 		},
 		{
-			Name:      "probe_http_success",
-			Help:      "HTTP probe success (1 for reachable, 0 for unreachable)",
-			Type:      "gauge",
-			Labels:    copyLabelsMap(baseLabels),
-			Value:     getHTTPSuccessValueFromResult(httpResult),
-			Timestamp: timestamp,
+			Name:   "probe_http_success",
+			Help:   "HTTP probe success (1 for reachable, 0 for unreachable)",
+			Labels: copyLabelsMap(baseLabels),
+			Value:  getHTTPSuccessValueFromResult(httpResult),
 		},
 	}
 

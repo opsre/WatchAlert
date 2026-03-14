@@ -1,8 +1,10 @@
 package provider
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"math"
 	"net/http"
 	"time"
@@ -14,16 +16,22 @@ import (
 	"github.com/prometheus/common/model"
 
 	"github.com/zeromicro/go-zero/core/logc"
+
+	"github.com/gogo/protobuf/proto"
+	"github.com/golang/snappy"
+	"github.com/prometheus/prometheus/prompb"
 )
 
 type PrometheusProvider struct {
 	client         v1.API
 	ExternalLabels map[string]interface{}
 	Address        string
+	WriteURL       string
 	Username       string
 	Password       string
 	Headers        map[string]string
 	Timeout        int64
+	httpClient     *http.Client
 }
 
 // authenticatedTransport 包装 http.RoundTripper 以添加认证头和额外的headers
@@ -78,11 +86,13 @@ func NewPrometheusClient(ds models.AlertDataSource) (MetricsFactoryProvider, err
 	return PrometheusProvider{
 		client:         v1.NewAPI(client),
 		Address:        ds.HTTP.URL,
+		WriteURL:       ds.Write.URL,
 		ExternalLabels: ds.Labels,
 		Username:       ds.Auth.User,
 		Password:       ds.Auth.Pass,
 		Headers:        ds.HTTP.Headers,
 		Timeout:        ds.HTTP.Timeout,
+		httpClient:     &http.Client{Transport: roundTripper, Timeout: time.Duration(ds.HTTP.Timeout) * time.Second},
 	}, nil
 }
 
@@ -149,9 +159,9 @@ func Vectors(value model.Value) []Metrics {
 		}
 
 		vectors = append(vectors, Metrics{
-			Metric:    metric,
+			Labels:    metric,
 			Value:     float64(item.Value),
-			Timestamp: float64(item.Timestamp),
+			Timestamp: int64(item.Timestamp),
 		})
 	}
 
@@ -178,9 +188,9 @@ func Matrix(value model.Value) []Metrics {
 			}
 
 			metrics = append(metrics, Metrics{
-				Timestamp: float64(value.Timestamp),
+				Timestamp: int64(value.Timestamp),
 				Value:     float64(value.Value),
-				Metric:    metric,
+				Labels:    metric,
 			})
 		}
 	}
@@ -211,4 +221,106 @@ func (v PrometheusProvider) Check() (bool, error) {
 
 func (v PrometheusProvider) GetExternalLabels() map[string]interface{} {
 	return v.ExternalLabels
+}
+
+// Write 将记录规则结果写入 Prometheus 远程写入端点
+func (v PrometheusProvider) Write(ctx context.Context, metrics []Metrics, externalLabels map[string]string) error {
+	if len(metrics) == 0 {
+		return nil
+	}
+
+	// 转换为Prometheus Remote Write格式
+	writeRequest, err := v.convertToRemoteWriteFormat(metrics, externalLabels)
+	if err != nil {
+		return fmt.Errorf("转换为Remote Write格式失败: %w", err)
+	}
+
+	// 序列化为Protobuf
+	data, err := proto.Marshal(writeRequest)
+	if err != nil {
+		return fmt.Errorf("序列化Protobuf失败: %w", err)
+	}
+
+	// Snappy压缩
+	compressed := snappy.Encode(nil, data)
+
+	// 创建HTTP请求
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, v.WriteURL, bytes.NewBuffer(compressed))
+	if err != nil {
+		return fmt.Errorf("创建Prometheus请求失败: %w", err)
+	}
+
+	// 设置请求头
+	req.Header.Set("Content-Type", "application/x-protobuf")
+	req.Header.Set("Content-Encoding", "snappy")
+	req.Header.Set("X-Prometheus-Remote-Write-Version", "0.1.0")
+
+	// 设置认证
+	if v.Username != "" && v.Password != "" {
+		req.SetBasicAuth(v.Username, v.Password)
+	}
+
+	// 发送请求
+	resp, err := v.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("发送Prometheus请求失败: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// 检查响应状态
+	if resp.StatusCode == http.StatusNoContent {
+		return nil
+	}
+
+	// 处理错误响应
+	body, _ := io.ReadAll(resp.Body)
+	return fmt.Errorf("prometheus写入失败，状态码: %d, 响应: %s", resp.StatusCode, string(body))
+}
+
+// convertToRemoteWriteFormat 转换为 Remote Write格式
+func (v PrometheusProvider) convertToRemoteWriteFormat(results []Metrics, externalLabels map[string]string) (*prompb.WriteRequest, error) {
+	var timeSeries []prompb.TimeSeries
+
+	for _, metric := range results {
+		// 构建标签
+		labels := []prompb.Label{
+			{Name: "__name__", Value: metric.Name},
+		}
+
+		// 添加其他标签
+		for k, v := range metric.Labels {
+			labels = append(labels, prompb.Label{
+				Name:  k,
+				Value: fmt.Sprintf("%v", v),
+			})
+		}
+
+		for k, v := range externalLabels {
+			labels = append(labels, prompb.Label{
+				Name:  k,
+				Value: fmt.Sprintf("%v", v),
+			})
+		}
+
+		// 创建样本
+		sample := prompb.Sample{
+			Value:     metric.Value,
+			Timestamp: int64(time.Now().UnixMilli()),
+		}
+
+		// 创建时间序列
+		ts := prompb.TimeSeries{
+			Labels:  labels,
+			Samples: []prompb.Sample{sample},
+		}
+
+		timeSeries = append(timeSeries, ts)
+	}
+
+	// 构造WriteRequest
+	writeReq := &prompb.WriteRequest{
+		Timeseries: timeSeries,
+	}
+
+	return writeReq, nil
 }
