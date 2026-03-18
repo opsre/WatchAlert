@@ -4,43 +4,111 @@
 
 A Helm chart for Kubernetes
 
-## Values
+## Installation
 
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| affinity | object | `{}` |  |
-| autoscaling.enabled | bool | `false` |  |
-| autoscaling.maxReplicas | int | `100` |  |
-| autoscaling.minReplicas | int | `1` |  |
-| autoscaling.targetCPUUtilizationPercentage | int | `80` |  |
-| dep.minio.namespace | string | `"devops"` |  |
-| dep.mysql.nameSuffix | string | `"default"` |  |
-| dep.mysql.namespace | string | `"devops"` |  |
-| fullnameOverride | string | `""` |  |
-| image.pullPolicy | string | `"IfNotPresent"` |  |
-| image.repository | string | `"registry.sensetime.com/turbo-cloud/task-service"` |  |
-| image.tag | string | `"v0.1"` |  |
-| imagePullSecrets | list | `[]` |  |
-| ingress.annotations | object | `{}` |  |
-| ingress.className | string | `""` |  |
-| ingress.enabled | bool | `false` |  |
-| ingress.hosts[0].host | string | `"chart-example.local"` |  |
-| ingress.hosts[0].paths[0].path | string | `"/"` |  |
-| ingress.hosts[0].paths[0].pathType | string | `"ImplementationSpecific"` |  |
-| ingress.tls | list | `[]` |  |
-| nameOverride | string | `""` |  |
-| nodeSelector | object | `{}` |  |
-| podAnnotations | object | `{}` |  |
-| podSecurityContext | object | `{}` |  |
-| replicaCount | int | `1` |  |
-| resources | object | `{}` |  |
-| securityContext | object | `{}` |  |
-| service.port | int | `80` |  |
-| service.type | string | `"ClusterIP"` |  |
-| serviceAccount.annotations | object | `{}` |  |
-| serviceAccount.create | bool | `false` |  |
-| serviceAccount.name | string | `""` |  |
-| tolerations | list | `[]` |  |
+### Using Internal MySQL and Redis (Default)
+
+```bash
+helm install watchalert . -n watchalert --create-namespace
+```
+
+### Using External MySQL
+
+```bash
+helm install watchalert . -n watchalert --create-namespace \
+  --set mysql.external.enabled=true \
+  --set mysql.external.host=mysql.example.com \
+  --set mysql.external.port=3306 \
+  --set mysql.external.user=root \
+  --set mysql.external.password=yourpassword \
+  --set mysql.external.database=watchalert
+```
+
+### Using External Redis
+
+```bash
+helm install watchalert . -n watchalert --create-namespace \
+  --set redis.external.enabled=true \
+  --set redis.external.host=redis.example.com \
+  --set redis.external.port=6379 \
+  --set redis.external.password=yourpassword \
+  --set redis.external.database=0
+```
+
+### Using Both External MySQL and Redis
+
+```bash
+helm install watchalert . -n watchalert --create-namespace \
+  --set mysql.external.enabled=true \
+  --set mysql.external.host=mysql.example.com \
+  --set mysql.external.password=yourpassword \
+  --set redis.external.enabled=true \
+  --set redis.external.host=redis.example.com
+```
+
+Or use a values file:
+
+```yaml
+# custom-values.yaml
+mysql:
+  external:
+    enabled: true
+    host: mysql.example.com
+    port: 3306
+    user: root
+    password: yourpassword
+    database: watchalert
+
+redis:
+  external:
+    enabled: true
+    host: redis.example.com
+    port: 6379
+    password: yourpassword
+    database: 0
+```
+
+```bash
+helm install watchalert . -n watchalert --create-namespace -f custom-values.yaml
+```
+
+## Configuration
+
+### MySQL Configuration
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `mysql.enabled` | Enable MySQL dependency | `true` |
+| `mysql.external.enabled` | Use external MySQL instead of internal | `false` |
+| `mysql.external.host` | External MySQL host | `""` |
+| `mysql.external.port` | External MySQL port | `3306` |
+| `mysql.external.user` | External MySQL user | `root` |
+| `mysql.external.password` | External MySQL password | `""` |
+| `mysql.external.database` | External MySQL database name | `watchalert` |
+| `mysql.auth.password` | Internal MySQL root password | `w8t.123` |
+| `mysql.auth.database` | Internal MySQL database name | `watchalert` |
+| `mysql.persistence.enabled` | Enable persistence for internal MySQL | `false` |
+| `mysql.persistence.size` | PVC size for internal MySQL | `5Gi` |
+
+### Redis Configuration
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `redis.enabled` | Enable Redis dependency | `true` |
+| `redis.external.enabled` | Use external Redis instead of internal | `false` |
+| `redis.external.host` | External Redis host | `""` |
+| `redis.external.port` | External Redis port | `6379` |
+| `redis.external.password` | External Redis password | `""` |
+| `redis.external.database` | External Redis database number | `0` |
+| `redis.persistence.enabled` | Enable persistence for internal Redis | `false` |
+| `redis.persistence.size` | PVC size for internal Redis | `1Gi` |
+
+## Notes
+
+- When `mysql.external.enabled=true`, the internal MySQL StatefulSet will not be deployed
+- When `redis.external.enabled=true`, the internal Redis StatefulSet will not be deployed
+- Ensure external databases are accessible from the Kubernetes cluster
+- The application will wait for database connectivity before starting (initContainers)
 
 ----------------------------------------------
 Autogenerated from chart metadata using [helm-docs v1.10.0](https://github.com/norwoodj/helm-docs/releases/v1.10.0)

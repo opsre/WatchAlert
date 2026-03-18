@@ -22,20 +22,21 @@ service:
     Server:
       port: "9001"
       mode: "release"
-    
-    MySQL:
-      host: {{ .Release.Name }}-mysql
-      port: 3306
-      user: root
-      pass: w8t.123
-      dbName: watchalert
+
+    DATABASE:
+      type: mysql
+      host: {{ include "watchalert.database.host" . }}
+      port: {{ include "watchalert.database.port" . }}
+      user: {{ include "watchalert.database.user" . }}
+      pass: {{ include "watchalert.database.password" . }}
+      dbName: {{ include "watchalert.database.name" . }}
       timeout: 10s
-    
+
     Redis:
-      host: {{ .Release.Name }}-redis
-      port: 6379
-      pass: ""
-      database: 0
+      host: {{ include "watchalert.redis.host" . }}
+      port: {{ include "watchalert.redis.port" . }}
+      pass: {{ include "watchalert.redis.password" . }}
+      database: {{ include "watchalert.redis.database" . }}
     
     Jwt:
       expire: 18000
@@ -96,6 +97,10 @@ web:
     initialDelaySeconds: 5
     periodSeconds: 10
 
+  nodeSelector: {}
+
+  tolerations: []
+
   config: |-
     server {
       listen 80;
@@ -149,58 +154,89 @@ web:
     className: ""
     annotations:
       kubernetes.io/ingress.class: nginx
+      # cert-manager.io/cluster-issuer: letsencrypt-prod
     hosts:
       - host: watchalert.x.com
         paths:
           - path: /
             pathType: ImplementationSpecific
+            # Optional: Override backend service (defaults to web component on port 80)
+            serviceName: ""  # e.g., "watchalert-service" to route to backend API
+            servicePort: ""  # e.g., 9001 for backend API, 18102 for custom service
     tls: []
+    # Example TLS configuration:
+    # tls:
+    #   - hosts:
+    #       - watchalert.x.com
+    #     secretName: watchalert-tls
 
 serviceAccount:
   create: false
   annotations: {}
   name: ""
 
+# MySQL initialization job configuration
+# Note: The job automatically selects the appropriate MySQL client image:
+# - Internal MySQL: Uses mysql.image for version consistency with the StatefulSet
+# - External MySQL: Uses job.image for flexibility to match external server version
 job:
   image:
     repository: docker.1ms.run/mysql
     tag: "8.0"
 
-  mysql:
-    host: ""
-    username: root
-    password: w8t.123
-    database: watchalert
+  nodeSelector: {}
 
+  tolerations: []
+
+# Internal MySQL deployment
 mysql:
-  enabled:  true
-
+  enabled: true
   image:
     repository: docker.1ms.run/mysql
     tag: "8.0"
-
   auth:
-    password: w8t.123
+    rootPassword: w8t.123
     database: watchalert
-
   persistence:
-    enabled:  false
+    enabled: false
     storageClass: "hostpath"
-    accessModes: "ReadWriteOnce"
+    accessMode: ReadWriteOnce
     size: 5Gi
 
-redis:
-  enabled:  true
+  nodeSelector: {}
 
+  tolerations: []
+
+# Internal Redis deployment
+redis:
+  enabled: true
   image:
     repository: docker.1ms.run/redis
     tag: "latest"
-
   persistence:
-    enabled:  false
+    enabled: false
     storageClass: "hostpath"
-    accessModes: "ReadWriteOnce"
+    accessMode: ReadWriteOnce
     size: 1Gi
+
+  nodeSelector: {}
+
+  tolerations: []
+
+# External database configuration
+externalDatabase:
+  enabled: false  # Set to true to use external databases instead of internal StatefulSets
+  mysql:
+    host: ""
+    port: 3306
+    user: root
+    password: ""
+    database: watchalert
+  redis:
+    host: ""
+    port: 6379
+    password: ""
+    database: 0
 
 initContainers:
   wait:

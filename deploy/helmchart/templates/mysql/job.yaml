@@ -6,6 +6,14 @@ metadata:
 spec:
   template:
     spec:
+      {{- with .Values.job.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.job.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       initContainers:
         - name: wait-for-service
           image: {{ .Values.initContainers.wait.image.repository }}:{{ .Values.initContainers.wait.image.tag }}
@@ -16,17 +24,19 @@ spec:
 
       containers:
         - name: {{ include "watchalert.componentName" (dict "root" . "component" "init-job") }}
-          image: {{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}
+          image: {{ include "watchalert.job.mysql.image" . }}
           imagePullPolicy: {{ .Values.imagePullPolicy }}
           env:
             - name: MYSQL_HOST
-              value: {{ printf "%s-mysql" .Release.Name }}
+              value: {{ include "watchalert.database.host" . | quote }}
+            - name: MYSQL_PORT
+              value: {{ include "watchalert.database.port" . | quote }}
             - name: MYSQL_USERNAME
-              value: {{ .Values.job.mysql.username | quote }}
+              value: {{ include "watchalert.database.user" . | quote }}
             - name: MYSQL_PASSWORD
-              value: {{ .Values.job.mysql.password | quote }}
+              value: {{ include "watchalert.database.password" . | quote }}
             - name: MYSQL_DATABASE
-              value: {{ .Values.job.mysql.database | quote }}
+              value: {{ include "watchalert.database.name" . | quote }}
           volumeMounts:
             - name: config
               mountPath: /sql
