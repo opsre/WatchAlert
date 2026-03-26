@@ -17,13 +17,21 @@ spec:
       labels:
         app: {{ include "watchalert.componentName" (dict "root" . "component" "mysql") }}
     spec:
+      {{- with .Values.mysql.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.mysql.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: {{ include "watchalert.componentName" (dict "root" . "component" "mysql") }}
           image: {{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}
           imagePullPolicy: {{ .Values.imagePullPolicy }}
           env:
             - name: MYSQL_ROOT_PASSWORD
-              value: {{ .Values.mysql.auth.password | quote }}
+              value: {{ .Values.mysql.auth.rootPassword | quote }}
             - name: MYSQL_DATABASE
               value: {{ .Values.mysql.auth.database | quote }}
             - name: TZ
@@ -41,7 +49,7 @@ spec:
     - metadata:
         name: data
       spec:
-        accessModes: ["{{ .Values.mysql.persistence.accessModes }}"]
+        accessModes: ["{{ .Values.mysql.persistence.accessMode }}"]
         storageClassName: "{{ .Values.mysql.persistence.storageClass }}"
         resources:
           requests:

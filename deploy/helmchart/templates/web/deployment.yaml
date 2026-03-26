@@ -34,6 +34,14 @@ spec:
 
       serviceAccountName: {{ include "watchalert.serviceAccountName" . }}
 
+      initContainers:
+        - name: wait-for-service
+          image: {{ .Values.initContainers.wait.image.repository }}:{{ .Values.initContainers.wait.image.tag }}
+          command:
+            - sh
+            - -c
+            - until nc -z -v -w 30 {{ include "watchalert.componentName" (dict "root" . "component" "service") }} 9001; do echo "Waiting for service..."; sleep 3; done;
+
       containers:
         - name: {{ include "watchalert.componentName" (dict "root" . "component" "web") }}
           image: "{{ .Values.web.image.repository }}:{{ .Values.web.image.tag }}"

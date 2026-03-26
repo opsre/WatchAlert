@@ -38,18 +38,22 @@ spec:
       {{- end }}
 
       initContainers:
+        {{- if .Values.mysql.enabled }}
         - name: wait-for-mysql
           image: {{ .Values.initContainers.wait.image.repository }}:{{ .Values.initContainers.wait.image.tag }}
           command:
             - sh
             - -c
-            - until nc -z -v -w 30 {{ include "watchalert.componentName" (dict "root" . "component" "mysql") }} 3306; do echo "Waiting for MySQL..."; sleep 3; done;
+            - until nc -z -v -w 30 {{ include "watchalert.database.host" . }} {{ include "watchalert.database.port" . }}; do echo "Waiting for MySQL..."; sleep 3; done;
+        {{- end }}
+        {{- if .Values.redis.enabled }}
         - name: wait-for-redis
           image: {{ .Values.initContainers.wait.image.repository }}:{{ .Values.initContainers.wait.image.tag }}
           command:
             - sh
             - -c
-            - until nc -z -v -w 30 {{ include "watchalert.componentName" (dict "root" . "component" "redis") }} 6379; do echo "Waiting for Redis..."; sleep 3; done;
+            - until nc -z -v -w 30 {{ include "watchalert.redis.host" . }} {{ include "watchalert.redis.port" . }}; do echo "Waiting for Redis..."; sleep 3; done;
+        {{- end }}
 
       containers:
         - name: {{ include "watchalert.componentName" (dict "root" . "component" "service") }}
@@ -60,7 +64,8 @@ spec:
               name: http
           volumeMounts:
             - name: config
-              mountPath: /app/config
+              mountPath: /app/config/config.yaml
+              subPath: config.yaml
           env:
             - name: TZ
               value: Asia/Shanghai
