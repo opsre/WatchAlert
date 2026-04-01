@@ -36,7 +36,6 @@ var (
 	FaultCenterService        InterFaultCenterService
 	AiService                 InterAiService
 	OidcService               InterOidcService
-	TopologyService           InterTopologyService
 	ApiKeyService             InterApiKeyService
 	RecordingRuleService      InterRecordingRuleService
 	RecordingRuleGroupService InterRecordingRuleGroupService
@@ -72,7 +71,6 @@ func NewServices(ctx *ctx.Context) {
 	FaultCenterService = newInterFaultCenterService(ctx)
 	AiService = newInterAiService(ctx)
 	OidcService = newInterOidcService(ctx)
-	TopologyService = newInterTopologyService(ctx)
 	ApiKeyService = newInterApiKeyService(ctx)
 	RecordingRuleService = newInterRecordingRuleService(ctx)
 	RecordingRuleGroupService = newInterRecordingRuleGroupService(ctx)

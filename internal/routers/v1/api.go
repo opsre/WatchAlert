@@ -46,7 +46,6 @@ func Router(engine *gin.Engine) {
 			api.ProbingController.API(w8t)
 			api.FaultCenterController.API(w8t)
 			api.AiController.API(w8t)
-			api.TopologyController.API(w8t)
 			api.ApiKeyController.API(w8t)
 			api.RecordingRuleGroupController.API(w8t)
 			api.RecordingRuleController.API(w8t)

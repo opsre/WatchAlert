@@ -79,7 +79,6 @@ func NewDBClient(dbcfg DBConfig) *gorm.DB {
 		&models.FaultCenter{},
 		&models.AiContentRecord{},
 		&models.Comment{},
-		&models.Topology{},
 		&models.ApiKey{},
 		&models.RecordingRuleGroup{},
 		&models.RecordingRule{},
