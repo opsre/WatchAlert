@@ -8,7 +8,7 @@ type UserPermissions struct {
 func PermissionsInfo() map[string]UserPermissions {
 	return map[string]UserPermissions{
 		"ruleSearch": {
-			Key: "获取告警规则详情",
+			Key: "预览告警规则详情",
 			API: "/api/w8t/rule/ruleSearch",
 		},
 		"calendarCreate": {
@@ -16,16 +16,12 @@ func PermissionsInfo() map[string]UserPermissions {
 			API: "/api/w8t/calendar/calendarCreate",
 		},
 		"calendarSearch": {
-			Key: "查看值班表",
+			Key: "预览值班表",
 			API: "/api/w8t/calendar/calendarSearch",
 		},
 		"calendarUpdate": {
 			Key: "更新值班表",
 			API: "/api/w8t/calendar/calendarUpdate",
-		},
-		"createTenant": {
-			Key: "创建租户",
-			API: "/api/w8t/tenant/createTenant",
 		},
 		"dataSourceCreate": {
 			Key: "创建数据源",
@@ -36,20 +32,16 @@ func PermissionsInfo() map[string]UserPermissions {
 			API: "/api/w8t/datasource/dataSourceDelete",
 		},
 		"dataSourceGet": {
-			Key: "获取数据源详情",
+			Key: "预览数据源详情",
 			API: "/api/w8t/datasource/dataSourceGet",
 		},
 		"dataSourceList": {
-			Key: "查看数据源",
+			Key: "查看数据源列表",
 			API: "/api/w8t/datasource/dataSourceList",
 		},
 		"dataSourceUpdate": {
 			Key: "更新数据源",
 			API: "/api/w8t/datasource/dataSourceUpdate",
-		},
-		"deleteTenant": {
-			Key: "删除租户",
-			API: "/api/w8t/tenant/deleteTenant",
 		},
 		"dutyManageCreate": {
 			Key: "创建值班管理",
@@ -60,16 +52,12 @@ func PermissionsInfo() map[string]UserPermissions {
 			API: "/api/w8t/dutyManage/dutyManageDelete",
 		},
 		"dutyManageList": {
-			Key: "查看值班管理",
+			Key: "查看值班管理列表",
 			API: "/api/w8t/dutyManage/dutyManageList",
 		},
 		"dutyManageUpdate": {
 			Key: "更新值班管理",
 			API: "/api/w8t/dutyManage/dutyManageUpdate",
-		},
-		"getTenantList": {
-			Key: "查看租户",
-			API: "/api/w8t/tenant/getTenantList",
 		},
 		"noticeCreate": {
 			Key: "创建通知对象",
@@ -80,7 +68,7 @@ func PermissionsInfo() map[string]UserPermissions {
 			API: "/api/w8t/notice/noticeDelete",
 		},
 		"noticeList": {
-			Key: "查看通知对象",
+			Key: "查看通知对象列表",
 			API: "/api/w8t/notice/noticeList",
 		},
 		"noticeTemplateCreate": {
@@ -92,11 +80,11 @@ func PermissionsInfo() map[string]UserPermissions {
 			API: "/api/w8t/noticeTemplate/noticeTemplateDelete",
 		},
 		"noticeTemplateList": {
-			Key: "查看通知模版",
+			Key: "查看通知模版列表",
 			API: "/api/w8t/noticeTemplate/noticeTemplateList",
 		},
 		"noticeTemplateGet": {
-			Key: "获取通知模版",
+			Key: "预览通知模版",
 			API: "/api/w8t/noticeTemplate/noticeTemplateGet",
 		},
 		"noticeTemplateUpdate": {
@@ -106,30 +94,6 @@ func PermissionsInfo() map[string]UserPermissions {
 		"noticeUpdate": {
 			Key: "更新通知对象",
 			API: "/api/w8t/notice/noticeUpdate",
-		},
-		"permsList": {
-			Key: "查看用户权限",
-			API: "/api/w8t/permissions/permsList",
-		},
-		"register": {
-			Key: "注册用户",
-			API: "/api/system/register",
-		},
-		"roleCreate": {
-			Key: "创建用户角色",
-			API: "/api/w8t/role/roleCreate",
-		},
-		"roleDelete": {
-			Key: "删除用户角色",
-			API: "/api/w8t/role/roleDelete",
-		},
-		"roleList": {
-			Key: "查看用户角色",
-			API: "/api/w8t/role/roleList",
-		},
-		"roleUpdate": {
-			Key: "更新用户角色",
-			API: "/api/w8t/role/roleUpdate",
 		},
 		"ruleCreate": {
 			Key: "创建告警规则",
@@ -148,7 +112,7 @@ func PermissionsInfo() map[string]UserPermissions {
 			API: "/api/w8t/ruleGroup/ruleGroupDelete",
 		},
 		"ruleGroupList": {
-			Key: "查看告警规则组",
+			Key: "查看告警规则组列表",
 			API: "/api/w8t/ruleGroup/ruleGroupList",
 		},
 		"ruleGroupUpdate": {
@@ -156,7 +120,7 @@ func PermissionsInfo() map[string]UserPermissions {
 			API: "/api/w8t/ruleGroup/ruleGroupUpdate",
 		},
 		"ruleList": {
-			Key: "查看告警规则",
+			Key: "查看告警规则列表",
 			API: "/api/w8t/rule/ruleList",
 		},
 		"ruleTmplCreate": {
@@ -184,11 +148,11 @@ func PermissionsInfo() map[string]UserPermissions {
 			API: "/api/w8t/ruleTmplGroup/ruleTmplGroupDelete",
 		},
 		"ruleTmplGroupList": {
-			Key: "查看规则模版组",
+			Key: "查看规则模版组列表",
 			API: "/api/w8t/ruleTmplGroup/ruleTmplGroupList",
 		},
 		"ruleTmplList": {
-			Key: "查看规则模版",
+			Key: "查看规则模版列表",
 			API: "/api/w8t/ruleTmpl/ruleTmplList",
 		},
 		"ruleUpdate": {
@@ -204,60 +168,12 @@ func PermissionsInfo() map[string]UserPermissions {
 			API: "/api/w8t/silence/silenceDelete",
 		},
 		"silenceList": {
-			Key: "查看静默规则",
+			Key: "查看静默规则列表",
 			API: "/api/w8t/silence/silenceList",
 		},
 		"silenceUpdate": {
 			Key: "更新静默规则",
 			API: "/api/w8t/silence/silenceUpdate",
-		},
-		"updateTenant": {
-			Key: "更新租户",
-			API: "/api/w8t/tenant/updateTenant",
-		},
-		"userChangePass": {
-			Key: "修改用户密码",
-			API: "/api/w8t/user/userChangePass",
-		},
-		"userDelete": {
-			Key: "删除用户",
-			API: "/api/w8t/user/userDelete",
-		},
-		"userList": {
-			Key: "查看用户列表",
-			API: "/api/w8t/user/userList",
-		},
-		"userUpdate": {
-			Key: "更新用户",
-			API: "/api/w8t/user/userUpdate",
-		},
-		"saveSystemSetting": {
-			Key: "编辑系统配置",
-			API: "/api/w8t/setting/saveSystemSetting",
-		},
-		"getSystemSetting": {
-			Key: "获取系统配置",
-			API: "/api/w8t/setting/getSystemSetting",
-		},
-		"getTenant": {
-			Key: "获取租户详情",
-			API: "/api/w8t/tenant/getTenant",
-		},
-		"addUsersToTenant": {
-			Key: "添加租户成员",
-			API: "/api/w8t/tenant/addUsersToTenant",
-		},
-		"delUsersOfTenant": {
-			Key: "删除租户成员",
-			API: "/api/w8t/tenant/delUsersOfTenant",
-		},
-		"getUsersForTenant": {
-			Key: "查看租户成员",
-			API: "/api/w8t/tenant/getUsersForTenant",
-		},
-		"changeTenantUserRole": {
-			Key: "修改租户成员角色",
-			API: "/api/w8t/tenant/changeTenantUserRole",
 		},
 		"createProbing": {
 			Key: "创建拨测规则",
@@ -272,19 +188,19 @@ func PermissionsInfo() map[string]UserPermissions {
 			API: "/api/w8t/probing/deleteProbing",
 		},
 		"listProbing": {
-			Key: "查看拨测规则",
+			Key: "查看拨测规则列表",
 			API: "/api/w8t/probing/listProbing",
 		},
 		"searchProbing": {
-			Key: "获取拨测规则详情",
+			Key: "预览拨测规则详情",
 			API: "/api/w8t/probing/searchProbing",
 		},
 		"listFolder": {
-			Key: "查看仪表盘目录",
+			Key: "查看仪表盘目录列表",
 			API: "/api/w8t/dashboard/listFolder",
 		},
 		"getFolder": {
-			Key: "获取仪表盘目录详情",
+			Key: "预览仪表盘目录详情",
 			API: "/api/w8t/dashboard/getFolder",
 		},
 		"createFolder": {
@@ -300,27 +216,11 @@ func PermissionsInfo() map[string]UserPermissions {
 			API: "/api/w8t/dashboard/deleteFolder",
 		},
 		"listGrafanaDashboards": {
-			Key: "查看仪表盘图表",
+			Key: "查看仪表盘列表",
 			API: "/api/w8t/dashboard/listGrafanaDashboards",
 		},
-		"createSubscribe": {
-			Key: "创建告警订阅",
-			API: "/api/w8t/subscribe/createSubscribe",
-		},
-		"deleteSubscribe": {
-			Key: "删除告警订阅",
-			API: "/api/w8t/subscribe/deleteSubscribe",
-		},
-		"listSubscribe": {
-			Key: "查看告警订阅",
-			API: "/api/w8t/subscribe/listSubscribe",
-		},
-		"getSubscribe": {
-			Key: "搜索告警订阅",
-			API: "/api/w8t/subscribe/getSubscribe",
-		},
 		"noticeRecordList": {
-			Key: "查看通知记录",
+			Key: "查看通知记录列表",
 			API: "/api/w8t/notice/noticeRecordList",
 		},
 		"faultCenterList": {
@@ -328,7 +228,7 @@ func PermissionsInfo() map[string]UserPermissions {
 			API: "/api/w8t/faultCenter/faultCenterList",
 		},
 		"faultCenterSearch": {
-			Key: "查询故障中心",
+			Key: "预览故障中心",
 			API: "/api/w8t/faultCenter/faultCenterSearch",
 		},
 		"faultCenterCreate": {
@@ -347,12 +247,8 @@ func PermissionsInfo() map[string]UserPermissions {
 			Key: "修改故障中心基本信息",
 			API: "/api/w8t/faultCenter/faultCenterReset",
 		},
-		"processAlertEvent": {
-			Key: "认领/处理告警",
-			API: "/api/w8t/event/processAlertEvent",
-		},
 		"listComments": {
-			Key: "查看评论",
+			Key: "查看评论列表",
 			API: "/api/w8t/event/listComments",
 		},
 		"addComment": {

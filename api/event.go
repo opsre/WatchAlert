@@ -27,7 +27,6 @@ func (alertEventController alertEventController) API(gin *gin.RouterGroup) {
 		middleware.ParseTenant(),
 	)
 	{
-		a.POST("process", alertEventController.ProcessAlertEvent)
 		a.POST("delete", alertEventController.DeleteAlertEvent)
 		a.POST("addComment", alertEventController.AddComment)
 		a.GET("listComments", alertEventController.ListComment)
@@ -40,6 +39,7 @@ func (alertEventController alertEventController) API(gin *gin.RouterGroup) {
 		middleware.ParseTenant(),
 	)
 	{
+		b.POST("process", alertEventController.ProcessAlertEvent)
 		b.GET("curEvent", alertEventController.ListCurrentEvent)
 		b.GET("hisEvent", alertEventController.ListHistoryEvent)
 	}

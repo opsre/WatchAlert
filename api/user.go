@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	middleware "watchAlert/internal/middleware"
 	"watchAlert/internal/services"
 	"watchAlert/internal/types"
@@ -119,6 +120,15 @@ func (userController userController) ChangePass(ctx *gin.Context) {
 	BindJson(ctx, r)
 
 	Service(ctx, func() (interface{}, interface{}) {
+		userID := jwtUtils.GetUserID(ctx.Request.Header.Get("Authorization"))
+		if userID == "" {
+			return nil, errors.New("UserID 不能为空")
+		}
+
+		if userID != r.UserId {
+			return nil, errors.New("只能修改自己的密码")
+		}
+
 		return services.UserService.ChangePass(r)
 	})
 }
