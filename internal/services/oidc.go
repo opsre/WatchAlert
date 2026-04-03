@@ -90,7 +90,7 @@ func (os oidcService) CallBack(ctx *gin.Context, req interface{}) (interface{}, 
 		return nil, fmt.Errorf("获取用户信息失败")
 	}
 
-	_, ok, _ := os.ctx.DB.User().Get("", result.Id, "")
+	_, ok, _ := os.ctx.DB.User().Get("", result.Id, "", "")
 	if ok {
 		logc.Infof(os.ctx.Ctx, fmt.Sprintf("用户 %s 已存在", result.Id))
 	} else {
@@ -140,7 +140,7 @@ func (os oidcService) CookieConvertToken(ctx *gin.Context) (interface{}, interfa
 		return nil, fmt.Errorf("获取用户信息失败")
 	}
 
-	data, _, err := os.ctx.DB.User().Get("", result.Id, "")
+	data, _, err := os.ctx.DB.User().Get("", result.Id, "", "")
 	if err != nil {
 		return nil, err
 	}
@@ -151,18 +151,16 @@ func (os oidcService) CookieConvertToken(ctx *gin.Context) (interface{}, interfa
 	}
 
 	r := &types.RequestUserLogin{
-		UserName: data.UserName,
-		Email:    data.Email,
-		Phone:    data.Phone,
-		Password: tools.GenerateHashPassword(types.OidcPassword),
+		Identifier: data.UserName,
+		Password:   tools.GenerateHashPassword(types.OidcPassword),
 	}
 
 	duration := time.Duration(config.Application.Jwt.Expire) * time.Second
 	os.ctx.Redis.Redis().Set("uid-"+data.UserId, tools.JsonMarshalToString(r), duration)
 
 	return models.ResponseLoginInfo{
-		Token:    tokenData,
-		Username: data.UserName,
-		UserId:   data.UserId,
+		Token:      tokenData,
+		Identifier: data.UserName,
+		UserId:     data.UserId,
 	}, nil
 }

@@ -15,7 +15,7 @@ type Member struct {
 }
 
 type ResponseLoginInfo struct {
-	Token    string `json:"token"`
-	Username string `json:"username"`
-	UserId   string `json:"userId"`
+	Token      string `json:"token"`
+	Identifier string `json:"identifier"`
+	UserId     string `json:"userId"`
 }

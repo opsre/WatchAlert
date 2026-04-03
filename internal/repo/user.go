@@ -3,12 +3,13 @@ package repo
 import (
 	"context"
 	"fmt"
-	"github.com/bytedance/sonic"
-	"github.com/zeromicro/go-zero/core/logc"
-	"gorm.io/gorm"
 	"watchAlert/internal/models"
 	"watchAlert/pkg/client"
 	"watchAlert/pkg/tools"
+
+	"github.com/bytedance/sonic"
+	"github.com/zeromicro/go-zero/core/logc"
+	"gorm.io/gorm"
 )
 
 type (
@@ -18,7 +19,7 @@ type (
 
 	InterUserRepo interface {
 		List(query, joinDuty string) ([]models.Member, error)
-		Get(userId, username, query string) (models.Member, bool, error)
+		Get(userId, username, email, phone string) (models.Member, bool, error)
 		Create(r models.Member) error
 		Update(r models.Member) error
 		Delete(userId string) error
@@ -56,7 +57,7 @@ func (ur UserRepo) List(query, joinDuty string) ([]models.Member, error) {
 	return data, nil
 }
 
-func (ur UserRepo) Get(userId, username, query string) (models.Member, bool, error) {
+func (ur UserRepo) Get(userId, username, email, phone string) (models.Member, bool, error) {
 	var (
 		data models.Member
 		db   = ur.db.Model(models.Member{})
@@ -68,8 +69,11 @@ func (ur UserRepo) Get(userId, username, query string) (models.Member, bool, err
 	if username != "" {
 		db.Where("user_name = ?", username)
 	}
-	if query != "" {
-		db.Where("user_id LIKE ? or user_name LIKE ? or email LIKE ? or phone LIKE ?", "%"+query+"%", "%"+query+"%", "%"+query+"%", "%"+query+"%")
+	if email != "" {
+		db.Where("email = ?", email)
+	}
+	if phone != "" {
+		db.Where("phone = ?", phone)
 	}
 
 	err := db.First(&data).Error
@@ -121,7 +125,7 @@ func (ur UserRepo) Update(r models.Member) error {
 }
 
 func (ur UserRepo) Delete(userId string) error {
-	userInfo, _, err := ur.User().Get(userId, "", "")
+	userInfo, _, err := ur.User().Get(userId, "", "", "")
 	if err != nil {
 		return err
 	}

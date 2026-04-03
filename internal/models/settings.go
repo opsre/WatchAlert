@@ -49,8 +49,7 @@ type LdapConfig struct {
 	BaseDN          string `json:"baseDN"`
 	AdminUser       string `json:"adminUser"`
 	AdminPass       string `json:"adminPass"`
-	UserDN          string `json:"userDN"`
-	UserPrefix      string `json:"userPrefix"`
+	DefaultTenant   string `json:"defaultTenant"`
 	DefaultUserRole string `json:"defaultUserRole"`
 	Cronjob         string `json:"cronjob"`
 	// Filter 用于限制允许登录的用户范围，例如: (&(objectClass=person)(memberOf=cn=jms,ou=groups,dc=test,dc=com))

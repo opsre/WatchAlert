@@ -1,10 +1,11 @@
 package api
 
 import (
-	"github.com/gin-gonic/gin"
 	"watchAlert/internal/middleware"
 	"watchAlert/internal/models"
 	"watchAlert/internal/services"
+
+	"github.com/gin-gonic/gin"
 )
 
 type settingsController struct{}
@@ -28,6 +29,7 @@ func (settingsController settingsController) API(gin *gin.RouterGroup) {
 		middleware.Permission(),
 	)
 	{
+		b.POST("syncLdapUser", settingsController.SyncLdapUser)
 		b.GET("getSystemSetting", settingsController.Get)
 	}
 }
@@ -44,5 +46,11 @@ func (settingsController settingsController) Save(ctx *gin.Context) {
 func (settingsController settingsController) Get(ctx *gin.Context) {
 	Service(ctx, func() (interface{}, interface{}) {
 		return services.SettingService.Get()
+	})
+}
+
+func (settingsController settingsController) SyncLdapUser(ctx *gin.Context) {
+	Service(ctx, func() (interface{}, interface{}) {
+		return nil, services.LdapService.SyncNow()
 	})
 }

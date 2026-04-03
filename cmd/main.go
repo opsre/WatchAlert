@@ -94,7 +94,7 @@ func initBasic() {
 		const mark = "SyncLdapUserJob"
 		c, cancel := context.WithCancel(context.Background())
 		ctx.ContextMap[mark] = cancel
-		go services.LdapService.SyncUsersCronjob(c)
+		go services.LdapService.SyncUsersCronjob(c, r.LdapConfig)
 	}
 
 	if r.AiConfig.GetEnable() {

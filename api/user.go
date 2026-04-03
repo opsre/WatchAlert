@@ -56,13 +56,16 @@ func (userController userController) List(ctx *gin.Context) {
 
 func (userController userController) GetUserInfo(ctx *gin.Context) {
 	r := new(types.RequestUserQuery)
-	BindQuery(ctx, r)
-
-	token := ctx.Request.Header.Get("Authorization")
-	username := jwtUtils.GetUser(token)
-	r.UserName = username
 
 	Service(ctx, func() (interface{}, interface{}) {
+		token := ctx.Request.Header.Get("Authorization")
+		if token == "" {
+			return nil, errors.New("token is empty")
+		}
+
+		userId := jwtUtils.GetUserID(token)
+		r.UserId = userId
+
 		return services.UserService.Info(r)
 	})
 }
@@ -80,10 +83,13 @@ func (userController userController) Register(ctx *gin.Context) {
 	r := new(types.RequestUserCreate)
 	BindJson(ctx, r)
 
-	createUser := jwtUtils.GetUser(ctx.Request.Header.Get("Authorization"))
-	r.CreateBy = createUser
-
 	Service(ctx, func() (interface{}, interface{}) {
+		createUser := jwtUtils.GetUser(ctx.Request.Header.Get("Authorization"))
+		if createUser == "" {
+			return nil, errors.New("user is empty")
+		}
+		r.CreateBy = createUser
+
 		return services.UserService.Register(r)
 	})
 }

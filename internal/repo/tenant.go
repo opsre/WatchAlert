@@ -66,7 +66,7 @@ func (tr TenantRepo) Create(t models.Tenant) error {
 			return err
 		}
 
-		userData, _, err := tr.User().Get(u.UserID, "", "")
+		userData, _, err := tr.User().Get(u.UserID, "", "", "")
 		if err != nil {
 			return err
 		}
@@ -135,7 +135,12 @@ func (tr TenantRepo) Delete(tenantId string) error {
 }
 
 func (tr TenantRepo) List(userId string) (data []models.Tenant, err error) {
-	getUser, _, err := tr.User().Get(userId, "", "")
+	if userId == "" {
+		tr.db.Find(&data)
+		return data, nil
+	}
+
+	getUser, _, err := tr.User().Get(userId, "", "", "")
 	if err != nil {
 		return nil, err
 	}
@@ -211,7 +216,7 @@ func (tr TenantRepo) AddTenantLinkedUsers(tenantId string, users []models.Tenant
 
 	// 更新用户表，新增租户ID
 	for _, u := range users {
-		userData, _, err := tr.User().Get(u.UserID, "", "")
+		userData, _, err := tr.User().Get(u.UserID, "", "", "")
 		if err != nil {
 			return err
 		}
@@ -270,7 +275,7 @@ func (tr TenantRepo) RemoveTenantLinkedUsers(tenantId, userId string) error {
 	}
 
 	// 获取当前选择的用户详情
-	userData, _, err := tr.User().Get(userId, "", "")
+	userData, _, err := tr.User().Get(userId, "", "", "")
 	if err != nil {
 		return err
 	}

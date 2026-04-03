@@ -49,7 +49,7 @@ func (us userService) List(req interface{}) (interface{}, interface{}) {
 func (us userService) Check(req interface{}) (interface{}, interface{}) {
 	r := req.(*types.RequestUserQuery)
 
-	_, _, err := us.ctx.DB.User().Get(r.UserId, r.UserName, r.Query)
+	_, _, err := us.ctx.DB.User().Get(r.UserId, r.UserName, r.Email, r.Phone)
 	if err != nil {
 		return "false", err
 	}
@@ -60,7 +60,7 @@ func (us userService) Check(req interface{}) (interface{}, interface{}) {
 func (us userService) Info(req interface{}) (interface{}, interface{}) {
 	r := req.(*types.RequestUserQuery)
 
-	data, _, err := us.ctx.DB.User().Get(r.UserId, r.UserName, r.Query)
+	data, _, err := us.ctx.DB.User().Get(r.UserId, r.UserName, r.Email, r.Phone)
 	if err != nil {
 		return nil, err
 	}
@@ -73,9 +73,20 @@ func (us userService) Login(req interface{}) (interface{}, interface{}) {
 	originalPassword := r.Password
 	r.Password = tools.GenerateHashPassword(r.Password)
 
-	data, _, err := us.ctx.DB.User().Get("", r.UserName, "")
-	if err != nil {
-		return nil, err
+	var data models.Member
+	var exist = true
+	// 1. 验证用户名
+	data, exist, _ = us.ctx.DB.User().Get("", r.Identifier, "", "")
+	if !exist {
+		// 2. 验证邮箱
+		data, exist, _ = us.ctx.DB.User().Get("", "", r.Identifier, "")
+		if !exist {
+			// 3. 验证手机号
+			data, exist, _ = us.ctx.DB.User().Get("", "", "", r.Identifier)
+			if !exist {
+				return nil, fmt.Errorf("用户不存在")
+			}
+		}
 	}
 
 	setting, err := us.ctx.DB.Setting().Get()
@@ -85,7 +96,7 @@ func (us userService) Login(req interface{}) (interface{}, interface{}) {
 	switch data.CreateBy {
 	case "LDAP":
 		if *setting.AuthType == models.SettingLdapAuth {
-			err := LdapService.Login(r.UserName, originalPassword)
+			err := LdapService.Login(r.Identifier, originalPassword)
 			if err != nil {
 				logc.Error(us.ctx.Ctx, fmt.Sprintf("LDAP 用户登陆失败, err: %s", err.Error()))
 				return nil, fmt.Errorf("LDAP 用户登陆失败, err: %s", err.Error())
@@ -103,7 +114,7 @@ func (us userService) Login(req interface{}) (interface{}, interface{}) {
 		}
 	}
 
-	tokenData, err := tools.GenerateToken(data.UserId, r.UserName, r.Password)
+	tokenData, err := tools.GenerateToken(data.UserId, r.Identifier, r.Password)
 	if err != nil {
 		return nil, err
 	}
@@ -112,18 +123,29 @@ func (us userService) Login(req interface{}) (interface{}, interface{}) {
 	us.ctx.Redis.Redis().Set("uid-"+data.UserId, tools.JsonMarshalToString(r), duration)
 
 	return models.ResponseLoginInfo{
-		Token:    tokenData,
-		Username: r.UserName,
-		UserId:   data.UserId,
+		Token:      tokenData,
+		Identifier: r.Identifier,
+		UserId:     data.UserId,
 	}, nil
 }
 
 func (us userService) Register(req interface{}) (interface{}, interface{}) {
 	r := req.(*types.RequestUserCreate)
 
-	_, ok, _ := us.ctx.DB.User().Get("", r.UserName, "")
+	var ok bool
+	_, ok, _ = us.ctx.DB.User().Get("", r.UserName, "", "")
 	if ok {
-		return nil, fmt.Errorf("用户已存在")
+		return nil, fmt.Errorf("用户名已存在")
+	}
+
+	_, ok, _ = us.ctx.DB.User().Get("", "", r.Email, "")
+	if ok {
+		return nil, fmt.Errorf("邮箱已存在")
+	}
+
+	_, ok, _ = us.ctx.DB.User().Get("", "", r.Phone, "")
+	if ok {
+		return nil, fmt.Errorf("手机号已存在")
 	}
 
 	// 在初始化admin用户时会固定一个userid，所以这里需要做一下判断；
@@ -161,6 +183,16 @@ func (us userService) Update(req interface{}) (interface{}, interface{}) {
 
 	db := us.ctx.DB.DB().Model(models.Member{})
 	db.Where("user_id = ?", r.UserId).First(&dbData)
+
+	u, ok, _ := us.ctx.DB.User().Get("", "", r.Email, "")
+	if ok && u.UserId != r.UserId {
+		return nil, fmt.Errorf("邮箱已存在")
+	}
+
+	u, ok, _ = us.ctx.DB.User().Get("", "", "", r.Phone)
+	if ok && u.UserId != r.UserId {
+		return nil, fmt.Errorf("手机号已存在")
+	}
 
 	if r.Password == "" {
 		r.Password = dbData.Password
