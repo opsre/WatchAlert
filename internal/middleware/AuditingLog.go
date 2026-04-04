@@ -2,16 +2,16 @@ package middleware
 
 import (
 	"bytes"
-	"github.com/gin-gonic/gin"
-	"github.com/zeromicro/go-zero/core/logc"
 	"io"
 	"io/ioutil"
-	"strings"
 	"time"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
 	"watchAlert/pkg/response"
 	"watchAlert/pkg/tools"
+
+	"github.com/gin-gonic/gin"
+	"github.com/zeromicro/go-zero/core/logc"
 )
 
 func AuditingLog() gin.HandlerFunc {
@@ -35,13 +35,8 @@ func AuditingLog() gin.HandlerFunc {
 		// 将 body 数据放回请求中
 		context.Request.Body = ioutil.NopCloser(bytes.NewBuffer(readBody))
 
-		// 获取请求类型
-		var reqTypeKey string
-		// 获取 uri 的最后一位来定位审计类型
-		splitAPI := strings.Split(context.Request.URL.Path, "/")
-		if len(splitAPI) > 0 {
-			reqTypeKey = splitAPI[len(splitAPI)-1]
-		}
+		// 获取请求的完整API路径
+		fullPath := context.Request.URL.Path
 
 		tid := context.Request.Header.Get(TenantIDHeaderKey)
 		if tid == "" {
@@ -53,18 +48,18 @@ func AuditingLog() gin.HandlerFunc {
 		// 当请求处理完成后才会执行 Next() 后面的代码
 		context.Next()
 
-		ps := models.PermissionsInfo()
+		ps := models.AuditEventMap
 		auditLog := models.AuditLog{
 			TenantId:   tid,
-			ID:         "Trace" + tools.RandId(),
+			ID:         tools.RandId(),
 			Username:   username,
 			IPAddress:  context.ClientIP(),
 			Method:     context.Request.Method,
-			Path:       context.Request.URL.Path,
+			Path:       fullPath,
 			CreatedAt:  time.Now().Unix(),
 			StatusCode: context.Writer.Status(),
 			Body:       string(readBody),
-			AuditType:  ps[reqTypeKey].Key,
+			AuditType:  ps[fullPath],
 		}
 
 		c := ctx.DO()

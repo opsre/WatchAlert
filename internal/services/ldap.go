@@ -148,8 +148,17 @@ func (l ldapService) SyncUserToW8t(ldapConfig models.LdapConfig) {
 	}
 
 	for _, u := range users {
-		_, b, _ := l.ctx.DB.User().Get("", u.Uid, u.Mail, u.Mobile)
+		userInfo, b, _ := l.ctx.DB.User().Get("", u.Uid, "", "")
 		if b {
+			if userInfo.Email != u.Mail || userInfo.Phone != u.Mobile {
+				newUserInfo := userInfo
+				newUserInfo.Email = u.Mail
+				newUserInfo.Phone = u.Mobile
+				err := l.ctx.DB.User().Update(newUserInfo)
+				if err != nil {
+					logc.Error(l.ctx.Ctx, err.Error())
+				}
+			}
 			continue
 		}
 		uid := tools.RandUid()
