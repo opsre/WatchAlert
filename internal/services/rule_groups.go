@@ -27,10 +27,9 @@ func newInterRuleGroupService(ctx *ctx.Context) InterRuleGroupService {
 func (rgs ruleGroupService) Create(req interface{}) (interface{}, interface{}) {
 	r := req.(*types.RequestRuleGroupCreate)
 	err := rgs.ctx.DB.RuleGroup().Create(models.RuleGroups{
-		TenantId:    r.TenantId,
-		ID:          "rg-" + tools.RandId(),
-		Name:        r.Name,
-		Description: r.Description,
+		TenantId: r.TenantId,
+		ID:       "rg-" + tools.RandId(),
+		Name:     r.Name,
 	})
 	if err != nil {
 		return nil, err
@@ -42,10 +41,9 @@ func (rgs ruleGroupService) Create(req interface{}) (interface{}, interface{}) {
 func (rgs ruleGroupService) Update(req interface{}) (interface{}, interface{}) {
 	r := req.(*types.RequestRuleGroupUpdate)
 	err := rgs.ctx.DB.RuleGroup().Update(models.RuleGroups{
-		TenantId:    r.TenantId,
-		ID:          r.ID,
-		Name:        r.Name,
-		Description: r.Description,
+		TenantId: r.TenantId,
+		ID:       r.ID,
+		Name:     r.Name,
 	})
 	if err != nil {
 		return nil, err

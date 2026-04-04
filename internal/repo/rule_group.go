@@ -2,8 +2,9 @@ package repo
 
 import (
 	"fmt"
-	"gorm.io/gorm"
 	"watchAlert/internal/models"
+
+	"gorm.io/gorm"
 )
 
 type (
@@ -41,8 +42,8 @@ func (r RuleGroupRepo) List(tenantId, query string, page models.Page) ([]models.
 	db.Where("tenant_id = ?", tenantId)
 
 	if query != "" {
-		db.Where("id LIKE ? OR name LIKE ? OR description LIKE ?",
-			"%"+query+"%", "%"+query+"%", "%"+query+"%")
+		db.Where("id LIKE ? OR name LIKE ?",
+			"%"+query+"%", "%"+query+"%")
 	}
 
 	db.Count(&count)
@@ -54,11 +55,6 @@ func (r RuleGroupRepo) List(tenantId, query string, page models.Page) ([]models.
 		return nil, 0, err
 	}
 
-	for k, v := range data {
-		var resRules []models.AlertRule
-		r.db.Model(&models.AlertRule{}).Where("tenant_id = ? AND rule_group_id = ?", tenantId, v.ID).Find(&resRules)
-		data[k].Number = len(resRules)
-	}
 	return data, count, nil
 }
 
