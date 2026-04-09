@@ -85,9 +85,6 @@ func (userController userController) Register(ctx *gin.Context) {
 
 	Service(ctx, func() (interface{}, interface{}) {
 		createUser := jwtUtils.GetUser(ctx.Request.Header.Get("Authorization"))
-		if createUser == "" {
-			return nil, errors.New("user is empty")
-		}
 		r.CreateBy = createUser
 
 		return services.UserService.Register(r)
