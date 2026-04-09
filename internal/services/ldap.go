@@ -80,17 +80,7 @@ func (l ldapService) ListUsers(ldapConfig models.LdapConfig) ([]ldapUser, error)
 		pages++
 
 		// 创建搜索请求
-		searchRequest := ldap.NewSearchRequest(
-			ldapConfig.BaseDN,
-			ldap.ScopeWholeSubtree,
-			ldap.NeverDerefAliases,
-			0, 0, false,
-			listFilter,
-			attributes,
-			[]ldap.Control{pagingControl},
-		)
-
-		searchResult, err := auth.Search(searchRequest)
+		searchResult, err := l.SearchLdapUser(auth, ldapConfig.BaseDN, listFilter, attributes, []ldap.Control{pagingControl})
 		if err != nil {
 			logc.Error(l.ctx.Ctx, fmt.Sprintf("第 %d 页查询失败: %s", pages, err.Error()))
 			return nil, err
@@ -200,52 +190,51 @@ func (l ldapService) Login(username, password string) error {
 
 	settings, err := l.ctx.DB.Setting().Get()
 	if err != nil {
-		logc.Error(l.ctx.Ctx, "获取 LDAP 配置失败: %s", err.Error())
-		return fmt.Errorf("获取 LDAP 配置失败: %s", err.Error())
+		logc.Errorf(l.ctx.Ctx, "获取 LDAP 配置失败: %s", err.Error())
+		return fmt.Errorf("获取 LDAP 配置失败: %w", err)
 	}
 
 	auth, err := l.getAdminAuth(settings.LdapConfig)
 	if err != nil {
-		logc.Error(l.ctx.Ctx, "LDAP 连接失败: %s", err.Error())
-		return fmt.Errorf("LDAP 连接失败: %s", err.Error())
+		logc.Errorf(l.ctx.Ctx, "LDAP 连接失败: %s", err.Error())
+		return fmt.Errorf("LDAP 连接失败: %w", err)
 	}
 	defer auth.Close()
 
-	// 先搜索用户，获取真实的DN
-	loginFilter := "(objectClass=person)"
-	if settings.LdapConfig.Filter != "" {
-		loginFilter = settings.LdapConfig.Filter
+	// 定义搜索属性列表：cn -> mail -> mobile
+	searchAttrs := []string{"cn", "mail", "mobile"}
+	var userDN string
+
+	for _, attr := range searchAttrs {
+		filter := fmt.Sprintf("(%s=%s)", attr, username)
+		result, searchErr := l.SearchLdapUser(auth, settings.LdapConfig.BaseDN, filter, []string{"dn"}, nil)
+		if searchErr != nil {
+			logc.Errorf(l.ctx.Ctx, "LDAP 搜索用户失败, username: %s, filter: %s, err: %s", username, filter, searchErr.Error())
+			return fmt.Errorf("LDAP 搜索用户失败: %w", searchErr)
+		}
+
+		switch len(result.Entries) {
+		case 0:
+			continue
+		case 1:
+			userDN = result.Entries[0].DN
+			goto found // 找到用户，跳出循环
+		default:
+			logc.Errorf(l.ctx.Ctx, "LDAP 存在重复用户, username: %s, filter: %s", username, filter)
+			return fmt.Errorf("LDAP 存在重复用户")
+		}
 	}
 
-	searchRequest := ldap.NewSearchRequest(
-		settings.LdapConfig.BaseDN,
-		ldap.ScopeWholeSubtree,
-		ldap.NeverDerefAliases,
-		1, 0, false,
-		loginFilter,
-		[]string{"dn"},
-		nil,
-	)
+	logc.Errorf(l.ctx.Ctx, "LDAP 用户不存在, username: %s", username)
+	return fmt.Errorf("LDAP 用户不存在")
 
-	searchResult, err := auth.Search(searchRequest)
-	if err != nil {
-		logc.Error(l.ctx.Ctx, fmt.Sprintf("LDAP 搜索用户失败, username: %s, err: %s", username, err.Error()))
-		return fmt.Errorf("LDAP 搜索用户失败: %s", err.Error())
+found:
+	if err = auth.Bind(userDN, password); err != nil {
+		logc.Errorf(l.ctx.Ctx, "LDAP 用户登陆失败, username: %s, DN: %s, err: %s", username, userDN, err.Error())
+		return fmt.Errorf("LDAP 用户登陆失败: %w", err)
 	}
 
-	if len(searchResult.Entries) == 0 {
-		logc.Error(l.ctx.Ctx, fmt.Sprintf("LDAP 用户不存在, username: %s", username))
-		return fmt.Errorf("LDAP 用户不存在")
-	}
-
-	userDN := searchResult.Entries[0].DN
-	err = auth.Bind(userDN, password)
-	if err != nil {
-		logc.Error(l.ctx.Ctx, fmt.Sprintf("LDAP 用户登陆失败, username: %s, DN: %s, err: %s", username, userDN, err.Error()))
-		return fmt.Errorf("LDAP 用户登陆失败: %s", err.Error())
-	}
-
-	logc.Info(l.ctx.Ctx, fmt.Sprintf("LDAP 用户登陆成功, username: %s, DN: %s", username, userDN))
+	logc.Infof(l.ctx.Ctx, "LDAP 用户登陆成功, username: %s, DN: %s", username, userDN)
 	return nil
 }
 
@@ -280,6 +269,25 @@ func (l ldapService) SyncUsersCronjob(ctx context.Context, ldapConfig models.Lda
 	<-ctx.Done()
 	logc.Infof(ctx, "停止 LDAP 定时同步任务")
 	c.Stop()
+}
+
+func (l ldapService) SearchLdapUser(auth *ldap.Conn, baseDN string, filter string, attributes []string, pagingControl []ldap.Control) (*ldap.SearchResult, error) {
+	searchRequest := ldap.NewSearchRequest(
+		baseDN,
+		ldap.ScopeWholeSubtree,
+		ldap.NeverDerefAliases,
+		1, 0, false,
+		filter,
+		attributes,
+		pagingControl,
+	)
+
+	searchResult, err := auth.Search(searchRequest)
+	if err != nil {
+		logc.Error(l.ctx.Ctx, fmt.Sprintf("LDAP 搜索用户失败, filter: %s, err: %s", filter, err.Error()))
+		return nil, fmt.Errorf("LDAP 搜索用户失败: %s", err.Error())
+	}
+	return searchResult, nil
 }
 
 func (l ldapService) SyncNow() error {
