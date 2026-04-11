@@ -143,9 +143,11 @@ func (us userService) Register(req interface{}) (interface{}, interface{}) {
 		return nil, fmt.Errorf("邮箱已存在")
 	}
 
-	_, ok, _ = us.ctx.DB.User().Get("", "", r.Phone, "")
-	if ok {
-		return nil, fmt.Errorf("手机号已存在")
+	if r.Phone != "" {
+		_, ok, _ = us.ctx.DB.User().Get("", "", "", r.Phone)
+		if ok {
+			return nil, fmt.Errorf("手机号已存在")
+		}
 	}
 
 	// 在初始化admin用户时会固定一个userid，所以这里需要做一下判断；
@@ -189,9 +191,11 @@ func (us userService) Update(req interface{}) (interface{}, interface{}) {
 		return nil, fmt.Errorf("邮箱已存在")
 	}
 
-	u, ok, _ = us.ctx.DB.User().Get("", "", "", r.Phone)
-	if ok && u.UserId != r.UserId {
-		return nil, fmt.Errorf("手机号已存在")
+	if r.Phone != "" {
+		_, ok, _ = us.ctx.DB.User().Get("", "", "", r.Phone)
+		if ok {
+			return nil, fmt.Errorf("手机号已存在")
+		}
 	}
 
 	if r.Password == "" {
