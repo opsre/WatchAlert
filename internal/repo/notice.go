@@ -79,7 +79,7 @@ func (nr NoticeRepo) List(tenantId, noticeTmplId, query string) ([]models.AlertN
 		db.Where("routes LIKE ?", "%"+noticeTmplId+"%")
 	}
 	if query != "" {
-		db.Where("uuid LIKE ? OR name LIKE ? OR env LIKE ? OR notice_type LIKE ?", "%"+query+"%", "%"+query+"%", "%"+query+"%", "%"+query+"%")
+		db.Where("uuid LIKE ? OR name LIKE ? OR notice_type LIKE ?", "%"+query+"%", "%"+query+"%", "%"+query+"%")
 	}
 
 	err := db.Find(&alertNoticeObject).Error
