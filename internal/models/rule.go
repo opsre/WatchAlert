@@ -97,7 +97,13 @@ type PrometheusConfig struct {
 	PromQL      string `json:"promQL"`
 	Annotations string `json:"annotations"`
 	//ForDuration int64   `json:"forDuration"`
-	Rules []Rules `json:"rules"`
+	Rules          []Rules          `json:"rules"`
+	CallbakPromQLs []CallbakPromQLs `json:"callbakPromQLs"`
+}
+
+type CallbakPromQLs struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
 }
 
 type Rules struct {
