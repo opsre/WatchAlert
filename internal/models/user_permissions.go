@@ -271,5 +271,9 @@ func PermissionsInfo() map[string]UserPermissions {
 			Key: "删除记录规则",
 			API: "/api/w8t/recordingRule/recordingRuleDelete",
 		},
+		"userList": {
+			Key: "查看用户列表",
+			API: "/api/w8t/user/userList",
+		},
 	}
 }
