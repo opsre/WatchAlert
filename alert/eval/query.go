@@ -138,7 +138,8 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 
 				if len(rule.PrometheusConfig.CallbakPromQLs) > 0 {
 					for _, callbak := range rule.PrometheusConfig.CallbakPromQLs {
-						callbakQuery, err := cli.(provider.PrometheusProvider).Query(callbak.Value)
+						ql := tools.ParserVariables(callbak.Value, map[string]interface{}{"labels": event.Labels})
+						callbakQuery, err := cli.(provider.PrometheusProvider).Query(ql)
 						if err != nil {
 							logc.Errorf(ctx.Ctx, "query callback promql error: %v, callback_key: %s, callback_promql: %s", err, callbak.Key, callbak.Value)
 						}
