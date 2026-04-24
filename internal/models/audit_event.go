@@ -3,8 +3,8 @@ package models
 // AuditEventMap 审计日志接口与事件名称映射表（使用完整API路径作为key）
 var AuditEventMap = map[string]string{
 	// ========== 用户相关 ==========
-	"/api/w8t/user/userUpdate":    "更新用户",
-	"/api/w8t/user/userDelete":    "删除用户",
+	"/api/w8t/user/userUpdate":     "更新用户",
+	"/api/w8t/user/userDelete":     "删除用户",
 	"/api/w8t/user/userChangePass": "修改密码",
 
 	// ========== 租户相关 ==========
@@ -87,12 +87,12 @@ var AuditEventMap = map[string]string{
 	"/api/w8t/faultCenter/faultCenterCreate": "创建故障中心",
 	"/api/w8t/faultCenter/faultCenterUpdate": "更新故障中心",
 	"/api/w8t/faultCenter/faultCenterDelete": "删除故障中心",
-	"/api/w8t/faultCenter/faultCenterReset": "修改故障中心基本信息",
+	"/api/w8t/faultCenter/faultCenterReset":  "修改故障中心基本信息",
 
 	// ========== 用户角色相关 ==========
-	"/api/w8t/userRole/roleCreate": "创建用户角色",
-	"/api/w8t/userRole/roleUpdate": "更新用户角色",
-	"/api/w8t/userRole/roleDelete": "删除用户角色",
+	"/api/w8t/role/roleCreate": "创建用户角色",
+	"/api/w8t/role/roleUpdate": "更新用户角色",
+	"/api/w8t/role/roleDelete": "删除用户角色",
 
 	// ========== 订阅相关 ==========
 	"/api/w8t/subscribe/createSubscribe": "创建告警订阅",
@@ -100,13 +100,13 @@ var AuditEventMap = map[string]string{
 
 	// ========== 系统设置相关 ==========
 	"/api/w8t/setting/saveSystemSetting": "保存系统设置",
-	"/api/w8t/setting/syncLdapUser":     "同步LDAP用户",
+	"/api/w8t/setting/syncLdapUser":      "同步LDAP用户",
 
 	// ========== 事件相关 ==========
-	"/api/w8t/event/delete":       "删除告警事件",
-	"/api/w8t/event/addComment":   "添加评论",
+	"/api/w8t/event/delete":        "删除告警事件",
+	"/api/w8t/event/addComment":    "添加评论",
 	"/api/w8t/event/deleteComment": "删除评论",
-	"/api/w8t/event/process":      "处理告警事件",
+	"/api/w8t/event/process":       "处理告警事件",
 
 	// ========== 记录规则相关 ==========
 	"/api/w8t/recordingRule/recordingRuleCreate":       "创建记录规则",
