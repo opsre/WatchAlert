@@ -101,6 +101,13 @@ type PrometheusConfig struct {
 
 	ThresholdMode      string              `json:"thresholdMode"`
 	ThresholdOverrides []ThresholdOverride `json:"thresholdOverrides"`
+	Rules          []Rules          `json:"rules"`
+	CallbakPromQLs []CallbakPromQLs `json:"callbakPromQLs"`
+}
+
+type CallbakPromQLs struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
 }
 
 type Rules struct {

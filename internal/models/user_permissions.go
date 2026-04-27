@@ -271,5 +271,25 @@ func PermissionsInfo() map[string]UserPermissions {
 			Key: "删除记录规则",
 			API: "/api/w8t/recordingRule/recordingRuleDelete",
 		},
+		"userList": {
+			Key: "查看用户列表",
+			API: "/api/w8t/user/userList",
+		},
+		"roleList": {
+			Key: "查看角色列表",
+			API: "/api/w8t/role/roleList",
+		},
+		"updateTenant": {
+			Key: "更新租户信息",
+			API: "/api/w8t/tenant/updateTenant",
+		},
+		"delUsersOfTenant": {
+			Key: "删除租户用户",
+			API: "/api/w8t/tenant/delUsersOfTenant",
+		},
+		"addUsersToTenant": {
+			Key: "添加用户到租户",
+			API: "/api/w8t/tenant/addUsersToTenant",
+		},
 	}
 }

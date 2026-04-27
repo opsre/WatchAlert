@@ -77,7 +77,7 @@ func (l LokiProvider) Query(options LogQueryOptions) (Logs, int, error) {
 		headers[key] = value
 	}
 
-	res, err := tools.Get(nil, requestURL, 10)
+	res, err := tools.Get(headers, requestURL, 10)
 	if err != nil {
 		return Logs{}, 0, err
 	}
@@ -148,7 +148,7 @@ func (l LokiProvider) Check() (bool, error) {
 		headers[key] = value
 	}
 
-	res, err := tools.Get(nil, l.Url+"/loki/api/v1/labels", int(l.Timeout))
+	res, err := tools.Get(headers, l.Url+"/loki/api/v1/labels", int(l.Timeout))
 	if err != nil {
 		return false, err
 	}

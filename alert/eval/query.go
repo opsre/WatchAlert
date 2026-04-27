@@ -137,6 +137,21 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 				}
 				highestPriorityEvents[fingerprint] = struct{}{}
 				event.Status = models.StatePreAlert
+
+				if len(rule.PrometheusConfig.CallbakPromQLs) > 0 {
+					for _, callbak := range rule.PrometheusConfig.CallbakPromQLs {
+						ql := tools.ParserVariables(callbak.Value, map[string]interface{}{"labels": event.Labels})
+						callbakQuery, err := cli.(provider.PrometheusProvider).Query(ql)
+						if err != nil {
+							logc.Errorf(ctx.Ctx, "query callback promql error: %v, callback_key: %s, callback_promql: %s", err, callbak.Key, callbak.Value)
+						}
+
+						if len(callbakQuery) > 0 {
+							event.Labels[callbak.Key] = callbakQuery[0].GetValue()
+						}
+					}
+				}
+
 				process.PushEventToFaultCenter(ctx, &event)
 				curFingerprints = append(curFingerprints, fingerprint)
 			} else {
