@@ -98,12 +98,20 @@ type PrometheusConfig struct {
 	Annotations string `json:"annotations"`
 	//ForDuration int64   `json:"forDuration"`
 	Rules []Rules `json:"rules"`
+
+	ThresholdMode      string              `json:"thresholdMode"`
+	ThresholdOverrides []ThresholdOverride `json:"thresholdOverrides"`
 }
 
 type Rules struct {
 	ForDuration int64  `json:"forDuration"`
 	Severity    string `json:"severity"`
 	Expr        string `json:"expr"`
+}
+
+type ThresholdOverride struct {
+	MatchLabels map[string]string `json:"matchLabels"`
+	Rules       []Rules           `json:"rules"`
 }
 
 type EffectiveTime struct {
