@@ -1,7 +1,8 @@
-package sender
+package medium
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 	"watchAlert/internal/ctx"
 
@@ -30,6 +31,10 @@ type (
 		Hook string
 		// 邮件
 		Email models.Email
+		// 短信
+		SMS models.SMS
+		// 电话
+		Phone models.Phone
 		// 消息
 		Content string
 		// 签名
@@ -95,6 +100,10 @@ func senderFactory(noticeType string) (SendInter, error) {
 		return NewWebHookSender(), nil
 	case "Slack":
 		return NewSlackSender(), nil
+	case "SMS":
+		return getSMSSender()
+	case "Phone":
+		return getPhoneSender()
 	default:
 		return nil, fmt.Errorf("无效的通知类型: %s", noticeType)
 	}
@@ -116,7 +125,7 @@ func addRecord(ctx *ctx.Context, sendParams SendParams, status int, msg, errMsg 
 		ErrMsg:   errMsg,
 	})
 	if err != nil {
-		logc.Errorf(ctx.Ctx, fmt.Sprintf("Add notice record failed, err: %s", err.Error()))
+		logc.Errorf(ctx.Ctx, "Add notice record failed, err: %s", err.Error())
 	}
 }
 
@@ -128,8 +137,64 @@ func (s *SendParams) GetSendMsg() map[string]any {
 	}
 	err := sonic.Unmarshal([]byte(s.Content), &msg)
 	if err != nil {
-		logc.Errorf(ctx.Ctx, fmt.Sprintf("发送的内容解析失败, err: %s", err.Error()))
+		logc.Errorf(ctx.Ctx, "发送的内容解析失败, err: %s", err.Error())
 		return msg
 	}
 	return msg
+}
+
+// getSMSSender 获取短信发送器配置
+func getSMSSender() (SendInter, error) {
+	setting, err := ctx.DB.Setting().Get()
+	if err != nil {
+		return nil, fmt.Errorf("获取系统配置失败: %v", err)
+	}
+
+	// 根据配置选择短信提供商
+	switch setting.CommunicationConfig.SMS.Provider {
+	case "aliyun":
+		return NewAliyunSMSSender(
+			setting.CommunicationConfig.SMS.Aliyun.AccessKeyId,
+			setting.CommunicationConfig.SMS.Aliyun.AccessKeySecret,
+			setting.CommunicationConfig.SMS.Aliyun.SignName,
+			setting.CommunicationConfig.SMS.Aliyun.TemplateCode,
+		)
+	case "tencent":
+		templateId, _ := strconv.Atoi(setting.CommunicationConfig.SMS.Tencent.TemplateId)
+		return NewTencentSMSSender(
+			setting.CommunicationConfig.SMS.Tencent.AppKey,
+			setting.CommunicationConfig.SMS.Tencent.SdkAppId,
+			templateId,
+			setting.CommunicationConfig.SMS.Tencent.Sign,
+		)
+	}
+
+	return nil, fmt.Errorf("未配置短信提供商")
+}
+
+// getPhoneSender 获取电话发送器配置
+func getPhoneSender() (SendInter, error) {
+	setting, err := ctx.DB.Setting().Get()
+	if err != nil {
+		return nil, fmt.Errorf("获取系统配置失败: %v", err)
+	}
+
+	// 根据配置选择电话提供商
+	switch setting.CommunicationConfig.Phone.Provider {
+	case "aliyun":
+		return NewAliyunPhoneSender(
+			setting.CommunicationConfig.Phone.Aliyun.AccessKeyId,
+			setting.CommunicationConfig.Phone.Aliyun.AccessKeySecret,
+			setting.CommunicationConfig.Phone.Aliyun.CalledShowNumber,
+			setting.CommunicationConfig.Phone.Aliyun.TtsCode,
+		)
+	case "tencent":
+		return NewTencentPhoneSender(
+			setting.CommunicationConfig.Phone.Tencent.SecretID,
+			setting.CommunicationConfig.Phone.Tencent.SecretKey,
+			setting.CommunicationConfig.Phone.Tencent.AppID,
+		)
+	}
+
+	return nil, fmt.Errorf("未配置电话提供商")
 }

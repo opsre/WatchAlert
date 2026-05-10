@@ -27,6 +27,7 @@ func newInterSettingService(ctx *ctx.Context) InterSettingService {
 
 func (a settingService) Save(req interface{}) (interface{}, interface{}) {
 	r := req.(*models.Settings)
+
 	if a.ctx.DB.Setting().Check() {
 		err := a.ctx.DB.Setting().Update(*r)
 		if err != nil {

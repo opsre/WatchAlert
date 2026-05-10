@@ -1,9 +1,13 @@
 package models
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 	"watchAlert/pkg/tools"
+
+	"github.com/zeromicro/go-zero/core/logc"
 )
 
 // AlertStatus 定义状态类型
@@ -184,4 +188,13 @@ func (alert *AlertCurEvent) GetEventId() string {
 		return tools.RandId()
 	}
 	return alert.EventId
+}
+
+func (alert *AlertCurEvent) GetJsonString() string {
+	b, err := json.Marshal(alert)
+	if err != nil {
+		logc.Errorf(context.Background(), "Failed to marshal alert current event, %s", err.Error())
+		return ""
+	}
+	return string(b)
 }

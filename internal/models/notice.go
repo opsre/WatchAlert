@@ -44,6 +44,14 @@ type Email struct {
 	CC      []string `json:"cc" gorm:"column:cc;serializer:json"`
 }
 
+type SMS struct {
+	To []string `json:"to" gorm:"column:to;serializer:json"`
+}
+
+type Phone struct {
+	To []string `json:"to" gorm:"column:to;serializer:json"`
+}
+
 type NoticeRecord struct {
 	EventId  string `json:"eventId"`  // 事件ID
 	Date     string `json:"date"`     // 记录日期

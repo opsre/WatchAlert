@@ -7,7 +7,7 @@ import (
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
 	"watchAlert/internal/types"
-	"watchAlert/pkg/sender"
+	mediums "watchAlert/pkg/medium"
 	"watchAlert/pkg/tools"
 
 	"github.com/zeromicro/go-zero/core/logc"
@@ -187,10 +187,12 @@ func (n noticeService) Test(req interface{}) (interface{}, interface{}) {
 		Error string
 	}
 
-	err := sender.Tester(n.ctx, sender.SendParams{
+	err := mediums.Tester(n.ctx, mediums.SendParams{
 		NoticeType: r.NoticeType,
 		Hook:       r.Hook,
 		Email:      r.Email,
+		Phone:      r.Phone,
+		SMS:        r.SMS,
 		Sign:       r.Sign,
 	})
 	if err != nil {

@@ -43,4 +43,6 @@ type RequestNoticeTest struct {
 	Hook       string       `json:"hook"`
 	Sign       string       `json:"sign"`
 	Email      models.Email `json:"email"`
+	Phone      models.Phone `json:"phone"`
+	SMS        models.SMS   `json:"sms"`
 }

@@ -9,7 +9,7 @@ import (
 	"watchAlert/alert/process"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
-	"watchAlert/pkg/sender"
+	mediums "watchAlert/pkg/medium"
 	"watchAlert/pkg/templates"
 	"watchAlert/pkg/tools"
 
@@ -77,7 +77,8 @@ func handleAlert(ctx *ctx.Context, processType string, faultCenter models.FaultC
 
 				for _, route := range routes {
 					// 设置值班用户信息
-					event.DutyUser = strings.Join(getDutyUsers(ctx, noticeData, route.NoticeType), " ")
+					dutyUsers := getDutyUsers(ctx, noticeData, route.NoticeType)
+					event.DutyUser = strings.Join(dutyUsers, " ")
 
 					// 生成告警内容
 					content := generateAlertContent(ctx, event, noticeData, route)
@@ -89,8 +90,27 @@ func handleAlert(ctx *ctx.Context, processType string, faultCenter models.FaultC
 						CC:      route.CC,
 					}
 
+					phone := models.Phone{
+						To: route.To,
+					}
+
+					sms := models.SMS{
+						To: route.To,
+					}
+
+					if len(dutyUsers) > 0 {
+						switch route.NoticeType {
+						case "Phone":
+							phone.To = append(phone.To, dutyUsers...)
+						case "SMS":
+							sms.To = append(sms.To, dutyUsers...)
+						case "Email":
+							email.To = append(email.To, dutyUsers...)
+						}
+					}
+
 					// 发送告警
-					err := sender.Sender(ctx, sender.SendParams{
+					err := mediums.Sender(ctx, mediums.SendParams{
 						TenantId:    event.TenantId,
 						EventId:     event.EventId,
 						RuleName:    event.RuleName,
@@ -101,6 +121,8 @@ func handleAlert(ctx *ctx.Context, processType string, faultCenter models.FaultC
 						IsRecovered: event.IsRecovered,
 						Hook:        route.Hook,
 						Email:       email,
+						Phone:       phone,
+						SMS:         sms,
 						Content:     content,
 						Sign:        route.Sign,
 					})
@@ -241,6 +263,14 @@ func getDutyUsers(ctx *ctx.Context, noticeData models.AlertNotice, noticeType st
 		case "Slack":
 			for _, user := range users {
 				us = append(us, fmt.Sprintf("<@%s>", user.DutyUserId))
+			}
+			return us
+		case "Phone", "SMS":
+			for _, user := range users {
+				if user.Phone == "" {
+					continue
+				}
+				us = append(us, user.Phone)
 			}
 			return us
 		}

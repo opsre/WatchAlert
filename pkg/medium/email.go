@@ -1,4 +1,4 @@
-package sender
+package medium
 
 import (
 	"crypto/tls"
@@ -25,12 +25,12 @@ func NewEmailSender() (SendInter, error) {
 	}
 
 	e := email.NewEmail()
-	auth := smtp.PlainAuth("", setting.EmailConfig.Email, setting.EmailConfig.Token, setting.EmailConfig.ServerAddress)
-	e.From = fmt.Sprintf("WatchAlert<%s>", setting.EmailConfig.Email)
+	auth := smtp.PlainAuth("", setting.CommunicationConfig.Email.Email, setting.CommunicationConfig.Email.Token, setting.CommunicationConfig.Email.ServerAddress)
+	e.From = fmt.Sprintf("WatchAlert<%s>", setting.CommunicationConfig.Email.Email)
 
 	return &EmailSender{
-		ServerAddr: setting.EmailConfig.ServerAddress,
-		Port:       setting.EmailConfig.Port,
+		ServerAddr: setting.CommunicationConfig.Email.ServerAddress,
+		Port:       setting.CommunicationConfig.Email.Port,
 		Email:      e,
 		Auth:       auth,
 	}, nil

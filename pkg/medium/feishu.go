@@ -1,4 +1,4 @@
-package sender
+package medium
 
 import (
 	"bytes"
@@ -44,7 +44,7 @@ func (f *FeiShuSender) Test(params SendParams) error {
 	msg := make(map[string]any)
 	err := sonic.Unmarshal([]byte(FeiShuTestContent), &msg)
 	if err != nil {
-		logc.Errorf(ctx.Ctx, fmt.Sprintf("发送的内容解析失败, err: %s", err.Error()))
+		logc.Errorf(ctx.Ctx, "发送的内容解析失败, err: %s", err.Error())
 		return err
 	}
 

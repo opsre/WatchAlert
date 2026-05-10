@@ -24,10 +24,12 @@ func NewTemplate(ctx *ctx.Context, alert models.AlertCurEvent, route models.Rout
 		return Template{CardContentMsg: emailTemplate(alert, noticeTmpl)}, nil
 	case "WeChat":
 		return Template{CardContentMsg: wechatTemplate(alert, noticeTmpl)}, nil
-	case "PhoneCall":
-		return Template{CardContentMsg: phoneCallTemplate(alert, noticeTmpl)}, nil
 	case "Slack":
 		return Template{CardContentMsg: slackTemplate(alert, noticeTmpl)}, nil
+	case "Phone":
+		return Template{CardContentMsg: alert.GetJsonString()}, nil
+	case "SMS":
+		return Template{CardContentMsg: alert.GetJsonString()}, nil
 	}
 
 	return Template{}, nil
