@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/zeromicro/go-zero/core/logc"
-	"gorm.io/gorm"
 	"time"
 	"watchAlert/internal/models"
 	"watchAlert/pkg/tools"
+
+	"github.com/zeromicro/go-zero/core/logc"
+	"gorm.io/gorm"
 )
 
 type (
@@ -17,8 +18,13 @@ type (
 	}
 
 	InterDutyCalendar interface {
-		GetCalendarInfo(dutyId, time string) models.DutySchedule
-		GetDutyUserInfo(dutyId, time string) ([]models.Member, bool)
+		CreateCalendarInfo(data models.DutyCalendarInfo) error
+		UpdateCalendarInfo(data models.DutyCalendarInfo) error
+		DeleteCalendarInfo(dutyId string) error
+		GetCalendarInfo(dutyId string) (models.DutyCalendarInfo, error)
+		ListCalendarInfo(tenantId string) ([]models.DutyCalendarInfo, error)
+		GetCalendarData(dutyId, time string) models.DutySchedule
+		GetDutyUserData(dutyId, time string) ([]models.Member, bool)
 		Create(r models.DutySchedule) error
 		Update(r models.DutySchedule) error
 		Search(tenantId, dutyId, time string) ([]models.DutySchedule, error)
@@ -35,8 +41,32 @@ func newDutyCalendarInterface(db *gorm.DB, g InterGormDBCli) InterDutyCalendar {
 	}
 }
 
-// GetCalendarInfo 获取值班表信息
-func (dc DutyCalendarRepo) GetCalendarInfo(dutyId, time string) models.DutySchedule {
+func (dc DutyCalendarRepo) CreateCalendarInfo(data models.DutyCalendarInfo) error {
+	return dc.db.Model(&models.DutyCalendarInfo{}).Create(data).Error
+}
+
+func (dc DutyCalendarRepo) UpdateCalendarInfo(data models.DutyCalendarInfo) error {
+	return dc.db.Model(&models.DutyCalendarInfo{}).Where("duty_id = ?", data.DutyId).Updates(data).Error
+}
+
+func (dc DutyCalendarRepo) DeleteCalendarInfo(dutyId string) error {
+	return dc.db.Where("duty_id = ?", dutyId).Delete(&models.DutyCalendarInfo{}).Error
+}
+
+func (dc DutyCalendarRepo) GetCalendarInfo(dutyId string) (models.DutyCalendarInfo, error) {
+	var calendarInfo models.DutyCalendarInfo
+	err := dc.db.Model(models.DutyCalendarInfo{}).Where("duty_id = ?", dutyId).First(&calendarInfo).Error
+	return calendarInfo, err
+}
+
+func (dc DutyCalendarRepo) ListCalendarInfo(tenantId string) ([]models.DutyCalendarInfo, error) {
+	var calendarInfos []models.DutyCalendarInfo
+	err := dc.db.Model(models.DutyCalendarInfo{}).Where("tenant_id = ?", tenantId).Find(&calendarInfos).Error
+	return calendarInfos, err
+}
+
+// GetCalendarData 获取值班表数据
+func (dc DutyCalendarRepo) GetCalendarData(dutyId, time string) models.DutySchedule {
 	var dutySchedule models.DutySchedule
 
 	dc.db.Model(models.DutySchedule{}).
@@ -46,10 +76,10 @@ func (dc DutyCalendarRepo) GetCalendarInfo(dutyId, time string) models.DutySched
 	return dutySchedule
 }
 
-// GetDutyUserInfo 获取值班用户信息
-func (dc DutyCalendarRepo) GetDutyUserInfo(dutyId, time string) ([]models.Member, bool) {
+// GetDutyUserData 获取值班用户数据
+func (dc DutyCalendarRepo) GetDutyUserData(dutyId, time string) ([]models.Member, bool) {
 	var users []models.Member
-	schedule := dc.GetCalendarInfo(dutyId, time)
+	schedule := dc.GetCalendarData(dutyId, time)
 	for _, user := range schedule.Users {
 		var userData models.Member
 		db := dc.db.Model(models.Member{}).Where("user_id = ?", user.UserId)

@@ -34,3 +34,12 @@ type DutyUser struct {
 	Email    string `json:"email"`
 	Mobile   string `json:"mobile"`
 }
+
+type DutyCalendarInfo struct {
+	TenantId   string       `json:"tenantId"`
+	DutyId     string       `json:"dutyId"`
+	DutyPeriod int          `json:"dutyPeriod"`
+	Month      string       `json:"month"`
+	UserGroup  [][]DutyUser `json:"userGroup"  gorm:"userGroup;serializer:json"`
+	DateType   string       `json:"dateType"`
+}

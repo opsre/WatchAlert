@@ -35,8 +35,9 @@ func NewContext(ctx context.Context, db repo.InterEntryRepo, redis cache.InterEn
 
 func DO() *Context {
 	return &Context{
-		DB:    DB,
-		Redis: Redis,
-		Ctx:   Ctx,
+		DB:         DB,
+		Redis:      Redis,
+		Ctx:        Ctx,
+		ContextMap: make(map[string]context.CancelFunc),
 	}
 }

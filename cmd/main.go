@@ -97,6 +97,12 @@ func initBasic() {
 		go services.LdapService.SyncUsersCronjob(c, r.LdapConfig)
 	}
 
+	// 启动年度值班表生成定时任务
+	const dutyScheduleMark = "GenerateDutyScheduleJob"
+	dutyScheduleCtx, dutyScheduleCancelFunc := context.WithCancel(context.Background())
+	ctx.ContextMap[dutyScheduleMark] = dutyScheduleCancelFunc
+	go services.DutyCalendarService.GenerateNextYearScheduleCronjob(dutyScheduleCtx)
+
 	if r.AiConfig.GetEnable() {
 		client, err := ai.NewAiClient(&r.AiConfig)
 		if err != nil {

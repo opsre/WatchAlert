@@ -54,6 +54,7 @@ func NewDBClient(dbcfg DBConfig) *gorm.DB {
 	err = db.AutoMigrate(
 		&models.DutySchedule{},
 		&models.DutyManagement{},
+		&models.DutyCalendarInfo{},
 		&models.AlertNotice{},
 		&models.AlertDataSource{},
 		&models.AlertRule{},
