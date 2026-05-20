@@ -15,6 +15,8 @@ import (
 	"github.com/zeromicro/go-zero/core/logc"
 )
 
+const ThresholdModeNodeOverride = "node_override"
+
 // Metrics Prometheus 数据源
 func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.AlertRule) []string {
 	pools := ctx.Redis.ProviderPools()
@@ -57,15 +59,15 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 		return nil
 	}
 
-	// 按优先级排序规则（P0 > P1 > P2）
-	rules := sortRulesByPriority(rule.PrometheusConfig.Rules)
-
 	for _, v := range resQuery {
 		// 避免共享引用导致的指纹不一致问题
 		metricLabels := make(map[string]interface{})
 		for k, val := range v.GetMetric() {
 			metricLabels[k] = val
 		}
+
+		// 按当前指标标签选择阈值规则，未命中覆盖配置时回退默认规则。
+		rules := sortRulesByPriority(selectPrometheusRules(rule.PrometheusConfig, metricLabels))
 
 		// 使用独立的标签副本来生成指纹，避免修改原始数据
 		fingerprintLabels := make(map[string]interface{})
@@ -119,7 +121,7 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 			event.Fingerprint = fingerprint
 			event.Severity = ruleExpr.Severity
 			event.SearchQL = fmt.Sprintf("%s %s %v", rule.PrometheusConfig.PromQL, operator, value)
-			event.ForDuration = rule.GetForDuration(ruleExpr.Severity)
+			event.ForDuration = ruleExpr.ForDuration
 			event.Annotations = tools.ParserVariables(rule.PrometheusConfig.Annotations, tools.ConvertStructToMap(event))
 			event.Status = models.StatePreAlert
 
@@ -166,6 +168,43 @@ func metrics(ctx *ctx.Context, datasourceId, datasourceType string, rule models.
 	}
 
 	return curFingerprints
+}
+
+func selectPrometheusRules(config models.PrometheusConfig, metricLabels map[string]interface{}) []models.Rules {
+	if config.ThresholdMode != ThresholdModeNodeOverride {
+		return config.Rules
+	}
+
+	for _, override := range config.ThresholdOverrides {
+		if len(override.Rules) == 0 {
+			continue
+		}
+
+		if matchMetricLabels(metricLabels, override.MatchLabels) {
+			return override.Rules
+		}
+	}
+
+	return config.Rules
+}
+
+func matchMetricLabels(metricLabels map[string]interface{}, matchLabels map[string]string) bool {
+	if len(matchLabels) == 0 {
+		return false
+	}
+
+	for key, expected := range matchLabels {
+		actual, ok := metricLabels[key]
+		if !ok {
+			return false
+		}
+
+		if fmt.Sprintf("%v", actual) != expected {
+			return false
+		}
+	}
+
+	return true
 }
 
 // sortRulesByPriority 按优先级排序规则
