@@ -13,7 +13,6 @@ type MuteParams struct {
 	IsRecovered   bool
 	TenantId      string
 	Labels        map[string]interface{}
-	FaultCenterId string
 }
 
 func IsMuted(mute MuteParams) bool {
@@ -37,7 +36,7 @@ func RecoverNotify(mp MuteParams) bool {
 func IsSilence(mute MuteParams) bool {
 	silenceCtx := ctx.Redis.Silence()
 	// 获取静默列表中所有的id
-	ids, err := silenceCtx.GetAlertMutes(mute.TenantId, mute.FaultCenterId)
+	ids, err := silenceCtx.GetAlertMutes(mute.TenantId)
 	if err != nil {
 		logc.Errorf(ctx.Ctx, err.Error())
 		return false
@@ -45,7 +44,7 @@ func IsSilence(mute MuteParams) bool {
 
 	// 根据ID获取到详细的静默规则
 	for _, id := range ids {
-		muteRule, err := silenceCtx.WithIdGetMuteFromCache(mute.TenantId, mute.FaultCenterId, id)
+		muteRule, err := silenceCtx.WithIdGetMuteFromCache(mute.TenantId, id)
 		if err != nil {
 			logc.Errorf(ctx.Ctx, err.Error())
 			return false

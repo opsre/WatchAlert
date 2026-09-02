@@ -86,7 +86,6 @@ func isMutedEvent(event *models.AlertCurEvent, faultCenter models.FaultCenter) b
 		IsRecovered:   event.IsRecovered,
 		TenantId:      event.TenantId,
 		Labels:        event.Labels,
-		FaultCenterId: event.FaultCenterId,
 		RecoverNotify: faultCenter.RecoverNotify,
 	})
 }

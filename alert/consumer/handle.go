@@ -69,7 +69,6 @@ func handleAlert(ctx *ctx.Context, processType string, faultCenter models.FaultC
 					IsRecovered:   event.IsRecovered,
 					TenantId:      event.TenantId,
 					Labels:        event.Labels,
-					FaultCenterId: event.FaultCenterId,
 					RecoverNotify: faultCenter.RecoverNotify,
 				}) {
 					continue

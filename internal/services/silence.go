@@ -89,7 +89,7 @@ func (ass alertSilenceService) Update(req interface{}) (interface{}, interface{}
 
 func (ass alertSilenceService) Delete(req interface{}) (interface{}, interface{}) {
 	r := req.(*types.RequestSilenceQuery)
-	ass.ctx.Redis.Silence().RemoveAlertMute(r.TenantId, r.FaultCenterId, r.ID)
+	ass.ctx.Redis.Silence().RemoveAlertMute(r.TenantId, r.ID)
 	err := ass.ctx.DB.Silence().Delete(r.TenantId, r.ID)
 	if err != nil {
 		return nil, err

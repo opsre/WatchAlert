@@ -302,7 +302,7 @@ func (c *Consume) processSilenceRule(faultCenter models.FaultCenter) {
 	currentTime := time.Now().Unix()
 	silenceCtx := c.ctx.Redis.Silence()
 	// 获取静默列表中所有的id
-	silenceIds, err := silenceCtx.GetAlertMutes(faultCenter.TenantId, faultCenter.ID)
+	silenceIds, err := silenceCtx.GetAlertMutes(faultCenter.TenantId)
 	if err != nil {
 		logc.Error(ctx.Ctx, err.Error())
 		return
@@ -310,7 +310,7 @@ func (c *Consume) processSilenceRule(faultCenter models.FaultCenter) {
 
 	// 根据ID获取到详细的静默规则
 	for _, silenceId := range silenceIds {
-		muteRule, err := silenceCtx.WithIdGetMuteFromCache(faultCenter.TenantId, faultCenter.ID, silenceId)
+		muteRule, err := silenceCtx.WithIdGetMuteFromCache(faultCenter.TenantId, silenceId)
 		if err != nil {
 			logc.Error(ctx.Ctx, err.Error())
 			return

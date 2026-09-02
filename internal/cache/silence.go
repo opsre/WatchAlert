@@ -19,9 +19,9 @@ type (
 	// SilenceCacheInterface 定义了告警静默缓存的操作接口
 	SilenceCacheInterface interface {
 		PushAlertMute(mute models.AlertSilences)
-		RemoveAlertMute(tenantId, faultCenterId, id string)
-		GetAlertMutes(tenantId, faultCenterId string) ([]string, error)
-		WithIdGetMuteFromCache(tenantId, faultCenterId, id string) (*models.AlertSilences, error)
+		RemoveAlertMute(tenantId, id string)
+		GetAlertMutes(tenantId string) ([]string, error)
+		WithIdGetMuteFromCache(tenantId, id string) (*models.AlertSilences, error)
 	}
 )
 
@@ -37,24 +37,24 @@ func (sc *SilenceCache) PushAlertMute(mute models.AlertSilences) {
 	sc.Lock()
 	defer sc.Unlock()
 
-	key := models.BuildAlertMuteCacheKey(mute.TenantId, mute.FaultCenterId)
+	key := models.BuildAlertMuteCacheKey(mute.TenantId)
 	sc.setRedisHash(key, mute.ID, tools.JsonMarshalToString(mute))
 }
 
 // RemoveAlertMute 从故障中心的缓存中移除静默规则
-func (sc *SilenceCache) RemoveAlertMute(tenantId, faultCenterId, id string) {
+func (sc *SilenceCache) RemoveAlertMute(tenantId, id string) {
 	sc.Lock()
 	defer sc.Unlock()
 
-	key := models.BuildAlertMuteCacheKey(tenantId, faultCenterId)
+	key := models.BuildAlertMuteCacheKey(tenantId)
 	sc.deleteRedisHash(key, id)
 }
 
-func (sc *SilenceCache) GetAlertMutes(tenantId, faultCenterId string) ([]string, error) {
+func (sc *SilenceCache) GetAlertMutes(tenantId string) ([]string, error) {
 	sc.RLock()
 	defer sc.RUnlock()
 
-	key := models.BuildAlertMuteCacheKey(tenantId, faultCenterId)
+	key := models.BuildAlertMuteCacheKey(tenantId)
 	mapping, err := sc.getRedisAllHashMap(key)
 	if err != nil {
 		return nil, err
@@ -67,8 +67,8 @@ func (sc *SilenceCache) GetAlertMutes(tenantId, faultCenterId string) ([]string,
 }
 
 // WithIdGetMuteFromCache 从缓存中获取静默规则
-func (sc *SilenceCache) WithIdGetMuteFromCache(tenantId, faultCenterId, id string) (*models.AlertSilences, error) {
-	key := models.BuildAlertMuteCacheKey(tenantId, faultCenterId)
+func (sc *SilenceCache) WithIdGetMuteFromCache(tenantId, id string) (*models.AlertSilences, error) {
+	key := models.BuildAlertMuteCacheKey(tenantId)
 	cache, err := sc.getRedisHash(key, id)
 	if err != nil {
 		return nil, err
