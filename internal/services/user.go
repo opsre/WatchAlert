@@ -159,6 +159,17 @@ func (us userService) Register(req interface{}) (interface{}, interface{}) {
 		r.CreateBy = "system"
 	}
 
+	if r.Role == "admin" {
+		users, err := us.ctx.DB.User().GetUserByRole(r.Role)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(users) > 0 {
+			return nil, fmt.Errorf("管理员账号已存在")
+		}
+	}
+
 	err := us.ctx.DB.User().Create(models.Member{
 		UserId:     r.UserId,
 		UserName:   r.UserName,

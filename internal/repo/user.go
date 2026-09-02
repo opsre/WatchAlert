@@ -20,6 +20,7 @@ type (
 	InterUserRepo interface {
 		List(query, joinDuty string) ([]models.Member, error)
 		Get(userId, username, email, phone string) (models.Member, bool, error)
+		GetUserByRole(role string) ([]models.Member, error)
 		Create(r models.Member) error
 		Update(r models.Member) error
 		Delete(userId string) error
@@ -85,6 +86,22 @@ func (ur UserRepo) Get(userId, username, email, phone string) (models.Member, bo
 	}
 
 	return data, true, nil
+}
+
+func (ur UserRepo) GetUserByRole(role string) ([]models.Member, error) {
+	var (
+		data []models.Member
+		db   = ur.db.Model(&models.Member{})
+	)
+
+	db.Where("role = ?", role)
+
+	err := db.Find(&data).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
 }
 
 func (ur UserRepo) Create(r models.Member) error {

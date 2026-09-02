@@ -115,7 +115,7 @@ func BuildAlertEventCacheKey(tenantId, faultCenterId string) AlertEventCacheKey 
 type AlertMuteCacheKey string
 
 func BuildAlertMuteCacheKey(tenantId string) AlertMuteCacheKey {
-	return AlertMuteCacheKey(fmt.Sprintf("w8t:%s:%s.mutes", tenantId, FaultCenterPrefix))
+	return AlertMuteCacheKey(fmt.Sprintf("w8t:%s.mutes", tenantId))
 }
 
 type FaultCenterInfoCacheKey string
