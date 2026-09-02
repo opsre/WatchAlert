@@ -15,7 +15,6 @@ type AlertRule struct {
 	RuleName             string            `json:"ruleName"`
 	EvalInterval         int64             `json:"evalInterval"`
 	RepeatNoticeInterval int64             `json:"repeatNoticeInterval"`
-	Description          string            `json:"description"`
 	EffectiveTime        EffectiveTime     `json:"effectiveTime" gorm:"effectiveTime;serializer:json"`
 	Severity             string            `json:"severity"`
 

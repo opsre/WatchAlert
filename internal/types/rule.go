@@ -11,7 +11,6 @@ type RequestRuleCreate struct {
 	RuleName             string                     `json:"ruleName"`
 	EvalInterval         int64                      `json:"evalInterval"`
 	RepeatNoticeInterval int64                      `json:"repeatNoticeInterval"`
-	Description          string                     `json:"description"`
 	EffectiveTime        models.EffectiveTime       `json:"effectiveTime"`
 	Severity             string                     `json:"severity"`
 	PrometheusConfig     models.PrometheusConfig    `json:"prometheusConfig"`
@@ -47,7 +46,6 @@ type RequestRuleUpdate struct {
 	RuleName             string                     `json:"ruleName"`
 	EvalInterval         int64                      `json:"evalInterval"`
 	RepeatNoticeInterval int64                      `json:"repeatNoticeInterval"`
-	Description          string                     `json:"description"`
 	EffectiveTime        models.EffectiveTime       `json:"effectiveTime"`
 	Severity             string                     `json:"severity"`
 	PrometheusConfig     models.PrometheusConfig    `json:"prometheusConfig"`
