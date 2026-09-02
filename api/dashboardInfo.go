@@ -43,11 +43,6 @@ func (dashboardInfoController dashboardInfoController) GetDashboardInfo(context 
 		FaultCenterNumber: getFaultCenterNumber(c, tidString),
 		UserNumber:        getUserNumber(c),
 		CurAlertList:      getAlertList(c, faultCenter),
-		AlarmDistribution: types.AlarmDistribution{
-			P0: getAlarmDistribution(c, faultCenter, "P0"),
-			P1: getAlarmDistribution(c, faultCenter, "P1"),
-			P2: getAlarmDistribution(c, faultCenter, "P2"),
-		},
 	}, "success")
 }
 
