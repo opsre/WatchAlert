@@ -30,6 +30,17 @@ func BuildEvent(rule models.AlertRule, labels func() map[string]interface{}) mod
 }
 
 func PushEventToFaultCenter(ctx *ctx.Context, event *models.AlertCurEvent) {
+	pushEventToFaultCenter(ctx, event, "")
+}
+
+// PushEventToFaultCenterWithStatus persists an explicit state transition instead of
+// restoring the event status from cache. Metric evaluation uses it for suppression
+// and for promoting a previously suppressed series back to alerting.
+func PushEventToFaultCenterWithStatus(ctx *ctx.Context, event *models.AlertCurEvent, targetStatus models.AlertStatus) {
+	pushEventToFaultCenter(ctx, event, targetStatus)
+}
+
+func pushEventToFaultCenter(ctx *ctx.Context, event *models.AlertCurEvent, targetStatus models.AlertStatus) {
 	if event == nil {
 		return
 	}
@@ -46,31 +57,32 @@ func PushEventToFaultCenter(ctx *ctx.Context, event *models.AlertCurEvent) {
 
 	cache := ctx.Redis
 	cacheEvent, _ := cache.Alert().GetEventFromCache(event.TenantId, event.FaultCenterId, event.Fingerprint)
+	// 非零值由调用方显式设置（例如高优先级抑制低优先级时），不能被缓存覆盖。
+	explicitLastSendTime := event.LastSendTime
 
 	// 获取基础信息
 	event.FirstTriggerTime = cacheEvent.GetFirstTime()
 	event.LastEvalTime = cacheEvent.GetLastEvalTime()
 	event.LastSendTime = cacheEvent.GetLastSendTime()
+	if explicitLastSendTime != 0 {
+		event.LastSendTime = explicitLastSendTime
+	}
 	event.ConfirmState = cacheEvent.GetLastConfirmState()
 	event.EventId = cacheEvent.GetEventId()
 	event.FaultCenter = cache.FaultCenter().GetFaultCenterInfo(models.BuildFaultCenterInfoCacheKey(event.TenantId, event.FaultCenterId))
 
-	// 获取当前缓存中的状态
-	currentStatus := cacheEvent.GetEventStatus()
-
-	// 如果是新的告警事件，设置为 StatePreAlert
-	if currentStatus == "" {
-		event.Status = models.StatePreAlert
-	} else {
-		event.Status = currentStatus
-	}
-
-	// 根据不同情况处理状态转换
-	switch event.Status {
-	case models.StatePreAlert:
-		if event.IsArriveForDuration() {
-			// 如果达到持续时间，转为告警状态
-			event.TransitionStatus(models.StateAlerting)
+	// 以缓存状态为转换起点，确保显式转换遵循状态机并最终持久化。
+	event.Status = cacheEvent.GetEventStatus()
+	if targetStatus != "" {
+		if err := event.TransitionStatus(targetStatus); err != nil {
+			logc.Errorf(ctx.Ctx, "PushEventToFaultCenter: transition status failed, fingerprint=%s, from=%s, to=%s, err=%v", event.Fingerprint, event.Status, targetStatus, err)
+			return
+		}
+	} else if event.Status == models.StatePreAlert && event.IsArriveForDuration() {
+		// 如果达到持续时间，转为告警状态。
+		if err := event.TransitionStatus(models.StateAlerting); err != nil {
+			logc.Errorf(ctx.Ctx, "PushEventToFaultCenter: transition alerting failed, fingerprint=%s, err=%v", event.Fingerprint, err)
+			return
 		}
 	}
 

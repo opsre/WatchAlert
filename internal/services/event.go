@@ -188,37 +188,29 @@ func matchQuery(event models.AlertCurEvent, query string) bool {
 }
 
 func matchStatus(event *models.AlertCurEvent, status string, muteParams mute.MuteParams) bool {
-	if status == "" {
-		if event.ConfirmState.IsOk {
-			event.Status = "processing"
-		}
-		if mute.IsSilence(muteParams) {
-			event.Status = "muting"
-		}
-		return true
-	}
-
 	switch status {
 	case "pre_alert", "alerting", "pending_recovery":
 		if event.ConfirmState.IsOk {
 			event.Status = "processing"
 		}
 		if mute.IsSilence(muteParams) {
-			event.Status = "muting"
+			event.Status = models.StateMuting
 		}
 		return string(event.Status) == status
 	case "processing":
 		if event.ConfirmState.IsOk {
-			event.Status = "processing"
+			event.Status = models.StateProcessing
 			return true
 		}
 		return false
 	case "muting":
 		if mute.IsSilence(muteParams) {
-			event.Status = "muting"
+			event.Status = models.StateMuting
 			return true
 		}
 		return false
+	case "suppression":
+		return event.Status == models.StateSuppression
 	default:
 		return true
 	}

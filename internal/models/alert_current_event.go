@@ -19,6 +19,9 @@ const (
 	StateAlerting        AlertStatus = "alerting"         // 告警中
 	StatePendingRecovery AlertStatus = "pending_recovery" // 待恢复
 	StateRecovered       AlertStatus = "recovered"        // 已恢复
+	StateMuting          AlertStatus = "muting"           // 静默中
+	StateSuppression     AlertStatus = "suppression"      // 抑制中
+	StateProcessing      AlertStatus = "processing"       // 处理中
 )
 
 type AlertCurEvent struct {
@@ -87,10 +90,11 @@ func (alert *AlertCurEvent) validateTransition(newState AlertStatus) error {
 
 	// 定义允许的状态转换规则
 	allowedTransitions := map[AlertStatus][]AlertStatus{
-		StatePreAlert:        {StateAlerting},
-		StateAlerting:        {StatePendingRecovery},
-		StatePendingRecovery: {StateAlerting, StateRecovered},
-		StateRecovered:       {StatePreAlert},
+		StatePreAlert:        {StateAlerting, StateSuppression},
+		StateAlerting:        {StatePendingRecovery, StateSuppression},
+		StatePendingRecovery: {StateAlerting, StateRecovered, StateSuppression},
+		StateRecovered:       {StatePreAlert, StateSuppression},
+		StateSuppression:     {StateAlerting, StatePendingRecovery},
 	}
 
 	// 检查转换是否允许
@@ -126,6 +130,8 @@ func (alert *AlertCurEvent) handleStateTransition(newState AlertStatus) error {
 		alert.LastEvalTime = now
 
 	case StateAlerting:
+	case StateSuppression:
+		alert.LastSendTime = now
 	case StateRecovered:
 		alert.LastSendTime = 0
 		alert.RecoverTime = now
