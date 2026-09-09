@@ -10,7 +10,6 @@ type RequestRuleTemplateCreate struct {
 	EvalInterval         int64                      `json:"evalInterval"`
 	ForDuration          int64                      `json:"forDuration"`
 	RepeatNoticeInterval int64                      `json:"repeatNoticeInterval"`
-	Description          string                     `json:"description"`
 	PrometheusConfig     models.PrometheusConfig    `json:"prometheusConfig"`
 	AliCloudSLSConfig    models.AliCloudSLSConfig   `json:"alicloudSLSConfig"`
 	LokiConfig           models.LokiConfig          `json:"lokiConfig"`
@@ -29,7 +28,6 @@ type RequestRuleTemplateUpdate struct {
 	EvalInterval         int64                      `json:"evalInterval"`
 	ForDuration          int64                      `json:"forDuration"`
 	RepeatNoticeInterval int64                      `json:"repeatNoticeInterval"`
-	Description          string                     `json:"description"`
 	PrometheusConfig     models.PrometheusConfig    `json:"prometheusConfig"`
 	AliCloudSLSConfig    models.AliCloudSLSConfig   `json:"alicloudSLSConfig"`
 	LokiConfig           models.LokiConfig          `json:"lokiConfig"`

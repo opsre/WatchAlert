@@ -45,6 +45,48 @@ type Result struct {
 	Values []interface{}          `json:"values"`
 }
 
+// parseLokiTimeParam 将 LogQueryOptions.StartAt/EndAt 转换为 Unix 时间戳（秒）。
+// 支持 int64/int32/int（Unix 秒）以及字符串（Unix 秒数字符串或 RFC3339Nano 格式）。
+// 当传入值为空或无法解析时，返回 (0, false)。
+func parseLokiTimeParam(v interface{}) (int64, bool) {
+	switch val := v.(type) {
+	case int64:
+		if val == 0 {
+			return 0, false
+		}
+		return val, true
+	case int32:
+		if val == 0 {
+			return 0, false
+		}
+		return int64(val), true
+	case int:
+		if val == 0 {
+			return 0, false
+		}
+		return int64(val), true
+	case string:
+		if val == "" {
+			return 0, false
+		}
+		// 尝试解析为 Unix 时间戳字符串
+		if unix, err := strconv.ParseInt(val, 10, 64); err == nil {
+			return unix, true
+		}
+		// 尝试解析为 RFC3339Nano 格式
+		if t, err := time.Parse(time.RFC3339Nano, val); err == nil {
+			return t.Unix(), true
+		}
+		// 尝试解析为 RFC3339 格式
+		if t, err := time.Parse(time.RFC3339, val); err == nil {
+			return t.Unix(), true
+		}
+		return 0, false
+	default:
+		return 0, false
+	}
+}
+
 func (l LokiProvider) Query(options LogQueryOptions) (Logs, int, error) {
 	curTime := time.Now()
 
@@ -60,16 +102,18 @@ func (l LokiProvider) Query(options LogQueryOptions) (Logs, int, error) {
 		options.Loki.Limit = 100
 	}
 
-	if options.StartAt == "" {
+	startAt, ok := parseLokiTimeParam(options.StartAt)
+	if !ok {
 		duration, _ := time.ParseDuration(strconv.Itoa(1) + "h")
-		options.StartAt = curTime.Add(-duration).Format(time.RFC3339Nano)
+		startAt = curTime.Add(-duration).Unix()
 	}
 
-	if options.EndAt == "" {
-		options.EndAt = curTime.Format(time.RFC3339Nano)
+	endAt, ok := parseLokiTimeParam(options.EndAt)
+	if !ok {
+		endAt = curTime.Unix()
 	}
 
-	args := fmt.Sprintf("/loki/api/v1/query_range?query=%s&direction=%s&limit=%d&start=%d&end=%d", url.QueryEscape(options.Loki.Query), options.Loki.Direction, options.Loki.Limit, options.StartAt.(int64), options.EndAt.(int64))
+	args := fmt.Sprintf("/loki/api/v1/query_range?query=%s&direction=%s&limit=%d&start=%d&end=%d", url.QueryEscape(options.Loki.Query), options.Loki.Direction, options.Loki.Limit, startAt, endAt)
 	requestURL := l.Url + args
 
 	var headers = make(map[string]string)

@@ -1,10 +1,9 @@
 package models
 
 type RuleTemplateGroup struct {
-	Name        string `json:"name" gorm:"type:varchar(255);not null"`
-	Number      int    `json:"number"`
-	Type        string `json:"type"`
-	Description string `json:"description"`
+	Name   string `json:"name" gorm:"type:varchar(255);not null"`
+	Number int    `json:"number"`
+	Type   string `json:"type"`
 }
 
 type RuleTemplate struct {
@@ -15,7 +14,6 @@ type RuleTemplate struct {
 	EvalInterval         int64               `json:"evalInterval"`
 	ForDuration          int64               `json:"forDuration"`
 	RepeatNoticeInterval int64               `json:"repeatNoticeInterval"`
-	Description          string              `json:"description"`
 	PrometheusConfig     PrometheusConfig    `json:"prometheusConfig" gorm:"prometheusConfig;serializer:json"`
 	AliCloudSLSConfig    AliCloudSLSConfig   `json:"alicloudSLSConfig" gorm:"alicloudSLSConfig;serializer:json"`
 	LokiConfig           LokiConfig          `json:"lokiConfig" gorm:"lokiConfig;serializer:json"`

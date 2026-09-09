@@ -43,9 +43,8 @@ func (rtg ruleTmplGroupService) List(req interface{}) (interface{}, interface{})
 func (rtg ruleTmplGroupService) Create(req interface{}) (interface{}, interface{}) {
 	r := req.(*types.RequestRuleTemplateGroupCreate)
 	err := rtg.ctx.DB.RuleTmplGroup().Create(models.RuleTemplateGroup{
-		Name:        r.Name,
-		Type:        r.Type,
-		Description: r.Description,
+		Name: r.Name,
+		Type: r.Type,
 	})
 	if err != nil {
 		return nil, err
@@ -57,9 +56,8 @@ func (rtg ruleTmplGroupService) Create(req interface{}) (interface{}, interface{
 func (rtg ruleTmplGroupService) Update(req interface{}) (interface{}, interface{}) {
 	r := req.(*types.RequestRuleTemplateGroupUpdate)
 	err := rtg.ctx.DB.RuleTmplGroup().Update(models.RuleTemplateGroup{
-		Name:        r.Name,
-		Type:        r.Type,
-		Description: r.Description,
+		Name: r.Name,
+		Type: r.Type,
 	})
 	if err != nil {
 		return nil, err

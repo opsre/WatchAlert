@@ -58,10 +58,10 @@ func (datasourceController datasourceController) API(gin *gin.RouterGroup) {
 		middleware.ParseTenant(),
 	)
 	{
-		c.GET("promQuery", datasourceController.PromQuery)
-		c.GET("promQueryRange", datasourceController.PromQueryRange)
-		c.POST("dataSourcePing", datasourceController.Ping)
-		c.POST("searchViewLogsContent", datasourceController.SearchViewLogsContent)
+		c.POST("ping", datasourceController.Ping)
+		c.POST("searchLogs", datasourceController.SearchLogs)
+		c.GET("query", datasourceController.PromQuery)
+		c.GET("queryRange", datasourceController.PromQueryRange)
 	}
 
 }
@@ -254,7 +254,7 @@ func (datasourceController datasourceController) Ping(ctx *gin.Context) {
 }
 
 // SearchViewLogsContent Logs 数据预览
-func (datasourceController datasourceController) SearchViewLogsContent(ctx *gin.Context) {
+func (datasourceController datasourceController) SearchLogs(ctx *gin.Context) {
 	r := new(types.RequestSearchLogsContent)
 	BindJson(ctx, r)
 
@@ -280,6 +280,22 @@ func (datasourceController datasourceController) SearchViewLogsContent(ctx *gin.
 		QueryStr := string(decodedBytes)
 
 		switch r.Type {
+		case provider.LokiDsProviderName:
+			client, err = provider.NewLokiClient(datasource)
+			if err != nil {
+				return nil, err
+			}
+
+			curAt := time.Now()
+			startAt := curAt.Add(-r.GetLogScopeDuration())
+
+			options = provider.LogQueryOptions{
+				Loki: provider.Loki{
+					Query: QueryStr,
+				},
+				StartAt: startAt.Unix(),
+				EndAt:   curAt.Unix(),
+			}
 		case provider.VictoriaLogsDsProviderName:
 			client, err = provider.NewVictoriaLogsClient(ctx, datasource)
 			if err != nil {

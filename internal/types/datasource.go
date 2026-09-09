@@ -97,6 +97,15 @@ type RequestSearchLogsContent struct {
 	DatasourceId string `json:"datasourceId"`
 	Index        string `json:"index"`
 	Query        string `json:"query"`
+	LogScope     int    `json:"logScope"` // 查询时间范围（分钟），用于 Loki/AliCloudSLS 等需要时间区间的数据源
+}
+
+// GetLogScopeDuration 获取查询时间范围，如果未传或非法则默认为 15 分钟
+func (requestSearchLogsContent RequestSearchLogsContent) GetLogScopeDuration() time.Duration {
+	if requestSearchLogsContent.LogScope <= 0 {
+		return 15 * time.Minute
+	}
+	return time.Duration(requestSearchLogsContent.LogScope) * time.Minute
 }
 
 func (requestSearchLogsContent RequestSearchLogsContent) GetElasticSearchIndexName() string {
