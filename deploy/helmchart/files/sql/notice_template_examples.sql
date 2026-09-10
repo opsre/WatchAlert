@@ -18,8 +18,8 @@ green
 
 {{ define "Event" -}}
 {{- if not .IsRecovered -}}
-**🤖 报警类型:** ${rule_name}
-**🫧 报警指纹:** ${fingerprint}
+**#️⃣ ID:** ${eventId}
+**🤖 名称:** ${rule_name}
 **📌 报警等级:** ${severity}
 **🖥 报警主机:** ${labels.instance}
 **🕘 开始时间:** {{ .FirstTriggerTime | formatTime }}
@@ -27,8 +27,8 @@ green
 **📝 报警事件:** ${annotations}
 [查看事件](http://localhost:3000/faultCenter/detail/${faultCenterId}?tab=1&query=${rule_name})
 {{- else -}}
-**🤖 报警类型:** ${rule_name}
-**🫧 报警指纹:** ${fingerprint}
+**#️⃣ ID:** ${eventId}
+**🤖 名称:** ${rule_name}
 **📌 报警等级:** ${severity}
 **🖥 报警主机:** ${labels.instance}
 **🕘 开始时间:** {{ .FirstTriggerTime | formatTime }}
@@ -75,7 +75,7 @@ green
             {
               "tag": "div",
               "text": {
-                "content": "**🫧 报警指纹：**\n${fingerprint}",
+                "content": "**#️⃣ ID：**\n${eventId}",
                 "tag": "lark_md"
               }
             }
@@ -287,7 +287,7 @@ green
             {
               "tag": "div",
               "text": {
-                "content": "**🫧 报警指纹：**\n${fingerprint}",
+                "content": "**#️⃣ ID：**\n${eventId}",
                 "tag": "lark_md"
               }
             }
@@ -494,7 +494,7 @@ green
   },
   "body": {
     "elements": [
-      { "tag": "markdown", "content": "**🤖 报警类型:** ${rule_name}\n**🫧 报警指纹:** ${fingerprint}\n**📌 报警等级:** ${severity}\n**🖥 报警主机:** ${labels.instance}\n**🕘 开始时间:** {{ .FirstTriggerTime | formatTime }}\n**👤 值班人员:** ${duty_user}\n**📝 报警事件:** ${annotations}\n[查看事件](http:\/\/localhost:3000\/faultCenter\/detail\/${faultCenterId}?tab=1&query=${rule_name})" },
+      { "tag": "markdown", "content": "**🤖 名称:** ${rule_name}\n**#️⃣ ID:** ${eventId}\n**📌 报警等级:** ${severity}\n**🖥 报警主机:** ${labels.instance}\n**🕘 开始时间:** {{ .FirstTriggerTime | formatTime }}\n**👤 值班人员:** ${duty_user}\n**📝 报警事件:** ${annotations}\n[查看事件](http:\/\/localhost:3000\/faultCenter\/detail\/${faultCenterId}?tab=1&query=${rule_name})" },
       { "tag": "hr"},
       { "tag": "markdown", "content": "🧑‍💻 WatchAlert - 运维团队"}
     ]
@@ -514,7 +514,7 @@ green
   },
   "body": {
     "elements": [
-      { "tag": "markdown", "content": "**🤖 报警类型:** ${rule_name}\n**🫧 报警指纹:** ${fingerprint}\n**📌 报警等级:** ${severity}\n**🖥 报警主机:** ${labels.instance}\n**🕘 开始时间:** {{ .FirstTriggerTime | formatTime }}\n**🕘 恢复时间:** {{ .RecoverTime | formatTime }}\n**👤 值班人员:** ${duty_user}\n**📝 报警事件:** ${annotations}\n[查看事件](http:\/\/localhost:3000\/faultCenter\/detail\/${faultCenterId}?tab=1&query=${rule_name})" },
+      { "tag": "markdown", "content": "**🤖 名称:** ${rule_name}\n**#️⃣ ID:** ${eventId}\n**📌 报警等级:** ${severity}\n**🖥 报警主机:** ${labels.instance}\n**🕘 开始时间:** {{ .FirstTriggerTime | formatTime }}\n**🕘 恢复时间:** {{ .RecoverTime | formatTime }}\n**👤 值班人员:** ${duty_user}\n**📝 报警事件:** ${annotations}\n[查看事件](http:\/\/localhost:3000\/faultCenter\/detail\/${faultCenterId}?tab=1&query=${rule_name})" },
       { "tag": "hr"},
       { "tag": "markdown", "content": "🧑‍💻 WatchAlert - 运维团队"}
     ]
@@ -523,8 +523,8 @@ green
 	 ('nt-cqh4599d6gvj80netql0','邮件通知模版','发送邮件的普通消息模版','{{ define "Event" -}}
 {{- if not .IsRecovered -}}
 <p>==========<strong>告警通知</strong>==========</p>
-<strong>🤖 报警类型:</strong> ${rule_name}<br>
-<strong>🫧 报警指纹:</strong> ${fingerprint}<br>
+<strong>#️⃣ ID:</strong> ${eventId}<br>
+<strong>🤖 名称:</strong> ${rule_name}<br>
 <strong>📌 报警等级:</strong> ${severity}<br>
 <strong>🖥 报警主机:</strong> ${labels.node_name}<br>
 <strong>🧚 容器名称:</strong> ${labels.pod}<br>
@@ -535,8 +535,8 @@ green
 [查看事件](http://localhost:3000/faultCenter/detail/${faultCenterId}?tab=1&query=${rule_name})
 {{- else -}}
 <p>==========<strong>恢复通知</strong>==========</p>
-<strong>🤖 报警类型:</strong> ${rule_name}<br>
-<strong>🫧 报警指纹:</strong> ${fingerprint}<br>
+<strong>#️⃣ ID:</strong> ${eventId}<br>
+<strong>🤖 名称:</strong> ${rule_name}<br>
 <strong>📌 报警等级:</strong> ${severity}<br>
 <strong>🖥 报警主机:</strong> ${labels.node_name}<br>
 <strong>🧚 容器名称:</strong> ${labels.pod}<br>
@@ -566,8 +566,8 @@ green
 
 {{ define "Event" -}}
 {{- if not .IsRecovered -}}
-&nbsp;**🔔 报警类型:** ${rule_name}<br>
-**🔐 报警指纹:** ${fingerprint}<br>
+&nbsp;**🔔 名称:** ${rule_name}<br>
+**#️⃣ ID:** ${eventId}<br>
 **🚨 报警等级:** ${severity}<br>
 **🖥 报警主机:** ${labels.instance}<br>
 **🕘 开始时间:** {{ .FirstTriggerTime | formatTime }}<br>
@@ -575,8 +575,8 @@ green
 **📝 报警事件:** ${annotations}<br>
 **👀 查看事件:** [点击跳转](http://localhost:3000/faultCenter/detail/${faultCenterId}?tab=1&query=${rule_name})<br>
 {{- else -}}
-&nbsp;**🔔 报警类型:** ${rule_name}<br>
-**🔐 报警指纹:** ${fingerprint}<br>
+&nbsp;**🔔 名称:** ${rule_name}<br>
+**#️⃣ ID:** ${eventId}<br>
 **🚨 报警等级:** ${severity}<br>
 **🖥 报警主机:** ${labels.instance}<br>
 **🕘 开始时间:** {{ .FirstTriggerTime | formatTime }}<br>
@@ -608,8 +608,8 @@ green
 
 {{ define "Event" -}}
 {{- if not .IsRecovered -}}
->**🤖 报警类型:** ${rule_name}
->**🫧 报警指纹:** ${fingerprint}
+>**#️⃣ ID:** ${eventId}
+>**🤖 名称:** ${rule_name}
 >**📌 报警等级:** ${severity}
 >**🖥 报警主机:** ${labels.instance}
 >**🕘 开始时间:** {{ .FirstTriggerTime | formatTime }}
@@ -617,8 +617,8 @@ green
 >**📝 报警事件:** ${annotations}
 [查看事件](http://localhost:3000/faultCenter/detail/${faultCenterId}?tab=1&query=${rule_name})
 {{- else -}}
->**🤖 报警类型:** ${rule_name}
->**🫧 报警指纹:** ${fingerprint}
+>**#️⃣ ID:** ${eventId}
+>**🤖 名称:** ${rule_name}
 >**📌 报警等级:** ${severity}
 >**🖥 报警主机:** ${labels.instance}
 >**🕘 开始时间:** {{ .FirstTriggerTime | formatTime }}
@@ -650,7 +650,7 @@ green
 
 {{ define "Event" -}}
 {{- if not .IsRecovered -}}
-**🤖 报警类型:** ${rule_name}</br>
+**🤖 名称:** ${rule_name}</br>
 **📌 报警等级:** ${severity}</br>
 **🕘 开始时间:** {{ .FirstTriggerTime | formatTime }}</br>
 **👤 值班人员:** ${duty_user}</br>
@@ -658,7 +658,7 @@ green
 **📝 TraceId:** ${log.trace_id}</br>
 **📝 日志内容:** ${log.message}</br>
 {{- else -}}
-**🤖 报警类型:** ${rule_name}</br>
+**🤖 名称:** ${rule_name}</br>
 **📌 报警等级:** ${severity}</br>
 **🕘 开始时间:** {{ .FirstTriggerTime | formatTime }}</br>
 **🕘 恢复时间:** {{ .RecoverTime | formatTime }}</br>

@@ -17,6 +17,20 @@ func RandId() string {
 	return xid.New().String()
 }
 
+const (
+	eventIDLength   = 6
+	eventIDAlphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+)
+
+// RandEventID generates a six-character alert event ID using uppercase letters and digits.
+func RandEventID() string {
+	id := make([]byte, eventIDLength)
+	for i := range id {
+		id[i] = eventIDAlphabet[rand.Intn(len(eventIDAlphabet))]
+	}
+	return string(id)
+}
+
 func RandUid() string {
 	limit := 8
 	gid := xid.New().String()

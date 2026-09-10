@@ -168,7 +168,7 @@ func (f faultCenterService) List(req interface{}) (data interface{}, err interfa
 				faultCenters[index].CurrentPreAlertNumber++
 			case models.StateAlerting:
 				faultCenters[index].CurrentAlertNumber++
-			case models.StatePendingRecovery:
+			case models.StatePendingRecovery, models.StateMuting, models.StateProcessing, models.StateSuppression:
 				faultCenters[index].CurrentRecoverNumber++
 			}
 		}

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"watchAlert/alert/consumer"
 	"watchAlert/alert/mute"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
@@ -51,10 +52,13 @@ func (e eventService) ProcessAlertEvent(req interface{}) (interface{}, interface
 			}
 
 			cache.ConfirmState.IsOk = true
+			cache.Status = models.StateProcessing
 			cache.ConfirmState.ConfirmUsername = r.Username
 			cache.ConfirmState.ConfirmActionTime = r.Time
 
 			e.ctx.Redis.Alert().PushAlertEvent(&cache)
+			faultCenter := e.ctx.Redis.FaultCenter().GetFaultCenterInfo(models.BuildFaultCenterInfoCacheKey(r.TenantId, r.FaultCenterId))
+			consumer.SendAlertClaimedNotification(e.ctx, faultCenter, &cache, r.Username)
 		}(fingerprint)
 	}
 

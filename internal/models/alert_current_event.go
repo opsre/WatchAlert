@@ -95,6 +95,7 @@ func (alert *AlertCurEvent) validateTransition(newState AlertStatus) error {
 		StatePendingRecovery: {StateAlerting, StateRecovered, StateSuppression},
 		StateRecovered:       {StatePreAlert, StateSuppression},
 		StateSuppression:     {StateAlerting, StatePendingRecovery},
+		StateProcessing:      {StatePendingRecovery},
 	}
 
 	// 检查转换是否允许
@@ -191,7 +192,7 @@ func (alert *AlertCurEvent) GetEventStatus() AlertStatus {
 // GetEventId 获取告警事件ID
 func (alert *AlertCurEvent) GetEventId() string {
 	if alert.EventId == "" {
-		return tools.RandId()
+		return tools.RandEventID()
 	}
 	return alert.EventId
 }

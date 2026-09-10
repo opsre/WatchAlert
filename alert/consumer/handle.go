@@ -1,6 +1,7 @@
 package consumer
 
 import (
+	"encoding/json"
 	"fmt"
 	"slices"
 	"strings"
@@ -137,6 +138,64 @@ func handleAlert(ctx *ctx.Context, processType string, faultCenter models.FaultC
 	}
 
 	return g.Wait()
+}
+
+// SendAlertClaimedNotification sends an acknowledgement notification through the
+// notice objects selected for the alert by the fault center's routing rules.
+func SendAlertClaimedNotification(ctx *ctx.Context, faultCenter models.FaultCenter, event *models.AlertCurEvent, username string) {
+	if event == nil {
+		return
+	}
+
+	noticeIDs := (&AlertGroups{}).getNoticeId(event, faultCenter)
+	message := fmt.Sprintf("%s 认领了告警 #%s", username, event.EventId)
+	for _, noticeID := range noticeIDs {
+		noticeData, err := getNoticeData(ctx, event.TenantId, noticeID)
+		if err != nil {
+			logc.Errorf(ctx.Ctx, "failed to get notice object for alert acknowledgement, eventID=%s, noticeID=%s, err=%v", event.EventId, noticeID, err)
+			continue
+		}
+
+		for _, route := range getNoticeRoutes(noticeData, event.Severity) {
+			if err := mediums.Sender(ctx, mediums.SendParams{
+				TenantId:   event.TenantId,
+				EventId:    event.EventId,
+				RuleName:   event.RuleName,
+				Severity:   event.Severity,
+				NoticeType: route.NoticeType,
+				NoticeId:   noticeID,
+				NoticeName: noticeData.Name,
+				Hook:       route.Hook,
+				Headers:    route.Headers,
+				Content:    acknowledgementContent(route.NoticeType, message, event.EventId, username),
+				Sign:       route.Sign,
+			}); err != nil {
+				logc.Errorf(ctx.Ctx, "failed to send alert acknowledgement, eventID=%s, noticeID=%s, type=%s, err=%v", event.EventId, noticeID, route.NoticeType, err)
+			}
+		}
+	}
+}
+
+func acknowledgementContent(noticeType, message, eventID, username string) string {
+	var content any
+	switch noticeType {
+	case "FeiShu":
+		content = map[string]any{"msg_type": "text", "content": map[string]string{"text": message}}
+	case "DingDing", "WeChat":
+		content = map[string]any{"msgtype": "text", "text": map[string]string{"content": message}}
+	case "Slack":
+		content = map[string]string{"text": message}
+	case "WebHook", "SREFlow":
+		content = map[string]string{"text": message, "eventId": eventID, "username": username}
+	default:
+		return message
+	}
+
+	encoded, err := json.Marshal(content)
+	if err != nil {
+		return message
+	}
+	return string(encoded)
 }
 
 // alarmAggregation 告警聚合
