@@ -157,7 +157,9 @@ func (datasourceController datasourceController) PromQuery(ctx *gin.Context) {
 			}
 
 			fullURL := fmt.Sprintf("%s%s?%s", source.HTTP.URL, path, params.Encode())
-			get, err := tools.Get(tools.CreateBasicAuthHeader(source.Auth.User, source.Auth.Pass), fullURL, 10)
+			headers := tools.CreateBasicAuthHeader(source.Auth.User, source.Auth.Pass)
+			headers = tools.MergeHeaders(headers, source.HTTP.Headers)
+			get, err := tools.Get(headers, fullURL, 10)
 			if err != nil {
 				return nil, err
 			}
@@ -211,7 +213,9 @@ func (datasourceController datasourceController) PromQueryRange(ctx *gin.Context
 			}
 
 			fullURL := fmt.Sprintf("%s%s?%s", source.HTTP.URL, path, params.Encode())
-			get, err := tools.Get(tools.CreateBasicAuthHeader(source.Auth.User, source.Auth.Pass), fullURL, 10)
+			headers := tools.CreateBasicAuthHeader(source.Auth.User, source.Auth.Pass)
+			headers = tools.MergeHeaders(headers, source.HTTP.Headers)
+			get, err := tools.Get(headers, fullURL, 10)
 			if err != nil {
 				return nil, err
 			}
