@@ -68,7 +68,7 @@ func (os oidcService) CallBack(ctx *gin.Context, req interface{}) (interface{}, 
 
 	parts := strings.Split(data.AccessToken, ".")
 	if len(parts) < 2 {
-		return nil, err
+		return nil, fmt.Errorf("OIDC 返回的 access_token 不是合法 JWT")
 	}
 
 	payloadBytes, err := base64.RawURLEncoding.DecodeString(parts[1])
