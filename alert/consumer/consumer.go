@@ -123,6 +123,11 @@ func (c *Consume) Submit(faultCenter models.FaultCenter) {
 	c.ctx.Mux.Lock()
 	defer c.ctx.Mux.Unlock()
 
+	// 先停掉同 faultCenter 的旧消费协程, 避免泄漏
+	if cancel, exists := c.ctx.ContextMap[faultCenter.ID]; exists {
+		cancel()
+	}
+
 	withCtx, cancel := context.WithCancel(context.Background())
 	c.ctx.ContextMap[faultCenter.ID] = cancel
 	go c.Watch(withCtx, faultCenter)

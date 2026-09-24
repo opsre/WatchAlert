@@ -98,9 +98,11 @@ func (rs ruleService) Create(req interface{}) (interface{}, interface{}) {
 func (rs ruleService) Update(req interface{}) (interface{}, interface{}) {
 	r := req.(*types.RequestRuleUpdate)
 	oldRule := models.AlertRule{}
-	rs.ctx.DB.DB().Model(&models.AlertRule{}).
+	if err := rs.ctx.DB.DB().Model(&models.AlertRule{}).
 		Where("tenant_id = ? AND rule_id = ?", r.TenantId, r.RuleId).
-		First(&oldRule)
+		First(&oldRule).Error; err != nil {
+		return nil, fmt.Errorf("规则不存在, rule_id: %s", r.RuleId)
+	}
 
 	if oldRule.FaultCenterId != r.FaultCenterId {
 		fingerprints := rs.ctx.Redis.Alert().GetFingerprintsByRuleId(oldRule.TenantId, oldRule.FaultCenterId, oldRule.RuleId)
@@ -114,11 +116,13 @@ func (rs ruleService) Update(req interface{}) (interface{}, interface{}) {
 		判断当前状态是否是false 并且 历史状态是否为true
 	*/
 	var action string
-	if *oldRule.Enabled == true && *r.Enabled == false {
+	oldEnabled := oldRule.Enabled != nil && *oldRule.Enabled
+	newEnabled := r.Enabled != nil && *r.Enabled
+	if oldEnabled && !newEnabled {
 		action = tools.ActionDisable
-	} else if *oldRule.Enabled == false && *r.Enabled == true {
+	} else if !oldEnabled && newEnabled {
 		action = tools.ActionEnable
-	} else if *oldRule.Enabled == true && *r.Enabled == true {
+	} else if oldEnabled && newEnabled {
 		action = tools.ActionUpdate
 	}
 

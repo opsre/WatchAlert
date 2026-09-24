@@ -40,6 +40,11 @@ func (t *RecordingRule) Submit(rule models.RecordingRule) {
 	t.ctx.Mux.Lock()
 	defer t.ctx.Mux.Unlock()
 
+	// 先停掉同 ruleId 的旧评估协程, 避免泄漏与重复评估
+	if cancel, exists := t.ctx.ContextMap[rule.RuleId]; exists {
+		cancel()
+	}
+
 	c, cancel := context.WithCancel(context.Background())
 	t.ctx.ContextMap[rule.RuleId] = cancel
 	go t.Eval(c, rule)
@@ -122,7 +127,7 @@ func (t *RecordingRule) processSingleDatasource(rule models.RecordingRule) {
 	}
 
 	// 检查数据源是否启用
-	if !*instance.Enabled {
+	if !instance.GetEnabled() {
 		logc.Errorf(t.ctx.Ctx, "Datasource %s is disabled", rule.DatasourceId)
 		return
 	}
