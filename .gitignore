@@ -26,3 +26,6 @@ dist-ssr
 deploy/docker-compose/mysql
 deploy/docker-compose/redis
 
+# Config (本地配置可能包含真实凭据, 使用 config/config.yaml.example 作为模板)
+config/config.yaml
+
