@@ -3,7 +3,6 @@ package middleware
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/zeromicro/go-zero/core/logc"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -54,9 +53,7 @@ func LoggingMiddleware() gin.HandlerFunc {
 		}
 		// 将body复制回原位
 		c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
-		// 打印body和query params
-		fmt.Println("Body:", string(bodyBytes))
-		fmt.Println("Query Params:", c.Request.URL.Query())
+		// 请求体可能含明文密码/token, 不再打印, 避免敏感信息落日志
 		// 处理请求
 		c.Next()
 	}

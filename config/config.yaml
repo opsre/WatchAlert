@@ -25,3 +25,5 @@ Redis:
 Jwt:
   # 失效时间
   expire: 18000
+  # JWT 签名密钥(HS256), 必须非空且保密, 请改为随机长字符串
+  secret: "change-me"

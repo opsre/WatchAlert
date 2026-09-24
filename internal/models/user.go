@@ -5,7 +5,7 @@ type Member struct {
 	UserName   string   `json:"username"`
 	Email      string   `json:"email"`
 	Phone      string   `json:"phone"`
-	Password   string   `json:"password"`
+	Password   string   `json:"-"` // 密码哈希, 禁止序列化到响应
 	Role       string   `json:"role"`
 	CreateBy   string   `json:"create_by"`
 	CreateAt   int64    `json:"create_at"`
