@@ -29,6 +29,9 @@ func IsMuted(mute MuteParams) bool {
 
 // RecoverNotify 判断是否推送恢复通知
 func RecoverNotify(mp MuteParams) bool {
+	if mp.RecoverNotify == nil {
+		return mp.IsRecovered
+	}
 	return mp.IsRecovered && !*mp.RecoverNotify
 }
 
