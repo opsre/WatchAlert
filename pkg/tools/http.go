@@ -32,13 +32,17 @@ func Get(headers map[string]string, url string, timeout int) (*http.Response, er
 		Transport: transport,
 	}
 
-	request, err := http.NewRequest(http.MethodGet, url, nil)
-	for k, v := range headers {
-		request.Header.Set(k, v)
+	if err := checkSSRF(url); err != nil {
+		return nil, err
 	}
+
+	request, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		logc.Error(context.Background(), fmt.Sprintf("Tools get 请求建立失败, err: %s", err.Error()))
 		return nil, err
+	}
+	for k, v := range headers {
+		request.Header.Set(k, v)
 	}
 	resp, err := client.Do(request)
 	if err != nil {
@@ -66,14 +70,18 @@ func Post(headers map[string]string, url string, bodyReader *bytes.Reader, timeo
 		Transport: transport,
 	}
 
-	request, err := http.NewRequest(http.MethodPost, url, bodyReader)
-	request.Header.Set("Content-Type", "application/json")
-	for k, v := range headers {
-		request.Header.Set(k, v)
+	if err := checkSSRF(url); err != nil {
+		return nil, err
 	}
+
+	request, err := http.NewRequest(http.MethodPost, url, bodyReader)
 	if err != nil {
 		logc.Error(context.Background(), fmt.Sprintf("Tools post 请求建立失败, err: %s", err.Error()))
 		return nil, err
+	}
+	request.Header.Set("Content-Type", "application/json")
+	for k, v := range headers {
+		request.Header.Set(k, v)
 	}
 	resp, err := client.Do(request)
 	if err != nil {
