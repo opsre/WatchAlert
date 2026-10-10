@@ -62,6 +62,9 @@ func (datasourceController datasourceController) API(gin *gin.RouterGroup) {
 		c.POST("searchLogs", datasourceController.SearchLogs)
 		c.GET("query", datasourceController.PromQuery)
 		c.GET("queryRange", datasourceController.PromQueryRange)
+		c.GET("metricNames", datasourceController.PromMetricNames)
+		c.GET("labels", datasourceController.PromLabels)
+		c.GET("labelValues", datasourceController.PromLabelValues)
 	}
 
 }
@@ -228,6 +231,72 @@ func (datasourceController datasourceController) PromQueryRange(ctx *gin.Context
 		}
 
 		return ress, nil
+	})
+}
+
+// promMetadataGet 转发 Prometheus 元数据查询(/api/v1/label/*), 供「指标浏览器」使用。
+// 复用数据源鉴权头(Bearer/Basic)与出站 SSRF 校验。
+func promMetadataGet(datasourceId, pathSuffix string, params url.Values) (interface{}, error) {
+	if datasourceId == "" {
+		return nil, fmt.Errorf("datasourceId 不能为空")
+	}
+	source, err := ctx2.DO().DB.Datasource().Get(datasourceId)
+	if err != nil {
+		return nil, err
+	}
+	if !source.GetEnabled() {
+		return nil, fmt.Errorf("数据源「%s」已被禁用!", source.Name)
+	}
+
+	fullURL := fmt.Sprintf("%s%s", source.HTTP.URL, pathSuffix)
+	if len(params) > 0 {
+		fullURL += "?" + params.Encode()
+	}
+
+	headers := tools.CreateBasicAuthHeader(source.Auth.User, source.Auth.Pass)
+	headers = tools.MergeHeaders(headers, source.HTTP.Headers)
+	get, err := tools.Get(headers, fullURL, 10)
+	if err != nil {
+		return nil, err
+	}
+
+	var res map[string]interface{}
+	if err := tools.ParseReaderBody(get.Body, &res); err != nil {
+		return nil, err
+	}
+	return res["data"], nil
+}
+
+// PromMetricNames 返回数据源全部指标名(基于 __name__ label)。
+func (datasourceController datasourceController) PromMetricNames(ctx *gin.Context) {
+	Service(ctx, func() (interface{}, interface{}) {
+		return promMetadataGet(ctx.Query("datasourceId"), "/api/v1/label/__name__/values", nil)
+	})
+}
+
+// PromLabels 返回数据源 label 名(可选 match[] 限缩到某指标)。
+func (datasourceController datasourceController) PromLabels(ctx *gin.Context) {
+	Service(ctx, func() (interface{}, interface{}) {
+		params := url.Values{}
+		if m := ctx.Query("match"); m != "" {
+			params.Add("match[]", m)
+		}
+		return promMetadataGet(ctx.Query("datasourceId"), "/api/v1/labels", params)
+	})
+}
+
+// PromLabelValues 返回指定 label 的取值(可选 match[] 限缩到某指标)。
+func (datasourceController datasourceController) PromLabelValues(ctx *gin.Context) {
+	Service(ctx, func() (interface{}, interface{}) {
+		name := ctx.Query("name")
+		if name == "" {
+			return nil, fmt.Errorf("label name 不能为空")
+		}
+		params := url.Values{}
+		if m := ctx.Query("match"); m != "" {
+			params.Add("match[]", m)
+		}
+		return promMetadataGet(ctx.Query("datasourceId"), "/api/v1/label/"+name+"/values", params)
 	})
 }
 
