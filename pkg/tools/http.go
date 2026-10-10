@@ -14,24 +14,33 @@ import (
 	"github.com/zeromicro/go-zero/core/logc"
 )
 
-func Get(headers map[string]string, url string, timeout int) (*http.Response, error) {
-	// 统一跳过证书检测，避免存在不安全的https
-	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
-		Proxy:               http.ProxyFromEnvironment,
-		MaxIdleConns:        100,
-		MaxIdleConnsPerHost: 10,
-		IdleConnTimeout:     90 * time.Second,
-		DisableKeepAlives:   false,
-	}
+// defaultTransport 是共享的 HTTP Transport, 通过连接池复用 TCP/TLS 连接,
+// 避免每次 Get/Post 都重新拨号与握手(此前每请求 new 一个 Transport, 连接池失效)。
+// 注意: InsecureSkipVerify 为历史行为(统一跳过证书校验), 属待处理的独立安全项。
+var defaultTransport = &http.Transport{
+	TLSClientConfig: &tls.Config{
+		InsecureSkipVerify: true,
+	},
+	Proxy:               http.ProxyFromEnvironment,
+	MaxIdleConns:        100,
+	MaxIdleConnsPerHost: 10,
+	IdleConnTimeout:     90 * time.Second,
+	DisableKeepAlives:   false,
+}
 
-	client := http.Client{
+// do 执行请求: 复用 defaultTransport 连接池, 用每请求 http.Client 的 Timeout 控制超时。
+// 注意: 不能用 context.WithTimeout + defer cancel 包在返回 response 的外层 ——
+// cancel 会在 do 返回时立即触发, 导致调用方后续 io.ReadAll(resp.Body) 读到
+// "context canceled"(响应体较大、分片传输时必现)。
+func do(request *http.Request, timeout int) (*http.Response, error) {
+	client := &http.Client{
+		Transport: defaultTransport,
 		Timeout:   time.Duration(timeout) * time.Second,
-		Transport: transport,
 	}
+	return client.Do(request)
+}
 
+func Get(headers map[string]string, url string, timeout int) (*http.Response, error) {
 	if err := checkSSRF(url); err != nil {
 		return nil, err
 	}
@@ -44,7 +53,8 @@ func Get(headers map[string]string, url string, timeout int) (*http.Response, er
 	for k, v := range headers {
 		request.Header.Set(k, v)
 	}
-	resp, err := client.Do(request)
+
+	resp, err := do(request, timeout)
 	if err != nil {
 		logc.Error(context.Background(), fmt.Sprintf("Tools get 请求发送失败, err: %s", err.Error()))
 		return nil, err
@@ -54,22 +64,6 @@ func Get(headers map[string]string, url string, timeout int) (*http.Response, er
 }
 
 func Post(headers map[string]string, url string, bodyReader *bytes.Reader, timeout int) (*http.Response, error) {
-	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
-		Proxy:               http.ProxyFromEnvironment,
-		MaxIdleConns:        100,
-		MaxIdleConnsPerHost: 10,
-		IdleConnTimeout:     90 * time.Second,
-		DisableKeepAlives:   false,
-	}
-
-	client := http.Client{
-		Timeout:   time.Duration(timeout) * time.Second,
-		Transport: transport,
-	}
-
 	if err := checkSSRF(url); err != nil {
 		return nil, err
 	}
@@ -83,7 +77,8 @@ func Post(headers map[string]string, url string, bodyReader *bytes.Reader, timeo
 	for k, v := range headers {
 		request.Header.Set(k, v)
 	}
-	resp, err := client.Do(request)
+
+	resp, err := do(request, timeout)
 	if err != nil {
 		logc.Error(context.Background(), fmt.Sprintf("Tools post 请求发送失败, err: %s", err.Error()))
 		return nil, err
