@@ -39,7 +39,8 @@ type Redis struct {
 }
 
 type Jwt struct {
-	Expire int64 `json:"expire"`
+	Expire int64  `json:"expire"`
+	Secret string `json:"secret"` // JWT 签名密钥(HS256), 必须非空
 }
 
 type Jaeger struct {
@@ -62,6 +63,10 @@ func InitConfig(version string) {
 	var config App
 	if err := v.Unmarshal(&config); err != nil {
 		log.Fatal("配置解析失败:", err)
+	}
+
+	if config.Jwt.Secret == "" {
+		log.Fatal("JWT 签名密钥未配置: 请在 config.yaml 的 jwt.secret 设置非空密钥")
 	}
 
 	Version = version

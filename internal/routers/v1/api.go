@@ -2,6 +2,7 @@ package v1
 
 import (
 	"watchAlert/api"
+	"watchAlert/internal/middleware"
 
 	"github.com/gin-gonic/gin"
 )
@@ -15,7 +16,7 @@ func Router(engine *gin.Engine) {
 			system.POST("register", api.UserController.Register)
 			system.POST("login", api.UserController.Login)
 			system.GET("checkUser", api.UserController.CheckUser)
-			system.GET("userInfo", api.UserController.GetUserInfo)
+			system.GET("userInfo", middleware.Auth(), api.UserController.GetUserInfo)
 		}
 
 		w8t := v1.Group("w8t")

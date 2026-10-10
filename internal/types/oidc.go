@@ -7,11 +7,10 @@ type RequestOidcCodeQuery struct {
 }
 
 type OidcInfo struct {
-	AuthType     *int   `json:"authType"`
-	ClientID     string `json:"clientID"`
-	ClientSecret string `json:"clientSecret"`
-	UpperURI     string `json:"upperURI"`
-	RedirectURI  string `json:"redirectURI"`
+	AuthType    *int   `json:"authType"`
+	ClientID    string `json:"clientID"`
+	UpperURI    string `json:"upperURI"`
+	RedirectURI string `json:"redirectURI"`
 }
 
 type OauthToken struct {

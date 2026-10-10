@@ -3,7 +3,7 @@ package middleware
 import (
 	"time"
 	"watchAlert/internal/ctx"
-	"watchAlert/internal/models"
+	"watchAlert/internal/types"
 	"watchAlert/pkg/response"
 	"watchAlert/pkg/tools"
 
@@ -70,15 +70,15 @@ func IsTokenValid(ctx *ctx.Context, tokenStr string) bool {
 	}
 
 	// 密码校验, 当修改密码后其他已登陆的终端会被下线。
-	var user models.Member
+	var loginInfo types.RequestUserLogin
 	result, err := ctx.Redis.Redis().Get("uid-" + token.ID).Result()
 	if err != nil {
 		logc.Errorf(ctx.Ctx, "get user by id error: %v", err)
 		return false
 	}
-	_ = sonic.Unmarshal([]byte(result), &user)
+	_ = sonic.Unmarshal([]byte(result), &loginInfo)
 
-	if token.Pass != user.Password {
+	if token.Pass != loginInfo.Password {
 		return false
 	}
 

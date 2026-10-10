@@ -41,11 +41,10 @@ func (os oidcService) GetOidcInfo() (interface{}, interface{}) {
 	}
 
 	return &types.OidcInfo{
-		AuthType:     setting.AuthType,
-		ClientID:     setting.OidcConfig.ClientID,
-		ClientSecret: setting.OidcConfig.ClientSecret,
-		UpperURI:     setting.OidcConfig.UpperURI,
-		RedirectURI:  setting.OidcConfig.RedirectURI,
+		AuthType:    setting.AuthType,
+		ClientID:    setting.OidcConfig.ClientID,
+		UpperURI:    setting.OidcConfig.UpperURI,
+		RedirectURI: setting.OidcConfig.RedirectURI,
 	}, nil
 }
 
