@@ -34,6 +34,9 @@ func newInterFaultCenterService(ctx *ctx.Context) InterFaultCenterService {
 
 func (f faultCenterService) Create(req interface{}) (data interface{}, err interface{}) {
 	r := req.(*types.RequestFaultCenterCreate)
+	if err := validateNoticeRoutes(r.NoticeRoutes); err != nil {
+		return nil, err
+	}
 	fc := models.FaultCenter{
 		TenantId:             r.TenantId,
 		ID:                   "fc-" + tools.RandId(),
@@ -77,6 +80,9 @@ func (f faultCenterService) Create(req interface{}) (data interface{}, err inter
 
 func (f faultCenterService) Update(req interface{}) (data interface{}, err interface{}) {
 	r := req.(*types.RequestFaultCenterUpdate)
+	if err := validateNoticeRoutes(r.NoticeRoutes); err != nil {
+		return nil, err
+	}
 	fc := models.FaultCenter{
 		TenantId:             r.TenantId,
 		ID:                   r.ID,

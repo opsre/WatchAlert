@@ -57,15 +57,6 @@ func handleAlert(ctx *ctx.Context, processType string, faultCenter models.FaultC
 					continue
 				}
 
-				if processType == "alarm" && !event.IsRecovered {
-					event.LastSendTime = curTime
-					ctx.Redis.Alert().PushAlertEvent(event)
-				}
-
-				if len(routes) == 0 {
-					logc.Infof(ctx.Ctx, "没有匹配的通知策略, 告警事件名称: %s, 通知对象名称: %s", event.RuleName, noticeData.Name)
-				}
-
 				if mute.IsMuted(mute.MuteParams{
 					IsRecovered:   event.IsRecovered,
 					TenantId:      event.TenantId,
@@ -73,6 +64,15 @@ func handleAlert(ctx *ctx.Context, processType string, faultCenter models.FaultC
 					RecoverNotify: faultCenter.RecoverNotify,
 				}) {
 					continue
+				}
+
+				if processType == "alarm" && !event.IsRecovered {
+					event.LastSendTime = curTime
+					ctx.Redis.Alert().PushAlertEvent(event)
+				}
+
+				if len(routes) == 0 {
+					logc.Infof(ctx.Ctx, "没有匹配的通知策略, 告警事件名称: %s, 通知对象名称: %s", event.RuleName, noticeData.Name)
 				}
 
 				for _, route := range routes {

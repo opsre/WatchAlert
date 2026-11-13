@@ -62,43 +62,104 @@ type (
 
 	// AlertRule 告警规则
 	AlertRule struct {
-		ctx *ctx.Context
+		ctx   *ctx.Context
+		mu    sync.Mutex
+		tasks map[string]*alertRuleTask
 	}
 )
 
-func NewAlertRuleEval(ctx *ctx.Context) AlertRuleEval {
+type alertRuleTask struct {
+	cancel context.CancelFunc
+	done   chan struct{}
+}
+
+func NewEvalEngine(ctx *ctx.Context) AlertRuleEval {
 	return &AlertRule{
-		ctx: ctx,
+		ctx:   ctx,
+		tasks: make(map[string]*alertRuleTask),
 	}
 }
 
+// Submit stops the previous task and waits for it before starting the new one.
 func (t *AlertRule) Submit(rule models.AlertRule) {
-	t.ctx.Mux.Lock()
-	defer t.ctx.Mux.Unlock()
+	t.mu.Lock()
+	defer t.mu.Unlock()
 
-	// 先停掉同 ruleId 的旧评估协程, 避免泄漏与重复评估
-	if cancel, exists := t.ctx.ContextMap[rule.RuleId]; exists {
-		cancel()
+	t.stopLocked(rule.RuleId)
+	t.startLocked(rule)
+}
+
+func (t *AlertRule) startLocked(rule models.AlertRule) {
+	taskCtx, cancel := context.WithCancel(t.ctx.Ctx)
+	task := &alertRuleTask{cancel: cancel, done: make(chan struct{})}
+	t.tasks[rule.RuleId] = task
+	go func() {
+		shouldRestart := false
+		defer func() {
+			if r := recover(); r != nil {
+				stack := debug.Stack()
+				logc.Errorf(t.ctx.Ctx, "Recovered from rule eval goroutine panic: %s, RuleName: %s, RuleId: %s\n%s", r, rule.RuleName, rule.RuleId, stack)
+				shouldRestart = taskCtx.Err() == nil
+			}
+
+			close(task.done)
+			if shouldRestart {
+				t.restartAfterPanic(task, taskCtx, rule)
+			}
+		}()
+		t.Eval(taskCtx, rule)
+	}()
+}
+
+func (t *AlertRule) stopLocked(ruleId string) {
+	task, exists := t.tasks[ruleId]
+	if !exists {
+		return
 	}
 
-	c, cancel := context.WithCancel(context.Background())
-	t.ctx.ContextMap[rule.RuleId] = cancel
-	go t.Eval(c, rule)
+	delete(t.tasks, ruleId)
+	task.cancel()
+	<-task.done
+}
+
+func (t *AlertRule) stopWithoutWaitLocked(ruleId string) {
+	if task, exists := t.tasks[ruleId]; exists {
+		delete(t.tasks, ruleId)
+		task.cancel()
+	}
 }
 
 func (t *AlertRule) Stop(ruleId string) {
-	t.ctx.Mux.Lock()
-	defer t.ctx.Mux.Unlock()
-
-	if cancel, exists := t.ctx.ContextMap[ruleId]; exists {
-		cancel()
-		delete(t.ctx.ContextMap, ruleId)
-	}
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.stopLocked(ruleId)
 }
 
 func (t *AlertRule) Restart(rule models.AlertRule) {
-	t.Stop(rule.RuleId)
-	t.Submit(rule)
+	// Restart is called by the task's panic handler. Waiting here would wait for
+	// the current task itself, so cancel it and let it finish without waiting.
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	t.stopWithoutWaitLocked(rule.RuleId)
+	t.startLocked(rule)
+}
+
+func (t *AlertRule) restartAfterPanic(task *alertRuleTask, taskCtx context.Context, rule models.AlertRule) {
+	if taskCtx.Err() != nil {
+		return
+	}
+
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	current, exists := t.tasks[rule.RuleId]
+	if !exists || current != task || taskCtx.Err() != nil {
+		return
+	}
+
+	t.stopWithoutWaitLocked(rule.RuleId)
+	t.startLocked(rule)
 }
 
 func (t *AlertRule) Eval(ctx context.Context, rule models.AlertRule) {
@@ -110,15 +171,7 @@ func (t *AlertRule) Eval(ctx context.Context, rule models.AlertRule) {
 
 	taskChan := make(chan struct{}, TaskChannelBufferSize)
 	timer := time.NewTicker(t.getEvalTimeDuration(rule.EvalInterval))
-	defer func() {
-		timer.Stop()
-		if r := recover(); r != nil {
-			// 获取调用栈信息
-			stack := debug.Stack()
-			logc.Errorf(t.ctx.Ctx, "Recovered from rule eval goroutine panic: %s, RuleName: %s, RuleId: %s\n%s", r, rule.RuleName, rule.RuleId, stack)
-			t.Restart(rule)
-		}
-	}()
+	defer timer.Stop()
 
 	for {
 		select {
@@ -417,20 +470,17 @@ func (t *AlertRule) getRuleList() ([]models.AlertRule, error) {
 
 // StopAllEvals 停止所有评估器
 func (t *AlertRule) StopAllEvals() {
-	t.ctx.Mux.Lock()
-	defer t.ctx.Mux.Unlock()
+	t.mu.Lock()
+	defer t.mu.Unlock()
 
-	count := len(t.ctx.ContextMap)
+	count := len(t.tasks)
 	if count == 0 {
 		return
 	}
 
 	logc.Infof(t.ctx.Ctx, "停止 %d 个规则评估器...", count)
-
-	// 取消所有评估任务
-	for ruleId, cancel := range t.ctx.ContextMap {
-		cancel()
-		delete(t.ctx.ContextMap, ruleId)
+	for ruleId := range t.tasks {
+		t.stopLocked(ruleId)
 	}
 
 	logc.Infof(t.ctx.Ctx, "所有规则评估器已停止")

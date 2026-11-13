@@ -40,7 +40,7 @@ func (r RecordingRuleGroupRepo) List(tenantId, query string, page models.Page) (
 	db.Where("tenant_id = ?", tenantId)
 
 	if query != "" {
-		db.Where("name LIKE ? OR description LIKE ?", "%"+query+"%", "%"+query+"%")
+		db.Where("name LIKE ?", "%"+query+"%")
 	}
 
 	db.Count(&count)

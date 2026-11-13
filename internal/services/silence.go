@@ -2,6 +2,7 @@ package services
 
 import (
 	"time"
+	"watchAlert/alert/mute"
 	"watchAlert/internal/ctx"
 	models "watchAlert/internal/models"
 	"watchAlert/internal/types"
@@ -28,6 +29,9 @@ func newInterSilenceService(ctx *ctx.Context) InterSilenceService {
 
 func (ass alertSilenceService) Create(req interface{}) (interface{}, interface{}) {
 	r := req.(*types.RequestSilenceCreate)
+	if err := validateSilenceLabels(r.Labels); err != nil {
+		return nil, err
+	}
 	updateAt := time.Now().Unix()
 	silence := models.AlertSilences{
 		TenantId:      r.TenantId,
@@ -48,6 +52,7 @@ func (ass alertSilenceService) Create(req interface{}) (interface{}, interface{}
 	}
 
 	ass.ctx.Redis.Silence().PushAlertMute(silence)
+	mute.InvalidateSilenceCache(silence.TenantId)
 	err := ass.ctx.DB.Silence().Create(silence)
 	if err != nil {
 		return nil, err
@@ -58,6 +63,9 @@ func (ass alertSilenceService) Create(req interface{}) (interface{}, interface{}
 
 func (ass alertSilenceService) Update(req interface{}) (interface{}, interface{}) {
 	r := req.(*types.RequestSilenceUpdate)
+	if err := validateSilenceLabels(r.Labels); err != nil {
+		return nil, err
+	}
 	silence := models.AlertSilences{
 		TenantId:      r.TenantId,
 		Name:          r.Name,
@@ -79,6 +87,7 @@ func (ass alertSilenceService) Update(req interface{}) (interface{}, interface{}
 	}
 
 	ass.ctx.Redis.Silence().PushAlertMute(silence)
+	mute.InvalidateSilenceCache(silence.TenantId)
 	err := ass.ctx.DB.Silence().Update(silence)
 	if err != nil {
 		return nil, err
@@ -90,6 +99,7 @@ func (ass alertSilenceService) Update(req interface{}) (interface{}, interface{}
 func (ass alertSilenceService) Delete(req interface{}) (interface{}, interface{}) {
 	r := req.(*types.RequestSilenceQuery)
 	ass.ctx.Redis.Silence().RemoveAlertMute(r.TenantId, r.ID)
+	mute.InvalidateSilenceCache(r.TenantId)
 	err := ass.ctx.DB.Silence().Delete(r.TenantId, r.ID)
 	if err != nil {
 		return nil, err

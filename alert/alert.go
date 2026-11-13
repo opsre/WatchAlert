@@ -2,9 +2,11 @@ package alert
 
 import (
 	"context"
+	"sync"
 	"watchAlert/alert/consumer"
 	"watchAlert/alert/eval"
-	probing "watchAlert/alert/probe"
+	"watchAlert/alert/probe"
+	"watchAlert/alert/silence"
 	"watchAlert/config"
 	"watchAlert/internal/ctx"
 	"watchAlert/pkg/client"
@@ -17,7 +19,7 @@ var (
 	AlertRule    eval.AlertRuleEval
 	ConsumerWork consumer.ConsumeInterface
 
-	Probe *probing.ProbeService
+	Probe *probe.ProbeService
 
 	RecordingRule eval.RecordingRuleEval
 
@@ -26,6 +28,10 @@ var (
 
 	// 消息订阅取消函数
 	subscriberCancels []context.CancelFunc
+	subscriberWG      sync.WaitGroup
+
+	// Leader 生命周期锁，确保加载和卸载不会并行执行
+	lifecycleMu sync.Mutex
 
 	// 选举开关
 	leaderElectionEnabled bool
@@ -33,14 +39,15 @@ var (
 
 func Initialize(ctx *ctx.Context) {
 	// 初始化告警规则评估任务
-	AlertRule = eval.NewAlertRuleEval(ctx)
-	ConsumerWork = consumer.NewConsumerWork(ctx)
+	AlertRule = eval.NewEvalEngine(ctx)
+	ConsumerWork = consumer.NewConsumerEngine(ctx)
+	silence.NewSilenceEngine(ctx)
 
 	// 初始化拨测任务
-	Probe = probing.NewProbeService(ctx)
+	Probe = probe.NewProbeEngine(ctx)
 
 	// 初始化记录规则评估任务
-	RecordingRule = eval.NewRecordingRuleEval(ctx)
+	RecordingRule = eval.NewRecordingEngine(ctx)
 
 	// 检查 Leader 选举是否启用
 	leaderElectionEnabled = config.Application.Server.EnableElection
@@ -63,6 +70,9 @@ func Initialize(ctx *ctx.Context) {
 
 // loadRules 加载所有规则(成为 Leader 时调用)
 func loadRules() {
+	lifecycleMu.Lock()
+	defer lifecycleMu.Unlock()
+
 	logc.Infof(ctx.Ctx, "本节点为 Leader 节点，开始加载规则...")
 
 	// 重启所有告警规则评估器
@@ -85,34 +95,52 @@ func loadRules() {
 
 // startMessageSubscribers 启动消息订阅器
 func startMessageSubscribers() {
-	subscriberCancels = make([]context.CancelFunc, 0)
+	// 防止重复加载时保留旧订阅
+	stopMessageSubscribers()
+	subscriberCancels = make([]context.CancelFunc, 0, 4)
 
 	// 订阅告警规则重载消息
 	subCtx1, cancel1 := context.WithCancel(ctx.Ctx)
 	subscriberCancels = append(subscriberCancels, cancel1)
-	go tools.SubscribeReloadMessages(subCtx1, client.Redis, tools.ChannelRuleReload, handleRuleReload)
+	subscriberWG.Add(1)
+	go func() {
+		defer subscriberWG.Done()
+		tools.SubscribeReloadMessages(subCtx1, client.Redis, tools.ChannelRuleReload, handleRuleReload)
+	}()
 
 	// 订阅记录规则重载消息
 	subCtx2, cancel2 := context.WithCancel(ctx.Ctx)
 	subscriberCancels = append(subscriberCancels, cancel2)
-	go tools.SubscribeReloadMessages(subCtx2, client.Redis, tools.ChannelRecordingRuleReload, handleRecordingRuleReload)
+	subscriberWG.Add(1)
+	go func() {
+		defer subscriberWG.Done()
+		tools.SubscribeReloadMessages(subCtx2, client.Redis, tools.ChannelRecordingRuleReload, handleRecordingRuleReload)
+	}()
 
 	// 订阅故障中心重载消息
 	subCtx3, cancel3 := context.WithCancel(ctx.Ctx)
 	subscriberCancels = append(subscriberCancels, cancel3)
-	go tools.SubscribeReloadMessages(subCtx3, client.Redis, tools.ChannelFaultCenterReload, handleFaultCenterReload)
+	subscriberWG.Add(1)
+	go func() {
+		defer subscriberWG.Done()
+		tools.SubscribeReloadMessages(subCtx3, client.Redis, tools.ChannelFaultCenterReload, handleFaultCenterReload)
+	}()
 
 	// 订阅拨测规则重载消息
 	subCtx4, cancel4 := context.WithCancel(ctx.Ctx)
 	subscriberCancels = append(subscriberCancels, cancel4)
-	go tools.SubscribeReloadMessages(subCtx4, client.Redis, tools.ChannelProbingReload, handleProbingReload)
+	subscriberWG.Add(1)
+	go func() {
+		defer subscriberWG.Done()
+		tools.SubscribeReloadMessages(subCtx4, client.Redis, tools.ChannelProbingReload, handleProbingReload)
+	}()
 }
 
-// stopMessageSubscribers 停止消息订阅器
 func stopMessageSubscribers() {
 	for _, cancel := range subscriberCancels {
 		cancel()
 	}
+	subscriberWG.Wait()
 	subscriberCancels = nil
 	logc.Infof(ctx.Ctx, "消息订阅器已停止")
 }
@@ -239,6 +267,9 @@ func handleProbingReload(msg tools.ReloadMessage) {
 
 // unloadRules 卸载所有规则(失去 Leader 时调用)
 func unloadRules() {
+	lifecycleMu.Lock()
+	defer lifecycleMu.Unlock()
+
 	logc.Infof(ctx.Ctx, "本节点失去 Leader 身份，停止所有任务...")
 
 	// 停止消息订阅

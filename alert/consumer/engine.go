@@ -3,13 +3,14 @@ package consumer
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"runtime/debug"
 	"sync"
 	"time"
+	"watchAlert/alert/mute"
 	"watchAlert/alert/process"
 	"watchAlert/internal/ctx"
 	"watchAlert/internal/models"
+	"watchAlert/pkg/tools"
 
 	"github.com/zeromicro/go-zero/core/logc"
 	"golang.org/x/sync/errgroup"
@@ -19,13 +20,24 @@ const (
 	// 任务通道缓冲区大小
 	TaskChannelBufferSize = 1
 
-	// 默认处理时间间隔
-	DefaultProcessTime = 1
+	// 默认处理时间间隔，2s
+	DefaultProcessTime = 2
 
 	// 状态前缀
 	RecoverStatePrefix = "Recover_"
 	FiringStatePrefix  = "Firing_"
+
+	// 消费者 panic 重启策略
+	ConsumerRestartMaxAttempts = 5
+	ConsumerRestartBaseDelay   = time.Second
+	ConsumerRestartMaxDelay    = 30 * time.Second
+	ConsumerRestartResetAfter  = time.Minute
 )
+
+type consumerTask struct {
+	cancel context.CancelFunc
+	done   chan struct{}
+}
 
 type (
 	ConsumeInterface interface {
@@ -39,6 +51,9 @@ type (
 	Consume struct {
 		ctx *ctx.Context
 		sync.RWMutex
+		taskMu        sync.Mutex
+		tasks         map[string]*consumerTask
+		restartPolicy consumerRestartPolicy
 	}
 
 	EventsGroup struct {
@@ -113,54 +128,117 @@ func (ag *AlertGroups) getNoticeId(alert *models.AlertCurEvent, faultCenter mode
 	return faultCenter.NoticeIds
 }
 
-func NewConsumerWork(ctx *ctx.Context) ConsumeInterface {
+func NewConsumerEngine(ctx *ctx.Context) ConsumeInterface {
 	return &Consume{
-		ctx: ctx,
+		ctx:   ctx,
+		tasks: make(map[string]*consumerTask),
 	}
 }
 
 func (c *Consume) Submit(faultCenter models.FaultCenter) {
-	c.ctx.Mux.Lock()
-	defer c.ctx.Mux.Unlock()
+	c.taskMu.Lock()
+	defer c.taskMu.Unlock()
 
-	// 先停掉同 faultCenter 的旧消费协程, 避免泄漏
-	if cancel, exists := c.ctx.ContextMap[faultCenter.ID]; exists {
-		cancel()
+	c.stopLocked(faultCenter.ID)
+	c.startLocked(faultCenter)
+}
+
+func (c *Consume) startLocked(faultCenter models.FaultCenter) {
+	watchCtx, cancel := context.WithCancel(c.ctx.Ctx)
+	task := &consumerTask{cancel: cancel, done: make(chan struct{})}
+	c.tasks[faultCenter.ID] = task
+	go func() {
+		shouldRestart := false
+		defer func() {
+			if r := recover(); r != nil {
+				if watchCtx.Err() == nil {
+					stack := debug.Stack()
+					logc.Error(c.ctx.Ctx, fmt.Sprintf("Recovered from consumer watch goroutine panic: %s, FaultCenterName: %s, Id: %s\n%s", r, faultCenter.Name, faultCenter.ID, stack))
+					shouldRestart = true
+				}
+			}
+
+			close(task.done)
+			if shouldRestart {
+				c.restartAfterPanic(watchCtx, faultCenter, task)
+			}
+		}()
+		c.Watch(watchCtx, faultCenter)
+	}()
+}
+
+func (c *Consume) stopLocked(faultCenterID string) {
+	task, exists := c.tasks[faultCenterID]
+	if !exists {
+		return
 	}
 
-	withCtx, cancel := context.WithCancel(context.Background())
-	c.ctx.ContextMap[faultCenter.ID] = cancel
-	go c.Watch(withCtx, faultCenter)
+	delete(c.tasks, faultCenterID)
+	task.cancel()
+	<-task.done
+}
+
+func (c *Consume) stopWithoutWaitLocked(faultCenterID string) {
+	if task, exists := c.tasks[faultCenterID]; exists {
+		delete(c.tasks, faultCenterID)
+		task.cancel()
+	}
 }
 
 func (c *Consume) Stop(faultCenterId string) {
-	c.ctx.Mux.Lock()
-	defer c.ctx.Mux.Unlock()
-
-	if cancel, exists := c.ctx.ContextMap[faultCenterId]; exists {
-		cancel()
-		delete(c.ctx.ContextMap, faultCenterId)
-	}
+	c.taskMu.Lock()
+	defer c.taskMu.Unlock()
+	c.stopLocked(faultCenterId)
 }
 
 func (c *Consume) Restart(faultCenter models.FaultCenter) {
-	c.Stop(faultCenter.ID)
-	c.Submit(faultCenter)
+	// Panic recovery runs from the Consumer task itself. Waiting here would wait
+	// for the current task, so cancel the old task without waiting.
+	c.taskMu.Lock()
+	defer c.taskMu.Unlock()
+
+	c.stopWithoutWaitLocked(faultCenter.ID)
+	c.startLocked(faultCenter)
+}
+
+func (c *Consume) restartAfterPanic(watchCtx context.Context, faultCenter models.FaultCenter, task *consumerTask) {
+	if watchCtx.Err() != nil {
+		return
+	}
+
+	delay, ok := c.restartPolicy.next(faultCenter.ID, time.Now())
+	if !ok {
+		logc.Errorf(c.ctx.Ctx, "consumer restart limit reached, FaultCenterName: %s, Id: %s", faultCenter.Name, faultCenter.ID)
+		return
+	}
+
+	logc.Errorf(c.ctx.Ctx, "consumer will restart after %s, FaultCenterName: %s, Id: %s", delay, faultCenter.Name, faultCenter.ID)
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+
+	select {
+	case <-timer.C:
+		c.taskMu.Lock()
+		defer c.taskMu.Unlock()
+		if watchCtx.Err() != nil {
+			return
+		}
+		current, exists := c.tasks[faultCenter.ID]
+		if !exists || current != task {
+			return
+		}
+		c.stopWithoutWaitLocked(faultCenter.ID)
+		c.startLocked(faultCenter)
+	case <-watchCtx.Done():
+		return
+	}
 }
 
 // Watch 启动 Consumer Watch 进程
 func (c *Consume) Watch(ctx context.Context, faultCenter models.FaultCenter) {
 	taskChan := make(chan struct{}, TaskChannelBufferSize)
 	timer := time.NewTicker(time.Second * time.Duration(DefaultProcessTime))
-	defer func() {
-		timer.Stop()
-		if r := recover(); r != nil {
-			// 获取调用栈信息
-			stack := debug.Stack()
-			logc.Error(c.ctx.Ctx, fmt.Sprintf("Recovered from consumer watch goroutine panic: %s, FaultCenterName: %s, Id: %s\n%s", r, faultCenter.Name, faultCenter.ID, stack))
-			c.Restart(faultCenter)
-		}
-	}()
+	defer timer.Stop()
 
 	for {
 		select {
@@ -180,14 +258,16 @@ func (c *Consume) executeTask(faultCenter models.FaultCenter, taskChan chan stru
 		// 释放任务信号量
 		<-taskChan
 	}()
-	// 处理静默规则
-	c.processSilenceRule(faultCenter)
+
 	// 获取故障中心的所有告警事件
 	data, err := c.ctx.Redis.Alert().GetAllEvents(models.BuildAlertEventCacheKey(faultCenter.TenantId, faultCenter.ID))
 	if err != nil {
 		logc.Errorf(c.ctx.Ctx, "从 Redis 中获取事件信息错误, faultCenterKey: %s, err: %s", models.BuildAlertEventCacheKey(faultCenter.TenantId, faultCenter.ID), err.Error())
 		return
 	}
+
+	// 同步状态
+	c.syncStates(data)
 
 	// 事件过滤
 	filterEvents := c.filterAlertEvents(faultCenter, data)
@@ -202,6 +282,47 @@ func (c *Consume) executeTask(faultCenter models.FaultCenter, taskChan chan stru
 	err = alarmUpgrade(c.ctx, faultCenter, data)
 	if err != nil {
 		logc.Error(c.ctx.Ctx, fmt.Sprintf("process alarm upgeade fail, err: %s", err.Error()))
+	}
+}
+
+func (c *Consume) syncStates(alerts map[string]*models.AlertCurEvent) {
+	for _, event := range alerts {
+		if event == nil || event.IsRecovered {
+			continue
+		}
+
+		currentStatus := event.GetEventStatus()
+		event.Status = currentStatus
+		muted := mute.IsSilence(mute.MuteParams{
+			TenantId: event.TenantId,
+			Labels:   event.Labels,
+		})
+
+		if currentStatus == models.StateMuting {
+			if muted {
+				continue
+			}
+
+			if err := event.TransitionStatus(models.StateAlerting); err != nil {
+				logc.Errorf(c.ctx.Ctx, "解除静默状态失败, fingerprint=%s, err=%v", event.Fingerprint, err)
+				continue
+			}
+			c.ctx.Redis.Alert().PushAlertEvent(event)
+			continue
+		}
+
+		if !muted {
+			continue
+		}
+
+		switch currentStatus {
+		case models.StateAlerting:
+			if err := event.TransitionStatus(models.StateMuting); err != nil {
+				logc.Errorf(c.ctx.Ctx, "设置静默状态失败, fingerprint=%s, status=%s, err=%v", event.Fingerprint, currentStatus, err)
+				continue
+			}
+			c.ctx.Redis.Alert().PushAlertEvent(event)
+		}
 	}
 }
 
@@ -303,64 +424,19 @@ func (c *Consume) RestartAllConsumers() {
 	}
 }
 
-func (c *Consume) processSilenceRule(faultCenter models.FaultCenter) {
-	currentTime := time.Now().Unix()
-	silenceCtx := c.ctx.Redis.Silence()
-	// 获取静默列表中所有的id
-	silenceIds, err := silenceCtx.GetAlertMutes(faultCenter.TenantId)
-	if err != nil {
-		logc.Error(ctx.Ctx, err.Error())
-		return
-	}
-
-	// 根据ID获取到详细的静默规则
-	for _, silenceId := range silenceIds {
-		muteRule, err := silenceCtx.WithIdGetMuteFromCache(faultCenter.TenantId, silenceId)
-		if err != nil {
-			logc.Error(ctx.Ctx, err.Error())
-			return
-		}
-
-		// 如果当前状态为「未生效」，并且生效时间大于等于当前时间，则标记为「生效中」状态
-		if muteRule.Status == 0 && currentTime >= muteRule.StartsAt {
-			muteRule.Status = 1
-			err := c.ctx.DB.Silence().Update(*muteRule)
-			if err != nil {
-				logc.Error(c.ctx.Ctx, fmt.Sprintf("Update silence rule failed, err: %s", err.Error()))
-				return
-			}
-		}
-
-		// 如果到达失效日期，则标记「已失效」状态
-		if muteRule.EndsAt <= currentTime {
-			muteRule.Status = 2
-			err := c.ctx.DB.Silence().Update(*muteRule)
-			if err != nil {
-				logc.Error(c.ctx.Ctx, fmt.Sprintf("Update silence rule failed, err: %s", err.Error()))
-				return
-			}
-		}
-
-		silenceCtx.PushAlertMute(*muteRule)
-	}
-}
-
 // StopAllConsumers 停止所有消费者
 func (c *Consume) StopAllConsumers() {
-	c.ctx.Mux.Lock()
-	defer c.ctx.Mux.Unlock()
+	c.taskMu.Lock()
+	defer c.taskMu.Unlock()
 
-	count := len(c.ctx.ContextMap)
+	count := len(c.tasks)
 	if count == 0 {
 		return
 	}
 
 	logc.Infof(c.ctx.Ctx, "停止 %d 个故障中心消费者...", count)
-
-	// 取消所有消费任务
-	for fcId, cancel := range c.ctx.ContextMap {
-		cancel()
-		delete(c.ctx.ContextMap, fcId)
+	for faultCenterID := range c.tasks {
+		c.stopLocked(faultCenterID)
 	}
 
 	logc.Infof(c.ctx.Ctx, "所有故障中心消费者已停止")
@@ -385,9 +461,11 @@ func evalCondition(metrics map[string]interface{}, noticeLabels []models.NoticeL
 		case "!=":
 			matched = (val != noticeLabel.Value)
 		case "=~":
-			matched = regexp.MustCompile(noticeLabel.Value).MatchString(val)
+			matched, _ = tools.MatchRegexp(noticeLabel.Value, val)
 		case "!~":
-			matched = !regexp.MustCompile(noticeLabel.Value).MatchString(val)
+			if regexpMatched, err := tools.MatchRegexp(noticeLabel.Value, val); err == nil {
+				matched = !regexpMatched
+			}
 		default:
 			matched = false
 		}

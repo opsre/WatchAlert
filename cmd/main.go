@@ -91,17 +91,29 @@ func initBasic() {
 	}
 
 	if r.AuthType != nil && *r.AuthType == models.SettingLdapAuth {
-		const mark = "SyncLdapUserJob"
-		c, cancel := context.WithCancel(context.Background())
-		ctx.ContextMap[mark] = cancel
-		go services.LdapService.SyncUsersCronjob(c, r.LdapConfig)
+		c, cancel := context.WithCancel(ctx.Ctx)
+		done := make(chan struct{})
+		ctx.BackgroundTaskMu.Lock()
+		ctx.LdapCancel = cancel
+		ctx.LdapDone = done
+		ctx.BackgroundTaskMu.Unlock()
+		go func() {
+			defer close(done)
+			services.LdapService.SyncUsersCronjob(c, r.LdapConfig)
+		}()
 	}
 
 	// 启动年度值班表生成定时任务
-	const dutyScheduleMark = "GenerateDutyScheduleJob"
-	dutyScheduleCtx, dutyScheduleCancelFunc := context.WithCancel(context.Background())
-	ctx.ContextMap[dutyScheduleMark] = dutyScheduleCancelFunc
-	go services.DutyCalendarService.GenerateNextYearScheduleCronjob(dutyScheduleCtx)
+	c, dutyScheduleCancelFunc := context.WithCancel(ctx.Ctx)
+	dutyScheduleDone := make(chan struct{})
+	ctx.BackgroundTaskMu.Lock()
+	ctx.DutyScheduleCancel = dutyScheduleCancelFunc
+	ctx.DutyScheduleDone = dutyScheduleDone
+	ctx.BackgroundTaskMu.Unlock()
+	go func() {
+		defer close(dutyScheduleDone)
+		services.DutyCalendarService.GenerateNextYearScheduleCronjob(c)
+	}()
 
 	if r.AiConfig.GetEnable() {
 		client, err := ai.NewAiClient(&r.AiConfig)

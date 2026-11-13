@@ -14,18 +14,23 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+type probeTask struct {
+	cancel context.CancelFunc
+	done   chan struct{}
+}
+
 // ProbeService 拨测服务
 type ProbeService struct {
 	ctx         *ctx.Context
-	watchCtxMap map[string]context.CancelFunc
+	watchCtxMap map[string]*probeTask
 	mu          sync.RWMutex
 }
 
-// NewProbeService 创建新的拨测服务
-func NewProbeService(ctx *ctx.Context) *ProbeService {
+// NewProbeEngine 创建新的拨测服务
+func NewProbeEngine(ctx *ctx.Context) *ProbeService {
 	return &ProbeService{
 		ctx:         ctx,
-		watchCtxMap: make(map[string]context.CancelFunc),
+		watchCtxMap: make(map[string]*probeTask),
 	}
 }
 
@@ -39,11 +44,15 @@ func (s *ProbeService) Add(rule models.ProbeRule) error {
 		return fmt.Errorf("rule %s already exists", rule.RuleId)
 	}
 
-	c, cancel := context.WithCancel(s.ctx.Ctx)
-	s.watchCtxMap[rule.RuleId] = cancel
+	taskCtx, cancel := context.WithCancel(s.ctx.Ctx)
+	task := &probeTask{cancel: cancel, done: make(chan struct{})}
+	s.watchCtxMap[rule.RuleId] = task
 
 	// 启动拨测协程
-	go s.runProbing(c, rule)
+	go func() {
+		defer close(task.done)
+		s.runProbing(taskCtx, rule)
+	}()
 
 	logc.Infof(s.ctx.Ctx, "Added probing rule: %s (%s)", rule.RuleName, rule.RuleType)
 	return nil
@@ -54,13 +63,14 @@ func (s *ProbeService) Stop(ruleID string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	cancel, exists := s.watchCtxMap[ruleID]
+	task, exists := s.watchCtxMap[ruleID]
 	if !exists {
 		return fmt.Errorf("rule %s not found", ruleID)
 	}
 
-	cancel()
+	task.cancel()
 	delete(s.watchCtxMap, ruleID)
+	<-task.done
 	return nil
 }
 
@@ -77,9 +87,10 @@ func (s *ProbeService) StopAll() error {
 	logc.Infof(s.ctx.Ctx, "Stopping %d probing tasks...", count)
 
 	// 取消所有拨测任务
-	for ruleID, cancel := range s.watchCtxMap {
-		cancel()
+	for ruleID, task := range s.watchCtxMap {
+		task.cancel()
 		delete(s.watchCtxMap, ruleID)
+		<-task.done
 	}
 
 	logc.Infof(s.ctx.Ctx, "All probing tasks stopped")

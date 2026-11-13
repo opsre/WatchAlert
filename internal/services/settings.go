@@ -40,16 +40,30 @@ func (a settingService) Save(req interface{}) (interface{}, interface{}) {
 		}
 	}
 
-	const mark = "SyncLdapUserJob"
-	if cancel, exists := a.ctx.ContextMap[mark]; exists {
-		cancel()
-		delete(a.ctx.ContextMap, mark)
+	a.ctx.BackgroundTaskMu.Lock()
+	ldapCancel := a.ctx.LdapCancel
+	ldapDone := a.ctx.LdapDone
+	a.ctx.LdapCancel = nil
+	a.ctx.LdapDone = nil
+	if ldapCancel != nil {
+		ldapCancel()
+	}
+	a.ctx.BackgroundTaskMu.Unlock()
+	if ldapDone != nil {
+		<-ldapDone
 	}
 
 	if r.AuthType != nil && *r.AuthType == models.SettingLdapAuth {
-		c, cancel := context.WithCancel(context.Background())
-		a.ctx.ContextMap[mark] = cancel
-		go LdapService.SyncUsersCronjob(c, r.LdapConfig)
+		c, cancel := context.WithCancel(a.ctx.Ctx)
+		done := make(chan struct{})
+		a.ctx.BackgroundTaskMu.Lock()
+		a.ctx.LdapCancel = cancel
+		a.ctx.LdapDone = done
+		a.ctx.BackgroundTaskMu.Unlock()
+		go func() {
+			defer close(done)
+			LdapService.SyncUsersCronjob(c, r.LdapConfig)
+		}()
 	}
 
 	if r.AiConfig.GetEnable() {

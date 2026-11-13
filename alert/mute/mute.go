@@ -1,11 +1,8 @@
 package mute
 
 import (
-	"regexp"
-	"watchAlert/internal/ctx"
-	models "watchAlert/internal/models"
-
-	"github.com/zeromicro/go-zero/core/logc"
+	"watchAlert/internal/models"
+	"watchAlert/pkg/tools"
 )
 
 type MuteParams struct {
@@ -36,23 +33,11 @@ func RecoverNotify(mp MuteParams) bool {
 }
 
 // IsSilence 判断是否静默
+// 静默规则列表通过进程内缓存读取（getTenantSilences），
+// 避免高事件量场景下对每个事件重复发起 Redis 请求。
+// 规则变更后通过 InvalidateSilenceCache 主动失效。
 func IsSilence(mute MuteParams) bool {
-	silenceCtx := ctx.Redis.Silence()
-	// 获取静默列表中所有的id
-	ids, err := silenceCtx.GetAlertMutes(mute.TenantId)
-	if err != nil {
-		logc.Errorf(ctx.Ctx, err.Error())
-		return false
-	}
-
-	// 根据ID获取到详细的静默规则
-	for _, id := range ids {
-		muteRule, err := silenceCtx.WithIdGetMuteFromCache(mute.TenantId, id)
-		if err != nil {
-			logc.Errorf(ctx.Ctx, err.Error())
-			return false
-		}
-
+	for _, muteRule := range getTenantSilences(mute.TenantId) {
 		if muteRule.Status != 1 {
 			continue
 		}
@@ -84,9 +69,11 @@ func evalCondition(metrics map[string]interface{}, muteLabels []models.SilenceLa
 		case "!=":
 			matched = (val != muteLabel.Value)
 		case "=~":
-			matched = regexp.MustCompile(muteLabel.Value).MatchString(val)
+			matched, _ = tools.MatchRegexp(muteLabel.Value, val)
 		case "!~":
-			matched = !regexp.MustCompile(muteLabel.Value).MatchString(val)
+			if regexpMatched, err := tools.MatchRegexp(muteLabel.Value, val); err == nil {
+				matched = !regexpMatched
+			}
 		default:
 			matched = false
 		}

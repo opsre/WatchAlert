@@ -22,15 +22,15 @@ type compiledRule struct {
 	expectedValue float64
 }
 
-// metricEvalContext 收敛一次 Prometheus 规则评估过程中保持不变的公共依赖，
-// 避免在各步骤函数之间传递大量重复参数。
+// metricEvalContext 收敛一次 Prometheus 规则评估过程中保持不变的公共依赖
 type metricEvalContext struct {
-	ctx            *ctx.Context
-	rule           models.AlertRule
-	datasourceId   string
-	prometheus     provider.PrometheusProvider
-	externalLabels map[string]interface{}
-	cachedEvents   map[string]*models.AlertCurEvent
+	ctx             *ctx.Context
+	rule            models.AlertRule
+	datasourceId    string
+	prometheus      provider.PrometheusProvider
+	externalLabels  map[string]interface{}
+	cachedEvents    map[string]*models.AlertCurEvent
+	callbackResults map[string][]provider.Metrics
 }
 
 // metrics Prometheus 数据源评估入口。
@@ -56,12 +56,13 @@ func metrics(c *ctx.Context, datasourceId, _ string, rule models.AlertRule) []st
 	}
 
 	evalCtx := &metricEvalContext{
-		ctx:            c,
-		rule:           rule,
-		datasourceId:   datasourceId,
-		prometheus:     prometheus,
-		externalLabels: prometheus.GetExternalLabels(),
-		cachedEvents:   getAlertEvents(c, rule),
+		ctx:             c,
+		rule:            rule,
+		datasourceId:    datasourceId,
+		prometheus:      prometheus,
+		externalLabels:  prometheus.GetExternalLabels(),
+		cachedEvents:    getAlertEvents(c, rule),
+		callbackResults: make(map[string][]provider.Metrics),
 	}
 
 	return evalCtx.evalSeries(series, rules)
@@ -137,7 +138,7 @@ func (e *metricEvalContext) triggerMatchedRules(matched []compiledRule, metricLa
 		event := e.buildAlertEvent(fingerprint, metricLabels, value, rule)
 		desiredStatus := metricEventStatus(e.cachedEvents[fingerprint], rule, highestPriority)
 
-		processCallbackPromQL(e.ctx, e.prometheus, e.rule.PrometheusConfig.CallbakPromQLs, event.Labels)
+		e.processCallbackPromQL(e.rule.PrometheusConfig.CallbakPromQLs, event.Labels)
 		if desiredStatus == "" {
 			process.PushEventToFaultCenter(e.ctx, &event)
 		} else {
@@ -283,18 +284,18 @@ func cloneLabels(labels map[string]interface{}) map[string]interface{} {
 }
 
 // processCallbackPromQL 对渲染后相同的回调查询语句只执行一次查询。
-func processCallbackPromQL(c *ctx.Context, prometheus provider.PrometheusProvider, callbacks []models.CallbakPromQLs, labels map[string]interface{}) {
-	results := make(map[string][]provider.Metrics, len(callbacks))
+// 查询结果缓存在评估上下文中，跨时间序列、跨规则共享
+func (e *metricEvalContext) processCallbackPromQL(callbacks []models.CallbakPromQLs, labels map[string]interface{}) {
 	for _, callback := range callbacks {
 		query := tools.ParserVariables(callback.Value, map[string]interface{}{"labels": labels})
-		result, queried := results[query]
+		result, queried := e.callbackResults[query]
 		if !queried {
 			var err error
-			result, err = prometheus.Query(query)
+			result, err = e.prometheus.Query(query)
 			if err != nil {
-				logc.Errorf(c.Ctx, "query callback promql error: %v, callback_key: %s, callback_promql: %s", err, callback.Key, callback.Value)
+				logc.Errorf(e.ctx.Ctx, "query callback promql error: %v, callback_key: %s, callback_promql: %s", err, callback.Key, callback.Value)
 			}
-			results[query] = result
+			e.callbackResults[query] = result
 		}
 		if len(result) > 0 {
 			labels[callback.Key] = result[0].GetValue()

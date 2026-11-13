@@ -82,8 +82,8 @@ func (rr RuleRepo) List(tenantId, ruleGroupId, datasourceType, query, status str
 	}
 
 	if query != "" {
-		db.Where("rule_id LIKE ? OR rule_name LIKE ? OR description LIKE ?",
-			"%"+query+"%", "%"+query+"%", "%"+query+"%")
+		db.Where("rule_id LIKE ? OR rule_name LIKE ?",
+			"%"+query+"%", "%"+query+"%")
 	}
 
 	if status != "all" {

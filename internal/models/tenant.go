@@ -4,7 +4,6 @@ type Tenant struct {
 	ID               string `json:"id"`
 	Name             string `json:"name"`
 	Manager          string `json:"manager"`
-	Description      string `json:"description"`
 	UserNumber       int64  `json:"userNumber"`
 	RuleNumber       int64  `json:"ruleNumber"`
 	DutyNumber       int64  `json:"dutyNumber"`

@@ -1,8 +1,9 @@
 package repo
 
 import (
-	"gorm.io/gorm"
 	"watchAlert/internal/models"
+
+	"gorm.io/gorm"
 )
 
 type (
@@ -36,8 +37,8 @@ func (rtg RuleTmplGroupRepo) List(groupType, query string, page models.Page) ([]
 	db := rtg.db.Model(&models.RuleTemplateGroup{})
 	db.Where("type = ?", groupType)
 	if query != "" {
-		db.Where("name LIKE ? OR description LIKE ?",
-			"%"+query+"%", "%"+query+"%")
+		db.Where("name LIKE ?",
+			"%"+query+"%")
 	}
 
 	db.Count(&count)

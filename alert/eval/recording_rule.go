@@ -25,40 +25,104 @@ type (
 
 	// RecordingRule 记录规则
 	RecordingRule struct {
-		ctx *ctx.Context
+		ctx   *ctx.Context
+		mu    sync.Mutex
+		tasks map[string]*recordingRuleTask
 	}
 )
 
-func NewRecordingRuleEval(ctx *ctx.Context) RecordingRuleEval {
+type recordingRuleTask struct {
+	cancel context.CancelFunc
+	done   chan struct{}
+}
+
+func NewRecordingEngine(ctx *ctx.Context) RecordingRuleEval {
 	return &RecordingRule{
-		ctx: ctx,
+		ctx:   ctx,
+		tasks: make(map[string]*recordingRuleTask),
 	}
 }
 
-// Submit 提交记录规则评估任务
+// Submit stops the previous task and waits for it before starting the new one.
 func (t *RecordingRule) Submit(rule models.RecordingRule) {
-	t.ctx.Mux.Lock()
-	defer t.ctx.Mux.Unlock()
+	t.mu.Lock()
+	defer t.mu.Unlock()
 
-	// 先停掉同 ruleId 的旧评估协程, 避免泄漏与重复评估
-	if cancel, exists := t.ctx.ContextMap[rule.RuleId]; exists {
-		cancel()
-	}
-
-	c, cancel := context.WithCancel(context.Background())
-	t.ctx.ContextMap[rule.RuleId] = cancel
-	go t.Eval(c, rule)
+	t.stopLocked(rule.RuleId)
+	t.startLocked(rule)
 }
 
-// Stop 停止记录规则评估任务
-func (t *RecordingRule) Stop(ruleId string) {
-	t.ctx.Mux.Lock()
-	defer t.ctx.Mux.Unlock()
+func (t *RecordingRule) startLocked(rule models.RecordingRule) {
+	taskCtx, cancel := context.WithCancel(t.ctx.Ctx)
+	task := &recordingRuleTask{cancel: cancel, done: make(chan struct{})}
+	t.tasks[rule.RuleId] = task
+	go func() {
+		shouldRestart := false
+		defer func() {
+			if r := recover(); r != nil {
+				stack := debug.Stack()
+				logc.Errorf(t.ctx.Ctx, "Recovered from recording rule eval goroutine panic: %s, MetricName: %s, RuleId: %s\n%s", r, rule.MetricName, rule.RuleId, stack)
+				shouldRestart = taskCtx.Err() == nil
+			}
 
-	if cancel, exists := t.ctx.ContextMap[ruleId]; exists {
-		cancel()
-		delete(t.ctx.ContextMap, ruleId)
+			close(task.done)
+			if shouldRestart {
+				t.restartAfterPanic(task, taskCtx, rule)
+			}
+		}()
+		t.Eval(taskCtx, rule)
+	}()
+}
+
+func (t *RecordingRule) stopLocked(ruleId string) {
+	task, exists := t.tasks[ruleId]
+	if !exists {
+		return
 	}
+
+	delete(t.tasks, ruleId)
+	task.cancel()
+	<-task.done
+}
+
+func (t *RecordingRule) stopWithoutWaitLocked(ruleId string) {
+	if task, exists := t.tasks[ruleId]; exists {
+		delete(t.tasks, ruleId)
+		task.cancel()
+	}
+}
+
+func (t *RecordingRule) Stop(ruleId string) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.stopLocked(ruleId)
+}
+
+func (t *RecordingRule) Restart(rule models.RecordingRule) {
+	// Restart is called by the task's panic handler. Waiting here would wait for
+	// the current task itself, so cancel it and let it finish without waiting.
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	t.stopWithoutWaitLocked(rule.RuleId)
+	t.startLocked(rule)
+}
+
+func (t *RecordingRule) restartAfterPanic(task *recordingRuleTask, taskCtx context.Context, rule models.RecordingRule) {
+	if taskCtx.Err() != nil {
+		return
+	}
+
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	current, exists := t.tasks[rule.RuleId]
+	if !exists || current != task || taskCtx.Err() != nil {
+		return
+	}
+
+	t.stopWithoutWaitLocked(rule.RuleId)
+	t.startLocked(rule)
 }
 
 // Eval 执行记录规则评估
@@ -71,15 +135,7 @@ func (t *RecordingRule) Eval(ctx context.Context, rule models.RecordingRule) {
 
 	taskChan := make(chan struct{}, TaskChannelBufferSize)
 	timer := time.NewTicker(t.getEvalTimeDuration(rule.EvalInterval))
-	defer func() {
-		timer.Stop()
-		if r := recover(); r != nil {
-			// 获取调用栈信息
-			stack := debug.Stack()
-			logc.Errorf(t.ctx.Ctx, "Recovered from recording rule eval goroutine panic: %s, MetricName: %s, RuleId: %s\n%s", r, rule.MetricName, rule.RuleId, stack)
-			t.Restart(rule)
-		}
-	}()
+	defer timer.Stop()
 
 	for {
 		select {
@@ -180,12 +236,6 @@ func (t *RecordingRule) processPrometheus(rule models.RecordingRule) {
 	}
 }
 
-// Restart 重启记录规则评估
-func (t *RecordingRule) Restart(rule models.RecordingRule) {
-	t.Stop(rule.RuleId)
-	t.Submit(rule)
-}
-
 // RestartAllEvals 重启所有记录规则评估器
 func (t *RecordingRule) RestartAllEvals() {
 	ruleList, err := t.getRuleList()
@@ -247,20 +297,17 @@ func (t *RecordingRule) getRuleList() ([]models.RecordingRule, error) {
 
 // StopAllEvals 停止所有记录规则评估器
 func (t *RecordingRule) StopAllEvals() {
-	t.ctx.Mux.Lock()
-	defer t.ctx.Mux.Unlock()
+	t.mu.Lock()
+	defer t.mu.Unlock()
 
-	count := len(t.ctx.ContextMap)
+	count := len(t.tasks)
 	if count == 0 {
 		return
 	}
 
 	logc.Infof(t.ctx.Ctx, "停止 %d 个记录规则评估器...", count)
-
-	// 取消所有评估任务
-	for ruleId, cancel := range t.ctx.ContextMap {
-		cancel()
-		delete(t.ctx.ContextMap, ruleId)
+	for ruleId := range t.tasks {
+		t.stopLocked(ruleId)
 	}
 
 	logc.Infof(t.ctx.Ctx, "所有记录规则评估器已停止")

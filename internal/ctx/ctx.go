@@ -8,11 +8,15 @@ import (
 )
 
 type Context struct {
-	DB         repo.InterEntryRepo
-	Redis      cache.InterEntryCache
-	Ctx        context.Context
-	Mux        sync.RWMutex
-	ContextMap map[string]context.CancelFunc
+	DB                 repo.InterEntryRepo
+	Redis              cache.InterEntryCache
+	Ctx                context.Context
+	Mux                sync.RWMutex
+	BackgroundTaskMu   sync.Mutex
+	LdapCancel         context.CancelFunc
+	LdapDone           chan struct{}
+	DutyScheduleCancel context.CancelFunc
+	DutyScheduleDone   chan struct{}
 }
 
 var (
@@ -26,18 +30,16 @@ func NewContext(ctx context.Context, db repo.InterEntryRepo, redis cache.InterEn
 	Redis = redis
 	Ctx = ctx
 	return &Context{
-		DB:         db,
-		Redis:      redis,
-		Ctx:        ctx,
-		ContextMap: make(map[string]context.CancelFunc),
+		DB:    db,
+		Redis: redis,
+		Ctx:   ctx,
 	}
 }
 
 func DO() *Context {
 	return &Context{
-		DB:         DB,
-		Redis:      Redis,
-		Ctx:        Ctx,
-		ContextMap: make(map[string]context.CancelFunc),
+		DB:    DB,
+		Redis: Redis,
+		Ctx:   Ctx,
 	}
 }
