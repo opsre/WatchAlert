@@ -54,6 +54,7 @@ type RequestDatasourceQuery struct {
 }
 
 type RequestQueryMetricsValue struct {
+	TenantId      string
 	DatasourceIds string `form:"datasourceIds"`
 	Query         string `form:"query"`
 	StartTime     int64  `form:"startTime"` // Unix 时间戳（秒），可选

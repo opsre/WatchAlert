@@ -18,27 +18,31 @@ service:
       memory: 1Gi
       cpu: 1
 
+  # The application requires a non-empty JWT signing secret.
+  jwtSecret: ""
+
   config: |-
     Server:
       port: "9001"
       mode: "release"
     
-    MySQL:
-      host: {{ .Release.Name }}-mysql
-      port: 3306
-      user: root
-      pass: w8t.123
-      dbName: watchalert
+    Database:
+      host: {{ include "watchalert.mysqlHost" . | quote }}
+      port: {{ .Values.mysql.port | default 3306 }}
+      user: {{ .Values.mysql.auth.username | quote }}
+      pass: {{ .Values.mysql.auth.password | quote }}
+      dbName: {{ .Values.mysql.auth.database | quote }}
       timeout: 10s
     
     Redis:
-      host: {{ .Release.Name }}-redis
-      port: 6379
-      pass: ""
+      host: {{ include "watchalert.redisHost" . | quote }}
+      port: {{ .Values.redis.port | default 6379 }}
+      pass: {{ .Values.redis.auth.password | quote }}
       database: 0
     
     Jwt:
       expire: 18000
+      secret: {{ required "service.jwtSecret must be set" .Values.service.jwtSecret | quote }}
     
     Ldap:
       enabled: false

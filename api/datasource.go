@@ -139,6 +139,9 @@ func (datasourceController datasourceController) PromQuery(ctx *gin.Context) {
 	r := new(types.RequestQueryMetricsValue)
 	BindQuery(ctx, r)
 
+	tid, _ := ctx.Get("TenantID")
+	r.TenantId = tid.(string)
+
 	Service(ctx, func() (interface{}, interface{}) {
 		var ress []provider.QueryResponse
 		path := "/api/v1/query"
@@ -150,7 +153,7 @@ func (datasourceController datasourceController) PromQuery(ctx *gin.Context) {
 		ids = strings.Split(r.DatasourceIds, ",")
 		for _, id := range ids {
 			var res provider.QueryResponse
-			source, err := ctx2.DO().DB.Datasource().Get(id)
+			source, err := ctx2.DO().DB.Datasource().Get(r.TenantId, id)
 			if err != nil {
 				return nil, err
 			}
@@ -187,6 +190,9 @@ func (datasourceController datasourceController) PromQueryRange(ctx *gin.Context
 	r := new(types.RequestQueryMetricsValue)
 	BindQuery(ctx, r)
 
+	tid, _ := ctx.Get("TenantID")
+	r.TenantId = tid.(string)
+
 	Service(ctx, func() (interface{}, interface{}) {
 		err := r.Validate()
 		if err != nil {
@@ -206,7 +212,7 @@ func (datasourceController datasourceController) PromQueryRange(ctx *gin.Context
 
 		for _, id := range ids {
 			var res provider.QueryResponse
-			source, err := ctx2.DO().DB.Datasource().Get(id)
+			source, err := ctx2.DO().DB.Datasource().Get(r.TenantId, id)
 			if err != nil {
 				return nil, err
 			}
@@ -236,11 +242,11 @@ func (datasourceController datasourceController) PromQueryRange(ctx *gin.Context
 
 // promMetadataGet 转发 Prometheus 元数据查询(/api/v1/label/*), 供「指标浏览器」使用。
 // 复用数据源鉴权头(Bearer/Basic)与出站 SSRF 校验。
-func promMetadataGet(datasourceId, pathSuffix string, params url.Values) (interface{}, error) {
+func promMetadataGet(tenantId, datasourceId, pathSuffix string, params url.Values) (interface{}, error) {
 	if datasourceId == "" {
 		return nil, fmt.Errorf("datasourceId 不能为空")
 	}
-	source, err := ctx2.DO().DB.Datasource().Get(datasourceId)
+	source, err := ctx2.DO().DB.Datasource().Get(tenantId, datasourceId)
 	if err != nil {
 		return nil, err
 	}
@@ -269,24 +275,33 @@ func promMetadataGet(datasourceId, pathSuffix string, params url.Values) (interf
 
 // PromMetricNames 返回数据源全部指标名(基于 __name__ label)。
 func (datasourceController datasourceController) PromMetricNames(ctx *gin.Context) {
+	tid, _ := ctx.Get("TenantID")
+	tenantIdStr := tid.(string)
+
 	Service(ctx, func() (interface{}, interface{}) {
-		return promMetadataGet(ctx.Query("datasourceId"), "/api/v1/label/__name__/values", nil)
+		return promMetadataGet(tenantIdStr, ctx.Query("datasourceId"), "/api/v1/label/__name__/values", nil)
 	})
 }
 
 // PromLabels 返回数据源 label 名(可选 match[] 限缩到某指标)。
 func (datasourceController datasourceController) PromLabels(ctx *gin.Context) {
+	tid, _ := ctx.Get("TenantID")
+	tenantIdStr := tid.(string)
+
 	Service(ctx, func() (interface{}, interface{}) {
 		params := url.Values{}
 		if m := ctx.Query("match"); m != "" {
 			params.Add("match[]", m)
 		}
-		return promMetadataGet(ctx.Query("datasourceId"), "/api/v1/labels", params)
+		return promMetadataGet(tenantIdStr, ctx.Query("datasourceId"), "/api/v1/labels", params)
 	})
 }
 
 // PromLabelValues 返回指定 label 的取值(可选 match[] 限缩到某指标)。
 func (datasourceController datasourceController) PromLabelValues(ctx *gin.Context) {
+	tid, _ := ctx.Get("TenantID")
+	tenantIdStr := tid.(string)
+
 	Service(ctx, func() (interface{}, interface{}) {
 		name := ctx.Query("name")
 		if name == "" {
@@ -296,7 +311,7 @@ func (datasourceController datasourceController) PromLabelValues(ctx *gin.Contex
 		if m := ctx.Query("match"); m != "" {
 			params.Add("match[]", m)
 		}
-		return promMetadataGet(ctx.Query("datasourceId"), "/api/v1/label/"+name+"/values", params)
+		return promMetadataGet(tenantIdStr, ctx.Query("datasourceId"), "/api/v1/label/"+name+"/values", params)
 	})
 }
 

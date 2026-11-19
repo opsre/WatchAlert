@@ -15,7 +15,7 @@ type (
 
 	InterDatasourceRepo interface {
 		List(tenantId, datasourceId, datasourceType, query string) ([]models.AlertDataSource, error)
-		Get(datasourceId string) (models.AlertDataSource, error)
+		Get(tenantId, datasourceId string) (models.AlertDataSource, error)
 		Create(r models.AlertDataSource) error
 		Update(r models.AlertDataSource) error
 		Delete(tenantId, datasourceId string) error
@@ -60,9 +60,9 @@ func (ds DatasourceRepo) List(tenantId, datasourceId, datasourceType, query stri
 	return data, nil
 }
 
-func (ds DatasourceRepo) Get(datasourceId string) (models.AlertDataSource, error) {
+func (ds DatasourceRepo) Get(tenantId, datasourceId string) (models.AlertDataSource, error) {
 	db := ds.db.Model(&models.AlertDataSource{})
-	db.Where("id = ?", datasourceId)
+	db.Where("tenant_id = ? AND id = ?", tenantId, datasourceId)
 
 	var data models.AlertDataSource
 	err := db.First(&data).Error

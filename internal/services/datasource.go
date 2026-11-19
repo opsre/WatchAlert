@@ -114,7 +114,7 @@ func (ds datasourceService) Delete(req interface{}) (interface{}, interface{}) {
 
 func (ds datasourceService) Get(req interface{}) (interface{}, interface{}) {
 	dataSource := req.(*types.RequestDatasourceQuery)
-	data, err := ds.ctx.DB.Datasource().Get(dataSource.ID)
+	data, err := ds.ctx.DB.Datasource().Get(dataSource.TenantId, dataSource.ID)
 	if err != nil {
 		return nil, err
 	}

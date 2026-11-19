@@ -25,7 +25,7 @@ func newInterClientService(ctx *ctx.Context) InterClientService {
 func (cs clientService) GetJaegerService(req interface{}) (interface{}, interface{}) {
 	r := req.(*types.RequestDatasourceQuery)
 
-	getInfo, err := cs.ctx.DB.Datasource().Get(r.ID)
+	getInfo, err := cs.ctx.DB.Datasource().Get(r.TenantId, r.ID)
 	if err != nil {
 		return nil, err
 	}

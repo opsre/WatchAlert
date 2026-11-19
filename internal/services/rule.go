@@ -442,7 +442,7 @@ func (rs ruleService) Change(req interface{}) (interface{}, interface{}) {
 				if v, ok := value.([]interface{}); ok {
 					var datasourceIds []string
 					for _, val := range v {
-						ds, err := rs.ctx.DB.Datasource().Get(val.(string))
+						ds, err := rs.ctx.DB.Datasource().Get(r.TenantId, val.(string))
 						if err != nil {
 							logc.Errorf(rs.ctx.Ctx, "获取数据源信息错误, id: %s, error: %v", val.(string), err)
 						}
