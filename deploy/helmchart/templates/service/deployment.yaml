@@ -43,13 +43,13 @@ spec:
           command:
             - sh
             - -c
-            - until nc -z -v -w 30 {{ include "watchalert.componentName" (dict "root" . "component" "mysql") }} 3306; do echo "Waiting for MySQL..."; sleep 3; done;
+            - until nc -z -v -w 30 {{ include "watchalert.mysqlHost" . | quote }} {{ include "watchalert.mysqlPort" . }}; do echo "Waiting for MySQL..."; sleep 3; done;
         - name: wait-for-redis
           image: {{ .Values.initContainers.wait.image.repository }}:{{ .Values.initContainers.wait.image.tag }}
           command:
             - sh
             - -c
-            - until nc -z -v -w 30 {{ include "watchalert.componentName" (dict "root" . "component" "redis") }} 6379; do echo "Waiting for Redis..."; sleep 3; done;
+            - until nc -z -v -w 30 {{ include "watchalert.redisHost" . | quote }} {{ include "watchalert.redisPort" . }}; do echo "Waiting for Redis..."; sleep 3; done;
 
       containers:
         - name: {{ include "watchalert.componentName" (dict "root" . "component" "service") }}

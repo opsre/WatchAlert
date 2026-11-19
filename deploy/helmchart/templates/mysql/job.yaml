@@ -20,13 +20,15 @@ spec:
           imagePullPolicy: {{ .Values.imagePullPolicy }}
           env:
             - name: MYSQL_HOST
-              value: {{ printf "%s-mysql" .Release.Name }}
+              value: {{ include "watchalert.mysqlHost" . | quote }}
+            - name: MYSQL_PORT
+              value: {{ include "watchalert.mysqlPort" . | quote }}
             - name: MYSQL_USERNAME
-              value: {{ .Values.job.mysql.username | quote }}
+              value: {{ .Values.mysql.auth.username | quote }}
             - name: MYSQL_PASSWORD
-              value: {{ .Values.job.mysql.password | quote }}
+              value: {{ .Values.mysql.auth.password | quote }}
             - name: MYSQL_DATABASE
-              value: {{ .Values.job.mysql.database | quote }}
+              value: {{ .Values.mysql.auth.database | quote }}
           volumeMounts:
             - name: config
               mountPath: /sql

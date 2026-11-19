@@ -28,7 +28,7 @@ service:
     
     Database:
       host: {{ include "watchalert.mysqlHost" . | quote }}
-      port: {{ .Values.mysql.port | default 3306 }}
+      port: {{ include "watchalert.mysqlPort" . }}
       user: {{ .Values.mysql.auth.username | quote }}
       pass: {{ .Values.mysql.auth.password | quote }}
       dbName: {{ .Values.mysql.auth.database | quote }}
@@ -36,7 +36,7 @@ service:
     
     Redis:
       host: {{ include "watchalert.redisHost" . | quote }}
-      port: {{ .Values.redis.port | default 6379 }}
+      port: {{ include "watchalert.redisPort" . }}
       pass: {{ .Values.redis.auth.password | quote }}
       database: 0
     
@@ -177,13 +177,18 @@ job:
     database: watchalert
 
 mysql:
-  enabled:  true
+  # Set to false to use an existing MySQL instance.
+  enabled: true
+  # Required when enabled is false. DNS name or IP reachable from the cluster.
+  host: ""
+  port: 3306
 
   image:
     repository: docker.1ms.run/mysql
     tag: "8.0"
 
   auth:
+    username: root
     password: w8t.123
     database: watchalert
 
@@ -194,7 +199,11 @@ mysql:
     size: 5Gi
 
 redis:
-  enabled:  true
+  # Set to false to use an existing Redis instance.
+  enabled: true
+  # Required when enabled is false. DNS name or IP reachable from the cluster.
+  host: ""
+  port: 6379
 
   image:
     repository: docker.1ms.run/redis
