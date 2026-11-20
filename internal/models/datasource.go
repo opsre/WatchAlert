@@ -36,8 +36,9 @@ type Auth struct {
 }
 
 type DsClickHouseConfig struct {
-	Addr    string
-	Timeout int64
+	Addr    string `json:"Addr"`
+	Timeout int64  `json:"Timeout"`
+	TLS     bool   `json:"tls"`
 }
 
 type DsAliCloudConfig struct {

@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"crypto/tls"
 	"database/sql"
 	"errors"
 	"time"
@@ -17,7 +18,19 @@ type ClickHouseProvider struct {
 }
 
 func NewClickHouseClient(ctx context.Context, ds models.AlertDataSource) (LogsFactoryProvider, error) {
-	conn := clickhouse.OpenDB(&clickhouse.Options{
+	conn := clickhouse.OpenDB(clickHouseOptions(ds))
+	if conn == nil {
+		return nil, errors.New("clickhouse connection failed")
+	}
+
+	return ClickHouseProvider{
+		client:         conn,
+		ExternalLabels: ds.Labels,
+	}, nil
+}
+
+func clickHouseOptions(ds models.AlertDataSource) *clickhouse.Options {
+	options := &clickhouse.Options{
 		Addr: []string{ds.ClickHouseConfig.Addr},
 		Auth: clickhouse.Auth{
 			Username: ds.Auth.User,
@@ -27,15 +40,16 @@ func NewClickHouseClient(ctx context.Context, ds models.AlertDataSource) (LogsFa
 			"max_execution_time": 60,
 		},
 		DialTimeout: time.Second * time.Duration(ds.ClickHouseConfig.Timeout),
-	})
-	if conn == nil {
-		return nil, errors.New("clickhouse connection failed")
 	}
 
-	return ClickHouseProvider{
-		client:         conn,
-		ExternalLabels: ds.Labels,
-	}, nil
+	if ds.ClickHouseConfig.TLS {
+		// An empty tls.Config enables certificate and hostname verification using
+		// the system trust store. Custom certificates are not part of datasource
+		// configuration yet.
+		options.TLS = &tls.Config{}
+	}
+
+	return options
 }
 
 func (c ClickHouseProvider) Query(options LogQueryOptions) (Logs, int, error) {
