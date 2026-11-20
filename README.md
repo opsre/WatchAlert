@@ -16,7 +16,7 @@
 
 > 演示环境：http://8.130.183.211（admin / 123）
 
-![img.png](assets/architecture.png)
+![img.png](assets/hi.png)
 
 ## 🔍 亮点
 
