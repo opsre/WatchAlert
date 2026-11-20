@@ -62,7 +62,7 @@ func (ds DatasourceRepo) List(tenantId, datasourceId, datasourceType, query stri
 
 func (ds DatasourceRepo) Get(tenantId, datasourceId string) (models.AlertDataSource, error) {
 	db := ds.db.Model(&models.AlertDataSource{})
-	db.Where("tenant_id = ? AND id = ?", tenantId, datasourceId)
+	db = db.Where("tenant_id = ? AND id = ?", tenantId, datasourceId)
 
 	var data models.AlertDataSource
 	err := db.First(&data).Error

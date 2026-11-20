@@ -18,6 +18,7 @@ type RuleTemplate struct {
 	AliCloudSLSConfig    AliCloudSLSConfig   `json:"alicloudSLSConfig" gorm:"alicloudSLSConfig;serializer:json"`
 	LokiConfig           LokiConfig          `json:"lokiConfig" gorm:"lokiConfig;serializer:json"`
 	JaegerConfig         JaegerConfig        `json:"jaegerConfig" gorm:"JaegerConfig;serializer:json"`
+	SkyWalkingConfig     SkyWalkingConfig    `json:"skywalkingConfig" gorm:"SkyWalkingConfig;serializer:json"`
 	KubernetesConfig     KubernetesConfig    `json:"kubernetesConfig" gorm:"kubernetesConfig;serializer:json"`
 	ElasticSearchConfig  ElasticSearchConfig `json:"elasticSearchConfig" gorm:"elasticSearchConfig;serializer:json"`
 	VictoriaLogsConfig   VictoriaLogsConfig  `json:"victoriaLogsConfig" gorm:"victoriaConfig;serializer:json"`

@@ -19,6 +19,7 @@ type RequestRuleCreate struct {
 	VictoriaLogsConfig   models.VictoriaLogsConfig  `json:"victoriaLogsConfig"`
 	ClickHouseConfig     models.ClickHouseConfig    `json:"clickhouseConfig"`
 	JaegerConfig         models.JaegerConfig        `json:"jaegerConfig"`
+	SkyWalkingConfig     models.SkyWalkingConfig    `json:"skywalkingConfig"`
 	CloudWatchConfig     models.CloudWatchConfig    `json:"cloudwatchConfig"`
 	KubernetesConfig     models.KubernetesConfig    `json:"kubernetesConfig"`
 	ElasticSearchConfig  models.ElasticSearchConfig `json:"elasticSearchConfig"`
@@ -54,6 +55,7 @@ type RequestRuleUpdate struct {
 	VictoriaLogsConfig   models.VictoriaLogsConfig  `json:"victoriaLogsConfig"`
 	ClickHouseConfig     models.ClickHouseConfig    `json:"clickhouseConfig"`
 	JaegerConfig         models.JaegerConfig        `json:"jaegerConfig"`
+	SkyWalkingConfig     models.SkyWalkingConfig    `json:"skywalkingConfig"`
 	CloudWatchConfig     models.CloudWatchConfig    `json:"cloudwatchConfig"`
 	KubernetesConfig     models.KubernetesConfig    `json:"kubernetesConfig"`
 	ElasticSearchConfig  models.ElasticSearchConfig `json:"elasticSearchConfig"`

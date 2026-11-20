@@ -153,6 +153,8 @@ func (ds datasourceService) WithAddClientToProviderPools(datasource models.Alert
 		cli, err = provider.NewVictoriaLogsClient(ctx.Ctx, datasource)
 	case provider.JaegerDsProviderName:
 		cli, err = provider.NewJaegerClient(datasource)
+	case provider.SkyWalkingDsProviderName:
+		cli, err = provider.NewSkyWalkingClient(datasource)
 	case "Kubernetes":
 		cli, err = provider.NewKubernetesClient(ds.ctx.Ctx, datasource.KubeConfig, datasource.Labels)
 	case "CloudWatch":

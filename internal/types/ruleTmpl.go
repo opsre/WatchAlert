@@ -14,6 +14,7 @@ type RequestRuleTemplateCreate struct {
 	AliCloudSLSConfig    models.AliCloudSLSConfig   `json:"alicloudSLSConfig"`
 	LokiConfig           models.LokiConfig          `json:"lokiConfig"`
 	JaegerConfig         models.JaegerConfig        `json:"jaegerConfig"`
+	SkyWalkingConfig     models.SkyWalkingConfig    `json:"skywalkingConfig"`
 	KubernetesConfig     models.KubernetesConfig    `json:"kubernetesConfig"`
 	ElasticSearchConfig  models.ElasticSearchConfig `json:"elasticSearchConfig"`
 	VictoriaLogsConfig   models.VictoriaLogsConfig  `json:"victoriaLogsConfig"`
@@ -32,6 +33,7 @@ type RequestRuleTemplateUpdate struct {
 	AliCloudSLSConfig    models.AliCloudSLSConfig   `json:"alicloudSLSConfig"`
 	LokiConfig           models.LokiConfig          `json:"lokiConfig"`
 	JaegerConfig         models.JaegerConfig        `json:"jaegerConfig"`
+	SkyWalkingConfig     models.SkyWalkingConfig    `json:"skywalkingConfig"`
 	KubernetesConfig     models.KubernetesConfig    `json:"kubernetesConfig"`
 	ElasticSearchConfig  models.ElasticSearchConfig `json:"elasticSearchConfig"`
 	VictoriaLogsConfig   models.VictoriaLogsConfig  `json:"victoriaLogsConfig"`

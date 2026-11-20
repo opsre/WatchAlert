@@ -34,6 +34,9 @@ type AlertRule struct {
 	// Jaeger
 	JaegerConfig JaegerConfig `json:"jaegerConfig" gorm:"JaegerConfig;serializer:json"`
 
+	// SkyWalking
+	SkyWalkingConfig SkyWalkingConfig `json:"skywalkingConfig" gorm:"SkyWalkingConfig;serializer:json"`
+
 	// AWS CloudWatch
 	CloudWatchConfig CloudWatchConfig `json:"cloudwatchConfig" gorm:"cloudwatchConfig;serializer:json"`
 
@@ -87,6 +90,12 @@ type KubernetesConfig struct {
 }
 
 type JaegerConfig struct {
+	Service string `json:"service"`
+	Scope   int    `json:"scope"`
+	Tags    string `json:"tags"`
+}
+
+type SkyWalkingConfig struct {
 	Service string `json:"service"`
 	Scope   int    `json:"scope"`
 	Tags    string `json:"tags"`

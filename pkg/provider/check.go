@@ -36,6 +36,9 @@ var datasourceFactories = map[string]ClientFactory{
 	"Jaeger": func(ds models.AlertDataSource) (HealthChecker, error) {
 		return NewJaegerClient(ds)
 	},
+	"SkyWalking": func(ds models.AlertDataSource) (HealthChecker, error) {
+		return NewSkyWalkingClient(ds)
+	},
 	"CloudWatch": func(ds models.AlertDataSource) (HealthChecker, error) {
 		return &CloudWatchDummyChecker{}, nil
 	},

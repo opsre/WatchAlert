@@ -26,6 +26,7 @@ const (
 	DatasourceTypeVictoriaLogs    = "VictoriaLogs"
 	DatasourceTypeClickHouse      = "ClickHouse"
 	DatasourceTypeJaeger          = "Jaeger"
+	DatasourceTypeSkyWalking      = "SkyWalking"
 	DatasourceTypeCloudWatch      = "CloudWatch"
 	DatasourceTypeKubernetesEvent = "KubernetesEvent"
 
@@ -45,6 +46,7 @@ var datasourceHandlers = map[string]func(*ctx.Context, string, string, models.Al
 	DatasourceTypeVictoriaLogs:    logs,
 	DatasourceTypeClickHouse:      logs,
 	DatasourceTypeJaeger:          traces,
+	DatasourceTypeSkyWalking:      traces,
 	DatasourceTypeCloudWatch:      cloudWatch,
 	DatasourceTypeKubernetesEvent: kubernetesEvent,
 }

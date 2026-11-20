@@ -12,39 +12,54 @@ import (
 	"github.com/zeromicro/go-zero/core/logc"
 )
 
-// Traces 包含 Jaeger 数据源
+// traces evaluates Jaeger and SkyWalking trace datasources.
 func traces(ctx *ctx.Context, datasourceId, datasourceType string, rule models.AlertRule) []string {
 	var (
 		queryRes       []provider.Traces
 		externalLabels map[string]interface{}
+		service        string
+		tags           string
+		scope          int
 	)
 
-	pools := ctx.Redis.ProviderPools()
 	switch datasourceType {
 	case provider.JaegerDsProviderName:
-		curAt := time.Now().UTC()
-		startsAt := tools.ParserDuration(curAt, rule.JaegerConfig.Scope, "m")
-
-		cli, err := pools.GetClient(datasourceId)
-		if err != nil {
-			logc.Errorf(ctx.Ctx, "获取Jaeger数据源客户端失败, 规则ID: %s, 规则名称: %s, 数据源ID: %s, 错误: %v", rule.RuleId, rule.RuleName, datasourceId, err)
-			return []string{}
-		}
-
-		queryOptions := provider.TraceQueryOptions{
-			Tags:    rule.JaegerConfig.Tags,
-			Service: rule.JaegerConfig.Service,
-			StartAt: startsAt.UnixMicro(),
-			EndAt:   curAt.UnixMicro(),
-		}
-		queryRes, err = cli.(provider.JaegerDsProvider).Query(queryOptions)
-		if err != nil {
-			logc.Errorf(ctx.Ctx, "Jaeger查询失败, 规则ID: %s, 规则名称: %s, 数据源ID: %s, 服务: %s, 错误: %v", rule.RuleId, rule.RuleName, datasourceId, rule.JaegerConfig.Service, err)
-			return []string{}
-		}
-
-		externalLabels = cli.(provider.JaegerDsProvider).GetExternalLabels()
+		service = rule.JaegerConfig.Service
+		tags = rule.JaegerConfig.Tags
+		scope = rule.JaegerConfig.Scope
+	case provider.SkyWalkingDsProviderName:
+		service = rule.SkyWalkingConfig.Service
+		tags = rule.SkyWalkingConfig.Tags
+		scope = rule.SkyWalkingConfig.Scope
+	default:
+		return []string{}
 	}
+
+	curAt := time.Now()
+	startsAt := tools.ParserDuration(curAt, scope, "m")
+	cli, err := ctx.Redis.ProviderPools().GetClient(datasourceId)
+	if err != nil {
+		logc.Errorf(ctx.Ctx, "获取链路数据源客户端失败, 规则ID: %s, 规则名称: %s, 数据源ID: %s, 错误: %v", rule.RuleId, rule.RuleName, datasourceId, err)
+		return []string{}
+	}
+
+	traceClient, ok := cli.(provider.TracesFactoryProvider)
+	if !ok {
+		logc.Errorf(ctx.Ctx, "链路数据源客户端类型错误, 规则ID: %s, 数据源ID: %s", rule.RuleId, datasourceId)
+		return []string{}
+	}
+
+	queryRes, err = traceClient.Query(provider.TraceQueryOptions{
+		Tags:    tags,
+		Service: service,
+		StartAt: startsAt.UnixMicro(),
+		EndAt:   curAt.UnixMicro(),
+	})
+	if err != nil {
+		logc.Errorf(ctx.Ctx, "%s查询失败, 规则ID: %s, 规则名称: %s, 数据源ID: %s, 服务: %s, 错误: %v", datasourceType, rule.RuleId, rule.RuleName, datasourceId, service, err)
+		return []string{}
+	}
+	externalLabels = traceClient.GetExternalLabels()
 
 	var curFingerprints []string
 	for _, v := range queryRes {
@@ -54,7 +69,7 @@ func traces(ctx *ctx.Context, datasourceId, datasourceType string, rule models.A
 			metric["rule_name"] = rule.RuleName
 			metric["severity"] = rule.Severity
 			metric["fingerprint"] = fingerprint
-			metric["service"] = rule.JaegerConfig.Service
+			metric["service"] = service
 			metric["traceId"] = v.TraceId
 			for ek, ev := range externalLabels {
 				metric[ek] = ev
@@ -66,8 +81,8 @@ func traces(ctx *ctx.Context, datasourceId, datasourceType string, rule models.A
 		})
 		event.DatasourceId = datasourceId
 		event.Fingerprint = fingerprint
-		event.SearchQL = rule.JaegerConfig.Tags
-		event.Annotations = fmt.Sprintf("服务: %s 链路中存在异常, TraceId: %s", rule.JaegerConfig.Service, v.TraceId)
+		event.SearchQL = tags
+		event.Annotations = fmt.Sprintf("服务: %s 链路中存在异常, TraceId: %s", service, v.TraceId)
 
 		curFingerprints = append(curFingerprints, event.Fingerprint)
 		process.PushEventToFaultCenter(ctx, &event)

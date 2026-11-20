@@ -1,10 +1,11 @@
 package api
 
 import (
-	"github.com/gin-gonic/gin"
 	middleware "watchAlert/internal/middleware"
 	"watchAlert/internal/services"
 	"watchAlert/internal/types"
+
+	"github.com/gin-gonic/gin"
 )
 
 type clientController struct{}
@@ -19,6 +20,7 @@ func (clientController clientController) API(gin *gin.RouterGroup) {
 	)
 	{
 		a.GET("getJaegerService", clientController.GetJaegerService)
+		a.GET("getTraceService", clientController.GetTraceService)
 	}
 }
 
@@ -26,7 +28,22 @@ func (clientController clientController) GetJaegerService(ctx *gin.Context) {
 	r := new(types.RequestDatasourceQuery)
 	BindQuery(ctx, r)
 
+	tid, _ := ctx.Get("TenantID")
+	r.TenantId = tid.(string)
+
 	Service(ctx, func() (interface{}, interface{}) {
 		return services.ClientService.GetJaegerService(r)
+	})
+}
+
+func (clientController clientController) GetTraceService(ctx *gin.Context) {
+	r := new(types.RequestDatasourceQuery)
+	BindQuery(ctx, r)
+
+	tid, _ := ctx.Get("TenantID")
+	r.TenantId = tid.(string)
+
+	Service(ctx, func() (interface{}, interface{}) {
+		return services.ClientService.GetTraceService(r)
 	})
 }

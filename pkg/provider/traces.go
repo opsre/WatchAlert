@@ -8,13 +8,14 @@ import (
 )
 
 const (
-	JaegerDsProviderName string = "Jaeger"
+	JaegerDsProviderName     string = "Jaeger"
+	SkyWalkingDsProviderName string = "SkyWalking"
 )
 
 type TracesFactoryProvider interface {
 	Query(options TraceQueryOptions) ([]Traces, error)
 	Check() (bool, error)
-	GetJaegerService() (JaegerServiceData, error)
+	GetServiceNames() (TraceServiceData, error)
 	GetExternalLabels() map[string]interface{}
 }
 
@@ -25,6 +26,13 @@ type TraceQueryOptions struct {
 	StartAt int64  `json:"startAt,omitempty"` // 查询的开始时间，以微秒 Unix 表示。
 	EndAt   int64  `json:"endAt,omitempty"`   // 查询的结束时间，以微秒 Unix 表示。
 }
+
+type TraceServiceData struct {
+	Data []string `json:"data"`
+}
+
+// JaegerServiceData is kept as an alias for API compatibility.
+type JaegerServiceData = TraceServiceData
 
 type Traces struct {
 	Service string
@@ -55,5 +63,5 @@ func (t Traces) GetMetric() map[string]interface{} {
 }
 
 func (t Traces) GetAnnotations(rule models.AlertRule, ds models.AlertDataSource) string {
-	return fmt.Sprintf("服务: %s 链路中存在异常状态码接口\nJaeger URL: %s/trace/%s\n\n详情查看 Jaeger Trace ⬆️", rule.JaegerConfig.Service, ds.HTTP.URL, t.TraceId)
+	return fmt.Sprintf("服务: %s 链路中存在异常状态码接口\nTrace URL: %s/trace/%s\n\n详情查看 Trace 链路 ⬆", t.Service, ds.HTTP.URL, t.TraceId)
 }
