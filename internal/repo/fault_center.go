@@ -1,8 +1,10 @@
 package repo
 
 import (
-	"gorm.io/gorm"
+	"encoding/json"
 	"watchAlert/internal/models"
+
+	"gorm.io/gorm"
 )
 
 type (
@@ -16,7 +18,7 @@ type (
 		Delete(tenantId, id string) error
 		List(tenantId, query string) ([]models.FaultCenter, error)
 		Get(tenantId, id, name string) (models.FaultCenter, error)
-		Reset(tenantId, id, name, description, aggregationType string) error
+		Reset(tenantId, id, name, description, aggregationType string, aggregationLabels []string) error
 	}
 )
 
@@ -112,32 +114,34 @@ func (f faultCenterRepo) Get(tenantId, id, name string) (models.FaultCenter, err
 	return data, nil
 }
 
-func (f faultCenterRepo) Reset(tenantId, id, name, description, aggregationType string) error {
-	var update []string
+func (f faultCenterRepo) Reset(tenantId, id, name, description, aggregationType string, aggregationLabels []string) error {
+	updates := make(map[string]interface{})
 
 	if name != "" {
-		update = []string{"name", name}
+		updates["name"] = name
 	}
 	if description != "" {
-		update = []string{"description", description}
+		updates["description"] = description
 	}
 	if aggregationType != "" {
-		update = []string{"aggregation_type", aggregationType}
-	}
-
-	if update != nil {
-		err := f.g.Update(Update{
-			Table: &models.FaultCenter{},
-			Where: map[string]interface{}{
-				"tenant_id = ?": tenantId,
-				"id = ?":        id,
-			},
-			Update: update,
-		})
+		aggregationLabelsJSON, err := json.Marshal(aggregationLabels)
 		if err != nil {
 			return err
 		}
+		updates["aggregation_type"] = aggregationType
+		updates["aggregation_labels"] = string(aggregationLabelsJSON)
 	}
 
-	return nil
+	if len(updates) == 0 {
+		return nil
+	}
+
+	return f.g.Updates(Updates{
+		Table: &models.FaultCenter{},
+		Where: map[string]interface{}{
+			"tenant_id = ?": tenantId,
+			"id = ?":        id,
+		},
+		Updates: updates,
+	})
 }

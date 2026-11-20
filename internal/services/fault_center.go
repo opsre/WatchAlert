@@ -47,6 +47,7 @@ func (f faultCenterService) Create(req interface{}) (data interface{}, err inter
 		RepeatNoticeInterval: r.RepeatNoticeInterval,
 		RecoverNotify:        r.RecoverNotify,
 		AggregationType:      r.AggregationType,
+		AggregationLabels:    r.AggregationLabels,
 		CreateAt:             time.Now().Unix(),
 		RecoverWaitTime:      r.RecoverWaitTime,
 		IsUpgradeEnabled:     r.IsUpgradeEnabled,
@@ -93,6 +94,7 @@ func (f faultCenterService) Update(req interface{}) (data interface{}, err inter
 		RepeatNoticeInterval: r.RepeatNoticeInterval,
 		RecoverNotify:        r.RecoverNotify,
 		AggregationType:      r.AggregationType,
+		AggregationLabels:    r.AggregationLabels,
 		CreateAt:             r.CreateAt,
 		RecoverWaitTime:      r.RecoverWaitTime,
 		IsUpgradeEnabled:     r.IsUpgradeEnabled,
@@ -194,7 +196,7 @@ func (f faultCenterService) Get(req interface{}) (data interface{}, err interfac
 
 func (f faultCenterService) Reset(req interface{}) (data interface{}, err interface{}) {
 	r := req.(*types.RequestFaultCenterReset)
-	err = f.ctx.DB.FaultCenter().Reset(r.TenantId, r.ID, r.Name, r.Description, r.AggregationType)
+	err = f.ctx.DB.FaultCenter().Reset(r.TenantId, r.ID, r.Name, r.Description, r.AggregationType, r.AggregationLabels)
 	if err != nil {
 		return nil, err
 	}

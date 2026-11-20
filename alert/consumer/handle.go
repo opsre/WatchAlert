@@ -212,6 +212,14 @@ func alarmAggregation(ctx *ctx.Context, processType string, faultCenter models.F
 		for severity, events := range alertGroups {
 			newAlertGroups[severity] = withRuleGroupByAlerts(ctx, curTime, events)
 		}
+	case "Label":
+		labelKeys := normalizeAggregationLabels(faultCenter.AggregationLabels)
+		if len(labelKeys) == 0 {
+			return alertGroups
+		}
+		for severity, events := range alertGroups {
+			newAlertGroups[severity] = withLabelGroupByAlerts(ctx, curTime, events, labelKeys)
+		}
 	default:
 		return alertGroups
 	}
@@ -236,6 +244,63 @@ func withRuleGroupByAlerts(ctx *ctx.Context, timeInt int64, alerts []*models.Ale
 	event := *alerts[0]
 	event.Annotations += fmt.Sprintf("\n聚合 %d 条消息，详情请前往 WatchAlert 查看\n", len(alerts))
 	return []*models.AlertCurEvent{&event}
+}
+
+func normalizeAggregationLabels(labels []string) []string {
+	result := make([]string, 0, len(labels))
+	seen := make(map[string]struct{}, len(labels))
+	for _, label := range labels {
+		label = strings.TrimSpace(label)
+		if label == "" {
+			continue
+		}
+		if _, exists := seen[label]; exists {
+			continue
+		}
+		seen[label] = struct{}{}
+		result = append(result, label)
+	}
+	return result
+}
+
+func withLabelGroupByAlerts(ctx *ctx.Context, timeInt int64, alerts []*models.AlertCurEvent, labelKeys []string) []*models.AlertCurEvent {
+	groups := make(map[string][]*models.AlertCurEvent)
+	groupOrder := make([]string, 0)
+
+	for index, alert := range alerts {
+		values := make([]string, 0, len(labelKeys))
+		missingLabel := false
+		for _, labelKey := range labelKeys {
+			value, ok := alert.Labels[labelKey]
+			if !ok || value == nil {
+				missingLabel = true
+				break
+			}
+			values = append(values, fmt.Sprint(value))
+		}
+
+		// Events missing any configured label remain independent instead of
+		// being grouped together under an artificial empty value.
+		groupKey := fmt.Sprintf("__missing_%d", index)
+		if !missingLabel {
+			groupKey = strings.Join(values, "\x00")
+		}
+		if _, exists := groups[groupKey]; !exists {
+			groupOrder = append(groupOrder, groupKey)
+		}
+		groups[groupKey] = append(groups[groupKey], alert)
+	}
+
+	result := make([]*models.AlertCurEvent, 0, len(groupOrder))
+	for _, groupKey := range groupOrder {
+		group := groups[groupKey]
+		if len(group) > 1 {
+			result = append(result, withRuleGroupByAlerts(ctx, timeInt, group)...)
+		} else {
+			result = append(result, group[0])
+		}
+	}
+	return result
 }
 
 // getNoticeData 获取 Notice 数据

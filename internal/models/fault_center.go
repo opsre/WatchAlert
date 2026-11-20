@@ -21,6 +21,7 @@ type FaultCenter struct {
 	RepeatNoticeInterval  map[string]int  `json:"repeatNoticeInterval" gorm:"repeatNoticeInterval;serializer:json"`
 	RecoverNotify         *bool           `json:"recoverNotify"`
 	AggregationType       string          `json:"aggregationType"`
+	AggregationLabels      []string        `json:"aggregationLabels" gorm:"column:aggregation_labels;serializer:json"`
 	CreateAt              int64           `json:"createAt"`
 	RecoverWaitTime       int64           `json:"recoverWaitTime"` // 告警恢复等待时间，单位（秒）
 	CurrentPreAlertNumber int64           `json:"currentPreAlertNumber" gorm:"-"`

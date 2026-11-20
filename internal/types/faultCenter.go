@@ -12,6 +12,7 @@ type RequestFaultCenterCreate struct {
 	RepeatNoticeInterval  map[string]int         `json:"repeatNoticeInterval" gorm:"repeatNoticeInterval;serializer:json"`
 	RecoverNotify         *bool                  `json:"recoverNotify"`
 	AggregationType       string                 `json:"aggregationType"`
+	AggregationLabels      []string               `json:"aggregationLabels" gorm:"column:aggregation_labels;serializer:json"`
 	CreateAt              int64                  `json:"createAt"`
 	RecoverWaitTime       int64                  `json:"recoverWaitTime"` // 告警恢复等待时间，单位（秒）
 	CurrentPreAlertNumber int64                  `json:"currentPreAlertNumber" gorm:"-"`
@@ -33,6 +34,7 @@ type RequestFaultCenterUpdate struct {
 	RepeatNoticeInterval  map[string]int         `json:"repeatNoticeInterval" gorm:"repeatNoticeInterval;serializer:json"`
 	RecoverNotify         *bool                  `json:"recoverNotify"`
 	AggregationType       string                 `json:"aggregationType"`
+	AggregationLabels      []string               `json:"aggregationLabels" gorm:"column:aggregation_labels;serializer:json"`
 	CreateAt              int64                  `json:"createAt"`
 	RecoverWaitTime       int64                  `json:"recoverWaitTime"` // 告警恢复等待时间，单位（秒）
 	CurrentPreAlertNumber int64                  `json:"currentPreAlertNumber" gorm:"-"`
@@ -53,11 +55,12 @@ type RequestFaultCenterQuery struct {
 
 // RequestFaultCenterReset 请求重新配置故障中心
 type RequestFaultCenterReset struct {
-	TenantId        string `json:"tenantId"`
-	ID              string `json:"id"`
-	Name            string `json:"name"`
-	Description     string `json:"description"`
-	AggregationType string `json:"aggregationType"`
+	TenantId         string `json:"tenantId"`
+	ID               string `json:"id"`
+	Name             string `json:"name"`
+	Description      string `json:"description"`
+	AggregationType  string `json:"aggregationType"`
+	AggregationLabels []string `json:"aggregationLabels"`
 }
 
 type RequestFaultCenterSLO struct {
